@@ -20,6 +20,7 @@ jobs:
       - name: Deploy-Check
         env:
           DJANGO_SECRET_KEY: ci-nur-fuer-den-check-ci-nur-fuer-den-check-0123456789abcdef
+          TOKEN_PEPPER: ci-nur-fuer-den-check-ci-nur-fuer-den-check-fedcba9876543210
           ALLOWED_HOSTS: example.invalid
           DATA_DIR: ${{ runner.temp }}/data
         run: uv run python src/manage.py check --deploy

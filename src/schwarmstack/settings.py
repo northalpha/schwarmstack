@@ -1,5 +1,6 @@
 """Settings, alles aus der Umgebung (/etc/schwarmstack/schwarmstack.env)."""
 
+import hashlib
 import os
 from pathlib import Path
 
@@ -28,14 +29,29 @@ ALLOWED_HOSTS = env_list("ALLOWED_HOSTS") or (["localhost", "127.0.0.1"] if DEBU
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
 
 INSTALLED_APPS = [
+    "schwarmstack.apps.OTPAdminConfig",  # ersetzt django.contrib.admin (mit 2FA)
+    "django.contrib.auth",
     "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_otp",
+    "django_otp.plugins.otp_totp",
+    "django_otp.plugins.otp_static",
+    "submissions",
+    "uploads",
+    "packing",
+    "altcha_gate",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_otp.middleware.OTPMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -47,8 +63,46 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [BASE_DIR / "schwarmstack" / "templates"],
         "APP_DIRS": True,
-        "OPTIONS": {"context_processors": ["django.template.context_processors.request"]},
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ]
+        },
     }
+]
+
+# Pfad des Django-Admins (die Caddyfile sperrt ihn auf dem öffentlichen Listener)
+ADMIN_PATH = os.environ.get("ADMIN_PATH", "admin").strip("/")
+
+# Tokens (Abgabe-Link, Upload-Token) werden nur als HMAC-SHA-256 mit diesem Pfeffer gespeichert.
+TOKEN_PEPPER = os.environ.get("TOKEN_PEPPER", "")
+if not TOKEN_PEPPER:
+    if not DEBUG:
+        raise RuntimeError("TOKEN_PEPPER ist nicht gesetzt")
+    TOKEN_PEPPER = "nur-fuer-die-entwicklung"  # noqa: S105
+
+# Vorgaben für neue Events (Produktion 1,5 GiB / 400 GiB, Staging 1 GiB / 4 GiB aus der Rolle)
+DEFAULT_QUOTA_BYTES = int(os.environ.get("DEFAULT_QUOTA_BYTES", 1610612736))
+DEFAULT_GLOBAL_CAP_BYTES = int(os.environ.get("DEFAULT_GLOBAL_CAP_BYTES", 429496729600))
+
+OTP_TOTP_ISSUER = "Schwarmstack"
+
+# ALTCHA (optional pro Event): Proof-of-Work-Prüfung ohne Drittanbieter
+ALTCHA_ALGORITHM = "PBKDF2/SHA-256"
+ALTCHA_COST = int(os.environ.get("ALTCHA_COST", 5000))
+ALTCHA_EXPIRY_SECONDS = 600
+ALTCHA_HMAC_SECRET = (
+    os.environ.get("ALTCHA_HMAC_SECRET")
+    or hashlib.sha256(b"altcha:" + SECRET_KEY.encode()).hexdigest()
+)
+
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
 DATABASES = {
