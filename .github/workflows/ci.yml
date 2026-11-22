@@ -1,0 +1,25 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest -q
+      - name: Deploy-Check
+        env:
+          DJANGO_SECRET_KEY: ci-nur-fuer-den-check-ci-nur-fuer-den-check-0123456789abcdef
+          ALLOWED_HOSTS: example.invalid
+          DATA_DIR: ${{ runner.temp }}/data
+        run: uv run python src/manage.py check --deploy
