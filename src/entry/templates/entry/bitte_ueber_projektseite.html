@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<h1>{% translate "Bitte starte über die Projektseite" %}</h1>
+<p>{% translate "Den Upload erreichst du über den Knopf auf der Projektseite." %}</p>
+{% if entry_page_url %}<p><a class="knopf" href="{{ entry_page_url }}">{% translate "Zur Projektseite" %}</a></p>{% endif %}
+{% endblock %}

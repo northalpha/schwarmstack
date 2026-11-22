@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     "uploads",
     "packing",
     "altcha_gate",
+    "entry",
+    "legal",
 ]
 
 MIDDLEWARE = [
@@ -68,6 +70,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "schwarmstack.context.site",
             ]
         },
     }
@@ -88,6 +91,30 @@ DEFAULT_QUOTA_BYTES = int(os.environ.get("DEFAULT_QUOTA_BYTES", 1610612736))
 DEFAULT_GLOBAL_CAP_BYTES = int(os.environ.get("DEFAULT_GLOBAL_CAP_BYTES", 429496729600))
 
 OTP_TOTP_ISSUER = "Schwarmstack"
+
+# --- Einstieg über die Projektwebsite (Referer-Tor, Entry-Ticket) und Abgabe ---------------
+ENTRY_TICKET_COOKIE = "entry_ticket"
+ENTRY_TICKET_MAX_AGE = 3600  # 60 Minuten
+SUBMISSION_COOKIE = "abgabe_token"
+SUBMISSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 180
+CONSENT_TEXT_VERSION = "2026-11"
+# Rate-Limits je gehashter IP und Stunde (Datenbank, kein Redis)
+RATE_ENTRY_PER_HOUR = int(os.environ.get("RATE_ENTRY_PER_HOUR", 20))
+RATE_SUBMISSIONS_PER_HOUR = int(os.environ.get("RATE_SUBMISSIONS_PER_HOUR", 5))
+# Wie viele Einträge am Ende von X-Forwarded-For stammen von eigenen Proxys (Caddy: 1 hinter
+# Tailscale, sonst 0). Der Wert davor ist die Client-Adresse; ohne Eintrag gilt REMOTE_ADDR.
+CLIENT_IP_SKIP = int(os.environ.get("CLIENT_IP_SKIP", 0))
+
+# --- Betreiberdaten, Datenschutz ---------------------------------------------------------------
+TEST_SYSTEM = env_bool("TEST_SYSTEM")
+OPERATOR_NAME = os.environ.get("OPERATOR_NAME", "")
+OPERATOR_ADDRESS = os.environ.get("OPERATOR_ADDRESS", "")
+OPERATOR_EMAIL = os.environ.get("OPERATOR_EMAIL", "")
+RETENTION_MONTHS = int(os.environ.get("RETENTION_MONTHS", 6))
+PROJECT_USE_TEXT = os.environ.get("PROJECT_USE_TEXT", "")
+PRIVACY_EXTRA_PROCESSORS = [
+    p.strip() for p in os.environ.get("PRIVACY_EXTRA_PROCESSORS", "").split("|") if p.strip()
+]
 
 # ALTCHA (optional pro Event): Proof-of-Work-Prüfung ohne Drittanbieter
 ALTCHA_ALGORITHM = "PBKDF2/SHA-256"
@@ -123,6 +150,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "/static/"
+STATICFILES_DIRS = [BASE_DIR / "schwarmstack" / "static"]
 STATIC_ROOT = DATA_DIR / "static"
 
 # TLS terminiert vor der App (Caddy bzw. Tailscale); Caddy setzt X-Forwarded-Proto.

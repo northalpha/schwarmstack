@@ -264,6 +264,7 @@ class Stack(models.Model):
     sha256_archive = models.CharField(max_length=64, blank=True)
     error_message = models.TextField(blank=True)
     header_summary = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
 
     class Meta:
         verbose_name = "Stack"
@@ -277,6 +278,20 @@ class Stack(models.Model):
         if self.focal_ratio is None and self.focal_length_mm and self.aperture_mm:
             self.focal_ratio = round(self.focal_length_mm / self.aperture_mm, 2)
         super().save(*args, **kwargs)
+
+    CHIPS = {
+        OPEN: "Offen – Dateien hinzufügen",
+        CLOSED: "Hochgeladen",
+        QUEUED: "Wartet auf Verarbeitung",
+        PACKING: "Wird gepackt",
+        DONE: "Fertig ✓",
+        FAILED: "Fehler – wir kümmern uns",
+    }
+
+    @property
+    def chip(self) -> str:
+        """Kurzer Status für die Teilnehmenden."""
+        return self.CHIPS[self.state]
 
     @property
     def total_exposure_seconds(self) -> float:

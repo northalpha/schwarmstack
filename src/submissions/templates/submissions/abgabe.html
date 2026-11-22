@@ -1,0 +1,71 @@
+{% extends "base.html" %}{% load i18n submission_extras %}
+{% block title %}{{ submission.display_name }} – Schwarmstack{% endblock %}
+{% block content %}
+<h1>{{ submission.display_name }}</h1>
+<p>{{ event.title }}</p>
+<div class="karte">
+  <strong>{% translate "Dein Speicherplatz" %}</strong>: {{ used_bytes|mib }} {% translate "von" %} {{ quota_bytes|mib }}
+  <progress class="balken" value="{{ quota_percent }}" max="100">{{ quota_percent }} %</progress>
+</div>
+{% if submission.is_blocked %}<p class="hinweis">{% translate "Diese Abgabe ist gesperrt. Neue Stacks sind nicht möglich." %}</p>
+{% elif not event.is_open %}<p class="hinweis">{% translate "Das Event ist geschlossen. Neue Stacks sind nicht möglich." %}</p>{% endif %}
+
+<h2>{% translate "Deine Stacks" %}</h2>
+{% for stack in stacks %}
+  <div class="karte">
+    <strong>{{ stack.object_name }}</strong> <span class="chip">{{ stack.chip }}</span>
+    <p>{{ stack.telescope }} · {{ stack.camera }}{% if stack.filters %} · {{ stack.filters }}{% endif %}</p>
+    {% if stack.exposure_lines.all %}
+      <p>{% translate "Belichtung" %}: {{ stack.total_exposure_seconds|dauer }}
+        ({% for line in stack.exposure_lines.all %}{{ line }}{% if not forloop.last %}, {% endif %}{% endfor %})</p>
+    {% endif %}
+    {% if stack.state == "open" %}<p class="hinweis">{% translate "Das Hochladen der Dateien kommt in Kürze." %}</p>{% endif %}
+  </div>
+{% empty %}
+  <p>{% translate "Noch kein Stack. Lege unten deinen ersten an." %}</p>
+{% endfor %}
+
+{% if can_add %}
+<h2>{% translate "Neuer Stack" %}</h2>
+<form method="post">{% csrf_token %}
+  {% if stack_form.non_field_errors %}<ul class="fehler">{% for e in stack_form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+  <h3>{% translate "Objekt" %}</h3>
+  <div class="raster">
+    {% include "submissions/_feld.html" with field=stack_form.object_name %}
+    {% include "submissions/_feld.html" with field=stack_form.capture_dates %}
+  </div>
+  {% include "submissions/_feld.html" with field=stack_form.description %}
+  <h3>{% translate "Optik und Aufnahme" %}</h3>
+  <div class="raster">
+    {% include "submissions/_feld.html" with field=stack_form.telescope %}
+    {% include "submissions/_feld.html" with field=stack_form.focal_length_mm %}
+    {% include "submissions/_feld.html" with field=stack_form.aperture_mm %}
+    {% include "submissions/_feld.html" with field=stack_form.reducer_barlow %}
+    {% include "submissions/_feld.html" with field=stack_form.camera %}
+    {% include "submissions/_feld.html" with field=stack_form.mount %}
+    {% include "submissions/_feld.html" with field=stack_form.filters %}
+  </div>
+  <h3>{% translate "Belichtung" %}</h3>
+  {{ formset.management_form }}
+  {% if formset.non_form_errors %}<ul class="fehler">{% for e in formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+  <table>
+    <tr><th>{% translate "Filter" %}</th><th>{% translate "Anzahl" %}</th><th>{% translate "Sekunden" %}</th><th>{% translate "Gain/ISO" %}</th><th>{% translate "Temp. °C" %}</th></tr>
+    {% for form in formset %}
+      <tr>
+        {% for field in form.visible_fields %}<td>{{ field }}{% if field.errors %}<ul class="fehler">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</td>{% endfor %}
+        {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+      </tr>
+    {% endfor %}
+  </table>
+  <h3>{% translate "Kalibrierung" %}</h3>
+  <div class="raster">
+    {% include "submissions/_feld.html" with field=stack_form.has_darks %}
+    {% include "submissions/_feld.html" with field=stack_form.has_flats %}
+    {% include "submissions/_feld.html" with field=stack_form.has_bias %}
+    {% include "submissions/_feld.html" with field=stack_form.has_darkflats %}
+  </div>
+  {% include "submissions/_feld.html" with field=stack_form.notes %}
+  <button type="submit">{% translate "Stack anlegen" %}</button>
+</form>
+{% endif %}
+{% endblock %}

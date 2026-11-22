@@ -1,0 +1,43 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}Datenschutz – Schwarmstack{% endblock %}
+{% block content %}
+<h1>Datenschutzhinweise – Schwarmstack</h1>
+<p class="hinweis">Vorlage, keine Rechtsberatung. Stand der Einwilligungstexte: {{ version }}.</p>
+
+<h2>1. Verantwortlich</h2>
+<p>{{ operator_name|default:"[Betreiber folgt]" }}, {{ operator_address|default:"[Anschrift folgt]" }}, {{ operator_email|default:"[E-Mail folgt]" }}</p>
+
+<h2>2. Welche Daten wir verarbeiten</h2>
+<p>Anzeigename, optional E-Mail-Adresse, Social-Media-Links, Region und Bortle-Klasse; Angaben zu deinen Aufnahmen und deinem Equipment;
+die hochgeladenen FITS-/XISF-Dateien einschließlich der darin enthaltenen Header-Angaben (z. B. Belichtungszeit, Kamera, Teleskop, Aufnahmezeitpunkt)
+und ein optionales Equipment-Foto (Metadaten wie GPS-Koordinaten entfernen wir automatisch); technische Zugriffsdaten (gekürzte IP-Adresse, Zeitpunkt,
+angefragte Adresse) in Server-Logs. Beim Aufruf der Upload-Seite prüfen wir, ob du von der Projektseite kommst; diese Angabe speichern wir nicht.</p>
+<p><strong>Hinweis:</strong> FITS-/XISF-Header können Standortkoordinaten enthalten (z. B. <code>SITELAT</code>, <code>SITELONG</code>).
+Wenn du das nicht möchtest, entferne diese Angaben vor dem Hochladen.</p>
+
+<h2>3. Zwecke und Rechtsgrundlagen</h2>
+<ul>
+  <li>Durchführung des Community-Projekts: Entgegennahme, Speicherung und Bearbeitung deiner Aufnahmen (Art. 6 Abs. 1 lit. b DSGVO).</li>
+  <li>Nennung von Name und Links sowie Zeigen des Equipment-Fotos bei Veröffentlichungen, Versand von Status-E-Mails: nur mit deiner Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), jederzeit mit Wirkung für die Zukunft widerrufbar.</li>
+  <li>Server-Logs zur Sicherheit und Missbrauchsabwehr (Art. 6 Abs. 1 lit. f DSGVO). Logs werden nach 7 Tagen gelöscht.</li>
+</ul>
+{% if project_use_text %}<p>{{ project_use_text }}</p>{% endif %}
+
+<h2>4. Cookies</h2>
+<p>Wir setzen ausschließlich technisch notwendige Cookies, damit du deine Abgabe wiederfindest und Formulare sicher sind (§ 25 Abs. 2 TDDDG).
+Kein Tracking, keine Analyse-Tools, keine externen Inhalte.</p>
+
+<h2>5. Hosting und Empfänger</h2>
+<p>{% if test_system %}Testsystem auf einem privat betriebenen Server.{% else %}Server und Speicher: Hetzner Online GmbH, Industriestr. 25, 91710 Gunzenhausen, Rechenzentren in Deutschland, im Rahmen einer Auftragsverarbeitung nach Art. 28 DSGVO.{% endif %}
+{% for p in extra_processors %}{{ p }}. {% endfor %}Eine Weitergabe an sonstige Dritte findet nicht statt.</p>
+
+<h2>6. Speicherdauer</h2>
+<p>Hochgeladene Rohdaten löschen wir spätestens {{ retention_months }} Monate nach Projektende.
+{% if test_system %}Dies ist ein Testsystem. Alle Daten werden nach Ende der Testphase gelöscht.{% endif %}
+Angaben zur Namensnennung bleiben gespeichert, solange das Projektergebnis veröffentlicht ist oder bis du deine Einwilligung widerrufst.</p>
+
+<h2>7. Deine Rechte</h2>
+<p>Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch (Art. 15–21 DSGVO) sowie Widerruf erteilter Einwilligungen.
+Eine kurze Mail an {{ operator_email|default:"[E-Mail folgt]" }} genügt; löschen kannst du deine Daten auch direkt auf deiner Abgabeseite.
+Du hast das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren.</p>
+{% endblock %}

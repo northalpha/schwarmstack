@@ -17,6 +17,22 @@ DEBUG=1 DATA_DIR=./var uv run python src/manage.py runserver
 Settings kommen aus der Umgebung. Pflicht außerhalb von `DEBUG`: `DJANGO_SECRET_KEY`, `ALLOWED_HOSTS`.
 Weitere: `CSRF_TRUSTED_ORIGINS`, `DATA_DIR`, `HSTS_SECONDS` (nur Produktion), `LOG_LEVEL`.
 
+## Einbindung auf der Projektwebsite
+
+Der Upload-Knopf ist ein normaler Link auf `https://<upload-host>/start/<event-slug>/`. Damit der
+Weg funktioniert, muss die Projektseite den Origin als Referer mitschicken:
+
+- ein normaler Link (`<a href="…">`), **kein** `rel="noreferrer"` und **kein**
+  `Referrer-Policy: no-referrer` (der Browser-Standard `strict-origin-when-cross-origin` genügt,
+  beide Seiten müssen https nutzen);
+- der Origin der Projektseite (`https://projekt.example.org`, mit Port, falls nicht 443) steht im
+  Event unter „Erlaubte Herkunfts-Origins“.
+
+**Ehrlich eingeordnet:** Der Referer ist ein *weiches* Tor. Er hält Zufallsbesucher, Crawler und
+weitergegebene Links fern, ein Skript kann ihn fälschen. Dahinter stehen harte Grenzen: nur
+FITS/XISF mit Inhaltsprüfung, Quote je Abgabe und Gesamtgrenze, Rate-Limits (Einstieg 20/IP/h,
+neue Abgaben 5/IP/h), Sperren im Admin und optional ALTCHA.
+
 ## Admin und Zweitfaktor
 
 Der Admin liegt unter `/<ADMIN_PATH>/` (Umgebungsvariable, Standard `admin`) und verlangt Passwort

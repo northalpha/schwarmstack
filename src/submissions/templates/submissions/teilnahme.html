@@ -1,0 +1,33 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{{ event.title }} – Schwarmstack{% endblock %}
+{% block content %}
+<h1>{{ event.title }}</h1>
+{% if event.description %}<p>{{ event.description|linebreaksbr }}</p>{% endif %}
+<h2>{% translate "Mitmachen" %}</h2>
+<p class="hinweis">{% translate "Du brauchst kein Konto. Nach dem Absenden bekommst du einen persönlichen Link, mit dem du jederzeit zu deiner Abgabe zurückkehrst." %}</p>
+<form method="post">{% csrf_token %}
+  {% if form.non_field_errors %}<ul class="fehler">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+  <div class="raster">
+    {% include "submissions/_feld.html" with field=form.display_name %}
+    {% include "submissions/_feld.html" with field=form.email %}
+    {% include "submissions/_feld.html" with field=form.region %}
+    {% include "submissions/_feld.html" with field=form.bortle %}
+  </div>
+  <h2>{% translate "Links (optional)" %}</h2>
+  <div class="raster">
+    {% include "submissions/_feld.html" with field=form.link1 %}
+    {% include "submissions/_feld.html" with field=form.link2 %}
+    {% include "submissions/_feld.html" with field=form.link3 %}
+    {% include "submissions/_feld.html" with field=form.link4 %}
+  </div>
+  <h2>{% translate "Einwilligungen" %}</h2>
+  {% include "submissions/_feld.html" with field=form.privacy_read %}
+  <p><a href="{% url 'datenschutz' %}" target="_blank" rel="noopener">{% translate "Datenschutzhinweise öffnen" %}</a></p>
+  {% include "submissions/_feld.html" with field=form.project_use %}
+  {% include "submissions/_feld.html" with field=form.publish_name_links %}
+  {% include "submissions/_feld.html" with field=form.publish_equipment_photo %}
+  {% include "submissions/_feld.html" with field=form.status_mails %}
+  {% if event.altcha_enabled %}{% include "altcha_gate/widget.html" %}{% endif %}
+  <button type="submit">{% translate "Absenden" %}</button>
+</form>
+{% endblock %}

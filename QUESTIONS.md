@@ -20,6 +20,14 @@
   die Arbeitsumgebung keinen Browser und kein Node hat: erster Test auf Staging mit `altcha_enabled`
   in einem Event. Widget und Worker laden nur vom eigenen Server (`external`-Build mit eigenem Worker).
 
+- **Referer als weiches Tor** (Plan 5.1): im README „Einbindung“ ehrlich festgehalten.
+- **Client-Adresse:** Für die Rate-Limits braucht die App die echte Adresse. Hinter Tailscale (Serve/Funnel)
+  und Caddy wird sie aus `X-Forwarded-For` gelesen (`CLIENT_IP_SKIP=1`: der letzte Eintrag ist Caddy, davor
+  steht, was Tailscale gesetzt hat). **Nicht gegen echtes Tailscale getestet** (nur mit den Headern nachgestellt);
+  fällt der Wert aus, gilt `REMOTE_ADDR` (alle teilen sich dann ein Limit, unsicher wird nichts).
+- **Teilnahme ohne eigene Abgabe-Seite für Mails:** Der persönliche Link wird nur angezeigt; das Mailen
+  (Status-Mails) folgt mit A7.
+
 ## Offen
 
 - ALTCHA im Browser prüfen (siehe oben), sobald das Teilnahmeformular steht (A2).

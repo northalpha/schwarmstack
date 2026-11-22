@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}Impressum – Schwarmstack{% endblock %}
+{% block content %}
+<h1>Impressum</h1>
+{% if test_system %}<p class="hinweis">Testsystem. Die Angaben unten sind Platzhalter.</p>{% endif %}
+<p>{{ operator_name|default:"[Betreiber folgt]" }}<br>{{ operator_address|default:"[Anschrift folgt]" }}</p>
+<p>Kontakt: {{ operator_email|default:"[E-Mail folgt]" }}</p>
+{% endblock %}

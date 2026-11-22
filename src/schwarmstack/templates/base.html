@@ -1,0 +1,16 @@
+{% load i18n static %}<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Schwarmstack{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'schwarmstack/site.css' %}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  {% if test_system %}<p class="banner">{% translate "Testsystem – Daten werden gelöscht." %}</p>{% endif %}
+  <header class="kopf"><a href="{% url 'home' %}">Schwarmstack</a> <span class="motto">{% translate "Viele Teleskope, ein Stack." %}</span></header>
+  <main>{% block content %}{% endblock %}</main>
+  <footer class="fuss"><a href="{% url 'datenschutz' %}">{% translate "Datenschutz" %}</a> · <a href="{% url 'impressum' %}">{% translate "Impressum" %}</a></footer>
+</body>
+</html>
