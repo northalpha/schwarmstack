@@ -31,21 +31,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --frozen
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run shellcheck deploy/*.sh scripts/*.sh
-      - run: uv run python src/manage.py makemigrations --check --dry-run
-        env:
-          DEBUG: "1"
-          DATA_DIR: ${{ runner.temp }}
-      - name: Garage als S3-Speicher starten
-        run: scripts/garage.sh start >> "$GITHUB_ENV"
       - name: Browser für den Durchlauf mit Uppy
         run: uv run playwright install --with-deps chromium
-      - name: Tests (inklusive Garage und Browser)
-        run: uv run pytest -q
-        env:
-          REQUIRE_GARAGE: "1"
+      # Lint, Glossar, Changelog, Migrationen und Tests mit Garage und Browser; lokal genauso.
+      - run: scripts/pruefen.sh
 
   image:
     needs: test

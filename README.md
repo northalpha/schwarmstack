@@ -14,7 +14,9 @@ Upload-Dienst für ein gemeinsames Astrofotografie-Projekt der [DZVF-Community](
 - [`GLOSSARY.md`](GLOSSARY.md): die gemeinsame Sprache (Aktion, Abgabe, Master, Kanal, Export …)
 - [`docs/adr/`](docs/adr/): Entscheidungen, die schwer umkehrbar sind (Deployment, Upload-Weg, Datenbank …)
 - [`docs/betrieb/`](docs/betrieb/): Betrieb (Deployment nach Staging und Produktion, S3-Speicher)
-- [`docs/agents/`](docs/agents/): Hinweise für Coding-Agenten (Issue-Tracker, Labels, Domain-Docs)
+- [`docs/agents/`](docs/agents/): Hinweise für Coding-Agenten (Codebase, Issue-Tracker, Labels, Domain-Docs)
+- [`CODING_STANDARDS.md`](CODING_STANDARDS.md): was das Review beurteilt
+- [`changelog.d/`](changelog.d/README.md): Changelog-Einträge bis zum nächsten Release
 
 ## Lokal starten
 
@@ -28,4 +30,4 @@ DEBUG=1 uv run python manage.py campaign --object "M 101" \
 DEBUG=1 uv run python manage.py runserver
 ```
 
-Tests: `uv run pytest` im Repo-Wurzelverzeichnis. Mit `scripts/garage.sh start` laufen zusätzlich die Tests gegen echtes S3 (Garage) und der Durchlauf im Browser, siehe [`docs/betrieb/s3-speicher.md`](docs/betrieb/s3-speicher.md).
+Prüfen wie in CI: `scripts/pruefen.sh` startet Garage (S3) und lässt Lint, Migrationen und alle Tests laufen, auch den Durchlauf im Browser; `scripts/pruefen.sh --schnell` ohne Garage. Einzelne Tests: `uv run pytest` im Repo-Wurzelverzeichnis, siehe [`docs/betrieb/s3-speicher.md`](docs/betrieb/s3-speicher.md).
