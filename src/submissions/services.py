@@ -84,36 +84,48 @@ def delete_master(master: Master) -> None:
             storage.put_json(duplicate.sidecar_key, sidecar(duplicate))
 
 
-def withdraw(submission: Submission, *, by: str) -> Submission:
+def details_corrected(submission: Submission) -> None:
+    """Nach einer Korrektur von Nennung oder Setup die Begleitdateien neu schreiben,
+    damit die Zuordnung ohne Datenbank stimmt (ADR 0006)."""
+    storage = get_storage()
+    for master in submission.masters.filter(state=Master.State.ACCEPTED):
+        storage.put_json(master.sidecar_key, sidecar(master))
+
+
+def withdraw(submission: Submission, *, by: Submission.WithdrawnBy) -> Submission:
     """Rückzug: löscht alle Master, Angaben und Einwilligungen samt Widerruf.
 
     Es bleiben die Abgabe-Kennung, der Zeitpunkt und wer den Rückzug ausgelöst hat. Eine
     zurückgezogene Abgabe zählt nicht mehr auf Quote oder Gesamtgrenze und öffnet nicht wieder.
     """
-    if submission.is_withdrawn:
-        return submission
+    with transaction.atomic():
+        submission = Submission.objects.select_for_update().get(pk=submission.pk)
+        if submission.is_withdrawn:
+            return submission
+        # Zuerst als zurückgezogen markieren: Ab hier startet kein neuer Upload mehr.
+        submission.withdrawn_at = timezone.now()
+        submission.withdrawn_by = by
+        submission.credit_name = ""
+        submission.setup_description = ""
+        submission.save()
+        submission.consents.all().delete()
     for master in submission.masters.all():
         if master.state in DELETABLE:
             delete_master(master)
-    with transaction.atomic():
-        submission.masters.all().delete()
-        submission.consents.all().delete()
-        submission.credit_name = ""
-        submission.setup_description = ""
-        submission.withdrawn_at = timezone.now()
-        submission.withdrawn_by = by
-        submission.save()
+    submission.masters.all().delete()
     return submission
 
 
-def revoke(consent: Consent, *, by: str) -> Consent:
+def revoke(consent: Consent, *, by: Submission.WithdrawnBy) -> bool:
     """Widerruf einer Einwilligung: Sie bekommt einen Zeitpunkt und bleibt stehen.
 
-    Der Widerruf der Nutzung im Projekt löst den Rückzug der ganzen Abgabe aus.
+    Der Widerruf der Nutzung im Projekt löst den Rückzug der ganzen Abgabe aus. Gibt zurück,
+    ob sich etwas geändert hat (ein schon vermerkter Widerruf ändert nichts).
     """
-    if consent.revoked_at is None:
-        consent.revoked_at = timezone.now()
-        consent.save(update_fields=["revoked_at"])
+    if consent.revoked_at is not None:
+        return False
+    consent.revoked_at = timezone.now()
+    consent.save(update_fields=["revoked_at"])
     if consent.kind == Consent.Kind.PROJECT_USE:
         withdraw(consent.submission, by=by)
-    return consent
+    return True

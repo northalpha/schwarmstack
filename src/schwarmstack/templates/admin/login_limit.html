@@ -1,6 +1,6 @@
 {% extends "admin/base_site.html" %}
 {% block content %}
 <p class="errornote">Zu viele fehlgeschlagene Anmeldeversuche von dieser Adresse. Bitte versuche es
-in einer Viertelstunde noch einmal.</p>
+in {{ minutes }} Minute{{ minutes|pluralize:"n" }} noch einmal.</p>
 <p><a href="{% url 'operator:login' %}">Zur Anmeldung</a></p>
 {% endblock %}
