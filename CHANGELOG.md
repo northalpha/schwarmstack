@@ -19,8 +19,8 @@
   RGB mit drei; abweichende Größe, zu kurze Dateien und falsche Formate werden abgelehnt, die
   Datei gelöscht und der Grund angezeigt. Warum: Der Betreiber soll am Ende nur brauchbare
   Master bekommen, und Teilnehmende sollen sofort wissen, was sie anders exportieren müssen.
-- Prüfsumme und Dubletten (#14): Der Browser berechnet die SHA-256 in einem Web Worker parallel
-  zum Upload (schrittweise, ohne die Datei ganz zu laden) und meldet sie mit der Fertig-Meldung;
+- Prüfsumme und Dubletten (#14): Der Browser berechnet die SHA-256 mit WebCrypto in einem Web
+  Worker parallel zum Upload und meldet sie mit der Fertig-Meldung;
   der Server übernimmt sie ungeprüft. Dieselbe Datei in derselben Abgabe wird abgelehnt, in
   einer anderen angenommen und als Dublette des ersten Masters markiert. Prüfsumme und Dublette
   stehen in der Begleitdatei. Warum: Kontrolle nach dem Download und Erkennen doppelter Dateien.
