@@ -5,6 +5,9 @@ Der Browser lädt Master per S3-Multipart-Upload direkt in den Hetzner-S3-Speich
 ## Consequences
 
 - Die Speicher-Schnittstelle hat zwei Adapter: lokale Platte (Modultests, lokale Entwicklung) und S3 (Staging, Produktion). Das Ausstellen signierter Links wird mit `moto` getestet, der Browser-Ablauf in CI gegen Garage als S3-kompatiblen Container (MinIO ist seit 2025 im Wartungsmodus).
+- Der Server kann keine Prüfsumme über den Master bilden. Der Browser berechnet beim Hochladen die SHA-256 (gestreamt) und meldet sie beim Abschluss; der Server speichert sie ungeprüft. Sie dient der Kontrolle nach dem Download und dem Erkennen doppelter Dateien.
+- Unvollständige Multipart-Uploads räumt eine Lifecycle-Regel im Bucket nach 7 Tagen ab.
+- Ausnahme Equipment-Foto: Es ist höchstens 10 MB groß und läuft durch den Server, der es neu speichert und dabei alle EXIF- und GPS-Daten entfernt.
 
 ## Considered Options
 

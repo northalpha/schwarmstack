@@ -4,7 +4,8 @@ Teilnehmende kommen über einen Link auf der Projektwebsite direkt zum Upload, o
 
 ## Consequences
 
-- Kein Rückweg von einem anderen Gerät und keine nachträgliche Änderung durch die Teilnehmenden; Korrekturen laufen über den Betreiber.
+- Bis zum Ende der Aktion können Teilnehmende ihre Abgabe im selben Browser ergänzen, ändern und Master löschen; danach ist sie schreibgeschützt.
+- Kein Rückweg von einem anderen Gerät: Wer dort etwas ändern will, wendet sich mit der Abgabe-Kennung an den Betreiber. Die Kennung wird nach dem Anlegen der Abgabe angezeigt und steht im Manifest.
 - Missbrauch lässt sich nicht an einer Identität festmachen: Schutz nur über Quote je Abgabe, Gesamtgrenze für alle Abgaben, Rate-Limit je IP (gespeichert nur als Hash) und optional ALTCHA.
 
 ## Considered Options
