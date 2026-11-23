@@ -11,6 +11,15 @@
   const queue = root.querySelector(".queue");
   const button = root.querySelector("button.start");
   const channelTemplate = document.getElementById("channel-template");
+  // In der Nachfrist dürfen nur begonnene Uploads fortgesetzt werden.
+  const mayStart = root.dataset.mayStart === "1";
+
+  // Unterbrochene Uploads dieser Abgabe (vom Server). Wählen Teilnehmende dieselbe Datei
+  // erneut aus, setzt Uppy über die Liste der schon übertragenen Teile fort.
+  const resumable = new Map();
+  for (const row of document.querySelectorAll("tr.resumable")) {
+    resumable.set(`${row.dataset.name}|${row.dataset.size}`, { ...row.dataset });
+  }
 
   // Prüfsumme im Web Worker, parallel zum Upload; gemeldet wird sie mit der Fertig-Meldung.
   const worker = new Worker(root.dataset.shaWorker);
@@ -111,7 +120,22 @@
     if (state) row.dataset.state = state;
   }
 
+  function rejectRow(text) {
+    const row = document.createElement("li");
+    row.dataset.state = "error";
+    row.textContent = text;
+    queue.append(row);
+  }
+
   uppy.on("file-added", (file) => {
+    const match = resumable.get(`${file.name}|${file.size}`);
+    if (!match && !mayStart) {
+      queueMicrotask(() => uppy.removeFile(file.id));
+      rejectRow(
+        `${file.name}: Die Aktion ist beendet. Fortsetzen lassen sich nur unterbrochene Uploads.`,
+      );
+      return;
+    }
     const row = document.createElement("li");
     const name = document.createElement("span");
     name.className = "name";
@@ -134,9 +158,29 @@
     cancel.className = "cancel";
     cancel.textContent = "Abbrechen";
     cancel.addEventListener("click", () => cancelFile(file.id));
-    row.append(name, select, progress, status, cancel);
+    const pause = document.createElement("button");
+    pause.type = "button";
+    pause.className = "pause";
+    pause.textContent = "Pause";
+    pause.hidden = true;
+    pause.addEventListener("click", () => {
+      const paused = uppy.pauseResume(file.id);
+      pause.textContent = paused ? "Weiter" : "Pause";
+      if (paused) setStatus(file.id, "pausiert");
+    });
+    row.append(name, select, progress, status, pause, cancel);
     queue.append(row);
     rows.set(file.id, row);
+
+    if (match) {
+      resumable.delete(`${file.name}|${file.size}`);
+      uppy.setFileMeta(file.id, { channel: match.channel, masterId: match.masterId });
+      uppy.setFileState(file.id, { s3Multipart: { key: match.key, uploadId: match.uploadId } });
+      masters.set(match.key, match.masterId);
+      select.value = match.channel;
+      select.disabled = true;
+      status.textContent = "wird fortgesetzt";
+    }
     updateButton();
   });
 
@@ -164,10 +208,7 @@
   }
 
   uppy.on("restriction-failed", (file, error) => {
-    const row = document.createElement("li");
-    row.dataset.state = "error";
-    row.textContent = `${file ? file.name : "Datei"}: ${error.message}`;
-    queue.append(row);
+    rejectRow(`${file ? file.name : "Datei"}: ${error.message}`);
   });
 
   uppy.on("upload-progress", (file, progress) => {
@@ -187,6 +228,7 @@
       const text = result.reason ? `${result.stateLabel}: ${result.reason}` : result.stateLabel;
       setStatus(file.id, text, result.state);
       rows.get(file.id)?.querySelector(".cancel")?.remove();
+      rows.get(file.id)?.querySelector(".pause")?.remove();
     } catch (error) {
       setStatus(file.id, error.message, "error");
     } finally {
@@ -198,6 +240,7 @@
     setStatus(file.id, error.message, "error");
     const row = rows.get(file.id);
     if (row) row.querySelector(".cancel")?.remove();
+    if (row) row.querySelector(".pause")?.remove();
   });
 
   let finishing = 0;
@@ -236,7 +279,10 @@
   button.addEventListener("click", () => {
     button.disabled = true;
     input.disabled = true;
-    for (const row of rows.values()) row.querySelector("select").disabled = true;
+    for (const row of rows.values()) {
+      row.querySelector("select").disabled = true;
+      row.querySelector(".pause").hidden = false;
+    }
     uploadStarted = true;
     for (const file of uppy.getFiles()) checksum(file);
     uppy.upload();

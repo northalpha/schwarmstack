@@ -54,6 +54,16 @@ def submission(request, reference):
     release_stale()
     used = usage(submission.masters.all())
     quota = campaign.quota if campaign else 0
+    phase = campaign.phase() if campaign else Phase.CLOSED
+    masters = submission.masters.all()
+    # Unterbrochene Uploads: im Speicher angelegt, aber nie fertig gemeldet. Fortsetzen geht,
+    # solange die Abgabe nicht schreibgeschützt ist.
+    resumable = (
+        masters.filter(state=Master.State.UPLOADING).exclude(upload_id="")
+        if phase in (Phase.OPEN, Phase.GRACE)
+        else masters.none()
+    )
+    show_uploader = phase is Phase.OPEN or (phase is Phase.GRACE and resumable.exists())
     can_add = (
         campaign is not None
         and campaign.phase().accepts_new_submissions
@@ -67,7 +77,11 @@ def submission(request, reference):
             "submission": submission,
             "own": _own(request),
             "can_add": can_add,
-            "masters": submission.masters.exclude(state=Master.State.ABORTED),
+            "masters": masters.exclude(state=Master.State.ABORTED),
+            "resumable_ids": set(resumable.values_list("pk", flat=True)),
+            "phase": phase.name.lower(),
+            "show_uploader": show_uploader,
+            "may_start": phase is Phase.OPEN,
             "used": used,
             "quota": quota,
             "used_percent": min(100, used * 100 // quota) if quota else 0,
