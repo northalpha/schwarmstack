@@ -15,10 +15,12 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "actionlint-py>=1.7",
     "moto[server]>=5.1",
     "playwright>=1.55",
     "pytest>=9.2.0",
     "pytest-django>=4.14.0",
+    "pytest-timeout>=2.4",
     "ruff>=0.17.6",
     "shellcheck-py>=0.11.0.1",
 ]
@@ -38,4 +40,7 @@ select = ["E", "F", "I", "B", "UP", "DJ", "S"]
 DJANGO_SETTINGS_MODULE = "settings_test"
 pythonpath = ["src", "tests"]
 testpaths = ["tests"]
+# Ein hängender Test (z. B. ein Speicher, der nie antwortet) bricht mit Traceback ab statt die
+# ganze Suite anzuhalten. Einzelne Tests dürfen mit @pytest.mark.timeout(n) länger.
+timeout = 60
 markers = ["e2e: Durchlauf im echten Browser gegen Garage (braucht scripts/garage.sh start)"]
