@@ -75,7 +75,7 @@ _Avoid_: Kontingent, Limit (ohne Bezug)
 ### Auswertung
 
 **Export**:
-Die Übergabe aller Master an den Betreiber am Ende der Aktion: ein Manifest und je Master ein zeitlich begrenzter Download-Link.
+Die Übergabe aller Master an den Betreiber am Ende der Aktion: ein Manifest und je Master ein zeitlich begrenzter Download-Link. Vor dem Ende der Aktion plus Nachfrist ist ein Export nur vorläufig; erst der endgültige Export startet die Löschfristen.
 _Avoid_: Download (für den Gesamtvorgang), Archiv, Paket
 
 **Manifest**:
