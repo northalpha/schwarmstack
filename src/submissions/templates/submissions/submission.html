@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Abgabe {{ submission.reference }} – Schwarmstack{% endblock %}
 {% block content %}
+{% include "submissions/_own.html" %}
 <h1>Deine Abgabe{% if campaign %} zu {{ campaign.object_name }}{% endif %}</h1>
 <p>Deine Abgabe-Kennung:</p>
 <p class="reference">{{ submission.reference }}</p>
@@ -10,4 +11,7 @@
   <dt>Nennung</dt><dd>{{ submission.credit_name }}</dd>
   {% if submission.setup_description %}<dt>Setup</dt><dd>{{ submission.setup_description|linebreaksbr }}</dd>{% endif %}
 </dl>
+{% if can_add %}
+<p><a href="{% url 'new_submission' %}">Weitere Abgabe anlegen</a> – für ein weiteres Setup.</p>
+{% endif %}
 {% endblock %}
