@@ -36,6 +36,7 @@ jobs:
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
           DOMAIN: ${{ vars.DOMAIN }}
+          ADMIN_PATH: ${{ vars.ADMIN_PATH }}
           S3_ENDPOINT_URL: ${{ vars.S3_ENDPOINT_URL }}
           S3_BUCKET: ${{ vars.S3_BUCKET }}
           S3_REGION: ${{ vars.S3_REGION }}
@@ -43,6 +44,8 @@ jobs:
           UPLOAD_LINK_SECONDS: ${{ vars.UPLOAD_LINK_SECONDS }}
           HSTS_SECONDS: ${{ vars.HSTS_SECONDS }}
           LOG_LEVEL: ${{ vars.LOG_LEVEL }}
+          LOGIN_ATTEMPTS_MAX: ${{ vars.LOGIN_ATTEMPTS_MAX }}
+          LOGIN_ATTEMPTS_WINDOW_SECONDS: ${{ vars.LOGIN_ATTEMPTS_WINDOW_SECONDS }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
