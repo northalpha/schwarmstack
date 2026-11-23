@@ -24,7 +24,7 @@
   <thead><tr><th>Datei</th><th>Kanal</th><th>Größe</th><th>Zustand</th></tr></thead>
   <tbody>
   {% for m in masters %}
-    <tr data-state="{{ m.state }}"><td>{{ m.original_name }}</td><td>{{ m.get_channel_display }}</td><td>{{ m.size|default:m.declared_size|filesizeformat }}</td><td>{{ m.get_state_display }}{% if m.rejection_reason %}<br><span class="reason">{{ m.rejection_reason }}</span>{% endif %}</td></tr>
+    <tr data-state="{{ m.state }}"{% if m.pk in resumable_ids %} class="resumable" data-master-id="{{ m.public_id }}" data-key="{{ m.key }}" data-upload-id="{{ m.upload_id }}" data-name="{{ m.original_name }}" data-size="{{ m.declared_size }}" data-channel="{{ m.channel }}"{% endif %}><td>{{ m.original_name }}</td><td>{{ m.get_channel_display }}</td><td>{{ m.size|default:m.declared_size|filesizeformat }}</td><td>{% if m.pk in resumable_ids %}unterbrochen<br><span class="help">Wähle die Datei erneut aus, um fortzusetzen.</span>{% else %}{{ m.get_state_display }}{% endif %}{% if m.rejection_reason %}<br><span class="reason">{{ m.rejection_reason }}</span>{% endif %}</td></tr>
   {% endfor %}
   </tbody>
 </table>
@@ -32,7 +32,15 @@
 <p>Noch keine Master.</p>
 {% endif %}
 
-<section id="uploader" class="uploader" hidden data-base="{% url 'upload_start' submission.reference %}" data-csrf="{{ csrf_token }}" data-max-size="{{ max_master_size }}" data-sha-worker="{% static 'submissions/sha256-worker.js' %}">
+{% if phase == "grace" %}
+<p class="notice">Die Aktion ist beendet. {% if show_uploader %}In der Nachfrist bis {{ campaign.closes_at|date:"j. F Y, H:i" }} Uhr kannst du begonnene Uploads noch abschließen.{% else %}Neue Uploads sind nicht mehr möglich.{% endif %}</p>
+{% elif phase == "closed" %}
+<p class="notice">Die Aktion ist vorbei, deine Abgabe ist schreibgeschützt. Du kannst sie weiter ansehen.</p>
+{% elif phase == "before" %}
+<p class="notice">Die Aktion hat noch nicht begonnen.</p>
+{% endif %}
+{% if show_uploader %}
+<section id="uploader" class="uploader" hidden data-may-start="{{ may_start|yesno:"1,0" }}" data-base="{% url 'upload_start' submission.reference %}" data-csrf="{{ csrf_token }}" data-max-size="{{ max_master_size }}" data-sha-worker="{% static 'submissions/sha256-worker.js' %}">
   <h3>Master hochladen</h3>
   <p class="help">XISF oder FITS, 32 Bit, je Kanal eine Datei, höchstens {{ max_master_size|filesizeformat }}. Wähle für jede Datei den Kanal, dann starte den Upload.</p>
   <label for="files">Dateien auswählen</label>
@@ -41,6 +49,7 @@
   <button type="button" class="start" disabled>Hochladen</button>
 </section>
 <template id="channel-template"><select><option value="">Kanal …</option>{% for value, label in channels %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></template>
+{% endif %}
 <noscript><p>Zum Hochladen der Master brauchst du JavaScript.</p></noscript>
 
 {% if can_add %}
