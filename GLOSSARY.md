@@ -37,7 +37,7 @@ Ein kurzer, lesbarer Code (z. B. `SW-7K3Q`), der eine Abgabe eindeutig benennt. 
 _Avoid_: ID, Ticketnummer, Token
 
 **Rückzug** (`withdrawn`):
-Die Löschung einer ganzen Abgabe durch die Teilnehmenden selbst. Master, Foto und Angaben verschwinden; nur die Abgabe-Kennung bleibt als zurückgezogen sichtbar.
+Die Löschung einer ganzen Abgabe durch die Teilnehmenden selbst oder auf ihre Bitte durch einen Betreiber. Master, Foto und Angaben verschwinden; nur die Abgabe-Kennung bleibt als zurückgezogen sichtbar.
 _Avoid_: Stornierung, Abmeldung
 
 **Ende der Aktion** (`ends_at`):
@@ -60,6 +60,10 @@ _Avoid_: Validierung, Check
 Der Filter- bzw. Farbkanal, den ein Master abbildet, z. B. L, R, G, B, Hα, OIII, SII, IR oder RGB. Teilnehmende wählen ihn beim Hochladen.
 _Avoid_: Filter (für den Kanal des Masters), Band
 
+**Widerruf** (`revoked_at`):
+Die nachträgliche Rücknahme einer Einwilligung auf Bitte der Teilnehmenden. Die Einwilligung bleibt mit dem Zeitpunkt des Widerrufs erhalten, damit nachweisbar ist, was wann galt. Der Widerruf der Nutzung im Projekt führt zum Rückzug der Abgabe.
+_Avoid_: Löschung (der Einwilligung), Opt-out
+
 **Nennung** (`credit_name`):
 Der Name, unter dem Teilnehmende im Projekt genannt werden wollen.
 _Avoid_: Anzeigename, Credit, Pseudonym
@@ -71,6 +75,10 @@ _Avoid_: Zustimmung, Opt-in
 **Equipment-Foto**:
 Ein optionales Foto der Ausrüstung, das Teilnehmende ihrer Abgabe beilegen können. Kein Master.
 _Avoid_: Setup-Bild
+
+**Belegung** (`usage`):
+Die Größe aller angenommenen Master plus der Reservierungen laufender Uploads, gemessen an der Quote einer Abgabe oder an der Gesamtgrenze der Aktion.
+_Avoid_: Verbrauch, Füllstand, Auslastung
 
 **Quote** (`quota`):
 Die Obergrenze für die Gesamtgröße aller Master einer Abgabe.
