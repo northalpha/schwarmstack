@@ -26,7 +26,7 @@
 <p>Noch keine Master.</p>
 {% endif %}
 
-<section id="uploader" class="uploader" hidden data-base="{% url 'upload_start' submission.reference %}" data-csrf="{{ csrf_token }}">
+<section id="uploader" class="uploader" hidden data-base="{% url 'upload_start' submission.reference %}" data-csrf="{{ csrf_token }}" data-sha-worker="{% static 'submissions/sha256-worker.js' %}">
   <h3>Master hochladen</h3>
   <p class="help">XISF oder FITS, 32 Bit, je Kanal eine Datei. Wähle für jede Datei den Kanal, dann starte den Upload.</p>
   <label for="files">Dateien auswählen</label>
