@@ -74,6 +74,9 @@ table.masters td:nth-child(3) { white-space: nowrap; }
 .queue [data-state="accepted"] .status { color: var(--fg); font-weight: 600; }
 [data-state="error"], .queue [data-state="error"] .status { color: var(--error); }
 select { font: inherit; padding: .3rem; }
+.usage progress { width: 100%; }
+.usage label { font-weight: 400; margin: 0; }
+.queue .cancel { margin: 0; padding: .2rem .6rem; background: transparent; color: var(--accent); border: 1px solid var(--border); font-weight: 400; }
 button:disabled { opacity: .5; cursor: not-allowed; }
 tr[data-state="rejected"] td { color: var(--muted); }
 .reason { color: var(--error); font-size: .9rem; }

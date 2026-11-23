@@ -13,6 +13,11 @@ urlpatterns = [
         name="upload_sign",
     ),
     path(
+        "abgabe/<str:reference>/master/<uuid:master_id>/abbrechen/",
+        api.abort,
+        name="upload_abort",
+    ),
+    path(
         "abgabe/<str:reference>/master/<uuid:master_id>/fertig/",
         api.finish,
         name="upload_finish",

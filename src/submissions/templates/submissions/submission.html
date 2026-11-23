@@ -13,6 +13,12 @@
   {% if submission.setup_description %}<dt>Setup</dt><dd>{{ submission.setup_description|linebreaksbr }}</dd>{% endif %}
 </dl>
 <h2>Master</h2>
+{% if quota %}
+<p class="usage">
+  <label for="usage">Belegt: {{ used|filesizeformat }} von {{ quota|filesizeformat }}</label>
+  <progress id="usage" max="100" value="{{ used_percent }}">{{ used_percent }} %</progress>
+</p>
+{% endif %}
 {% if masters %}
 <table class="masters">
   <thead><tr><th>Datei</th><th>Kanal</th><th>Größe</th><th>Zustand</th></tr></thead>
@@ -26,13 +32,13 @@
 <p>Noch keine Master.</p>
 {% endif %}
 
-<section id="uploader" class="uploader" hidden data-base="{% url 'upload_start' submission.reference %}" data-csrf="{{ csrf_token }}" data-sha-worker="{% static 'submissions/sha256-worker.js' %}">
+<section id="uploader" class="uploader" hidden data-base="{% url 'upload_start' submission.reference %}" data-csrf="{{ csrf_token }}" data-max-size="{{ max_master_size }}" data-sha-worker="{% static 'submissions/sha256-worker.js' %}">
   <h3>Master hochladen</h3>
-  <p class="help">XISF oder FITS, 32 Bit, je Kanal eine Datei. Wähle für jede Datei den Kanal, dann starte den Upload.</p>
+  <p class="help">XISF oder FITS, 32 Bit, je Kanal eine Datei, höchstens {{ max_master_size|filesizeformat }}. Wähle für jede Datei den Kanal, dann starte den Upload.</p>
   <label for="files">Dateien auswählen</label>
   <input id="files" type="file" multiple accept=".xisf,.fits,.fit,.fts">
   <ul class="queue"></ul>
-  <button type="button" disabled>Hochladen</button>
+  <button type="button" class="start" disabled>Hochladen</button>
 </section>
 <template id="channel-template"><select><option value="">Kanal …</option>{% for value, label in channels %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></template>
 <noscript><p>Zum Hochladen der Master brauchst du JavaScript.</p></noscript>

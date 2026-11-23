@@ -27,6 +27,9 @@ class Command(BaseCommand):
         parser.add_argument("--quota-gib", required=True, type=float, help="Quote je Abgabe")
         parser.add_argument("--global-cap-gib", required=True, type=float, help="Gesamtgrenze")
         parser.add_argument("--grace-hours", type=float, default=6, help="Nachfrist (Standard 6)")
+        parser.add_argument(
+            "--max-master-mib", type=float, default=500, help="Höchstgröße je Master (Standard 500)"
+        )
 
     def handle(self, *args, **opts):
         if opts["ends_at"] <= opts["starts_at"]:
@@ -40,6 +43,7 @@ class Command(BaseCommand):
                 "grace_period": timedelta(hours=opts["grace_hours"]),
                 "quota": int(opts["quota_gib"] * GIB),
                 "global_cap": int(opts["global_cap_gib"] * GIB),
+                "max_master_size": int(opts["max_master_mib"] * 1024**2),
             },
         )
         self.stdout.write(f"Aktion {'angelegt' if created else 'geändert'}: {campaign}")
