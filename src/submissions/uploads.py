@@ -48,13 +48,18 @@ def release_stale() -> None:
     ).update(state=Master.State.ABORTED)
 
 
-def usage(masters) -> int:
-    """Belegter Platz: angenommene Master mit tatsächlicher Größe, laufende mit angemeldeter."""
+def usage_parts(masters) -> tuple[int, int]:
+    """Belegung getrennt: (angenommen mit tatsächlicher Größe, reserviert mit angemeldeter)."""
     totals = masters.aggregate(
         accepted=Sum("size", filter=Q(state=Master.State.ACCEPTED)),
         reserved=Sum("declared_size", filter=Q(state=Master.State.UPLOADING)),
     )
-    return (totals["accepted"] or 0) + (totals["reserved"] or 0)
+    return totals["accepted"] or 0, totals["reserved"] or 0
+
+
+def usage(masters) -> int:
+    """Belegung: angenommene Master plus Reservierungen laufender Uploads."""
+    return sum(usage_parts(masters))
 
 
 def _check_limits(campaign: Campaign, submission: Submission, size: int) -> None:

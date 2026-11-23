@@ -290,6 +290,11 @@ class SubmissionAdmin(admin.ModelAdmin):
             )
         )
 
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if change and form.changed_data:
+            services.details_corrected(obj)
+
     def has_add_permission(self, request):
         return False
 
@@ -422,7 +427,11 @@ class SubmissionAdmin(admin.ModelAdmin):
             title=f"Master aus {submission} löschen",
             question=(
                 "Dieser Master wird sofort und endgültig aus dem Speicher gelöscht."
-                + (" Der laufende Upload wird abgebrochen." if master.state == "uploading" else "")
+                + (
+                    " Der laufende Upload wird abgebrochen."
+                    if master.state == Master.State.UPLOADING
+                    else ""
+                )
             ),
             details=[
                 f"{master.get_channel_display()} · {master.original_name} · "
@@ -451,11 +460,11 @@ class SubmissionAdmin(admin.ModelAdmin):
         withdraws = consent.kind == Consent.Kind.PROJECT_USE
         if request.method == "POST":
             label = consent.get_kind_display()
-            services.revoke(consent, by=Submission.WithdrawnBy.OPERATOR)
-            self.log_change(request, submission, f"Widerruf vermerkt: {label}")
-            if withdraws:
-                self.log_change(request, submission, "Abgabe zurückgezogen (nach Widerruf)")
-            self.message_user(request, f"Widerruf vermerkt: {label}.", messages.SUCCESS)
+            if services.revoke(consent, by=Submission.WithdrawnBy.OPERATOR):
+                self.log_change(request, submission, f"Widerruf vermerkt: {label}")
+                if withdraws:
+                    self.log_change(request, submission, "Abgabe zurückgezogen (nach Widerruf)")
+                self.message_user(request, f"Widerruf vermerkt: {label}.", messages.SUCCESS)
             return HttpResponseRedirect(self._change_url(submission))
         question = f"Widerruf der Einwilligung „{consent.get_kind_display()}“ vermerken?"
         if withdraws:

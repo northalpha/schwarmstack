@@ -4,6 +4,7 @@ Nur Betreiber haben Konten (per `createsuperuser`), alle mit denselben Rechten. 
 und Benutzerverwaltung gibt es hier bewusst nicht.
 """
 
+from django.conf import settings
 from django.contrib import admin
 from django.template.response import TemplateResponse
 from django.utils.decorators import method_decorator
@@ -33,7 +34,11 @@ class OperatorSite(admin.AdminSite):
             return TemplateResponse(
                 request,
                 "admin/login_limit.html",
-                {**self.each_context(request), "title": "Zu viele Anmeldeversuche"},
+                {
+                    **self.each_context(request),
+                    "title": "Zu viele Anmeldeversuche",
+                    "minutes": -(-settings.LOGIN_ATTEMPTS_WINDOW_SECONDS // 60),
+                },
                 status=429,
             )
         response = super().login(request, extra_context)

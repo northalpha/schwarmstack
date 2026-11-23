@@ -228,6 +228,10 @@ def test_widerruf_der_nennung_bleibt_als_vermerk(operator_client, participant): 
     assert submission.credit_name == "Ada Sternguck"
     assert any("Widerruf" in m for m in log_messages(submission))
 
+    # Ein zweiter Widerruf ändert nichts und steht nicht doppelt im Protokoll.
+    operator_client.post(revoke_url(consent))
+    assert sum("Widerruf" in m for m in log_messages(submission)) == 1
+
 
 def test_widerruf_der_nutzung_im_projekt_zieht_die_abgabe_zurueck(
     operator_client,  # noqa: F811
@@ -338,6 +342,17 @@ def test_nennung_und_setup_auch_nach_dem_ende_korrigieren(
     assert submission.setup_description == "RedCat 61"
     assert submission.masters.count() == 1
     assert submission.consents.count() == 2
+
+
+def test_korrigierte_nennung_steht_in_der_begleitdatei(
+    operator_client,  # noqa: F811
+    participant,
+    storage_dir,
+):
+    master = participant.upload(fits())
+    url = submission_url(participant.submission)
+    operator_client.post(url, change_form_data(operator_client.get(url), credit_name="Ada S."))
+    assert sidecar(storage_dir, master)["credit_name"] == "Ada S."
 
 
 def test_einwilligungen_lassen_sich_nicht_erteilen(operator_client, valid_form, campaign):  # noqa: F811

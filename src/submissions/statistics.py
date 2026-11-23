@@ -12,7 +12,7 @@ from django.db.models.functions import TruncDate
 from django.urls import reverse
 
 from .models import Campaign, Master, Submission
-from .uploads import release_stale
+from .uploads import release_stale, usage_parts
 from .validation import Category
 
 # Der Verlauf zählt Tage in der Zeit der Betreiber, nicht in UTC.
@@ -81,17 +81,14 @@ def compute() -> Statistics:
         Master.objects.values_list("state").annotate(n=Count("pk")).values_list("state", "n")
     )
     accepted = Master.objects.filter(state=Master.State.ACCEPTED)
-    totals = Master.objects.aggregate(
-        accepted=Sum("size", filter=Q(state=Master.State.ACCEPTED)),
-        reserved=Sum("declared_size", filter=Q(state=Master.State.UPLOADING)),
-    )
+    accepted_bytes, reserved_bytes = usage_parts(Master.objects.all())
     return Statistics(
         submissions_active=submissions["active"],
         submissions_withdrawn=submissions["withdrawn"],
         masters_by_state=[(label, by_state.get(value, 0)) for value, label in Master.State.choices],
         channels=_channels(accepted),
-        accepted=totals["accepted"] or 0,
-        reserved=totals["reserved"] or 0,
+        accepted=accepted_bytes,
+        reserved=reserved_bytes,
         global_cap=campaign.global_cap if campaign else None,
         duplicates=accepted.filter(duplicate_of__isnull=False).count(),
         rejections=_rejections(),
