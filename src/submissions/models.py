@@ -29,6 +29,9 @@ class Campaign(models.Model):
     grace_period = models.DurationField("Nachfrist", default=timedelta(hours=6))
     quota = models.PositiveBigIntegerField("Quote je Abgabe (Bytes)")
     global_cap = models.PositiveBigIntegerField("Gesamtgrenze (Bytes)")
+    max_master_size = models.PositiveBigIntegerField(
+        "Höchstgröße je Master (Bytes)", default=500 * 1024**2
+    )
 
     class Meta:
         verbose_name = "Aktion"
@@ -118,6 +121,7 @@ class Master(models.Model):
         UPLOADING = "uploading", "im Upload"
         ACCEPTED = "accepted", "angenommen"
         REJECTED = "rejected", "abgelehnt"
+        ABORTED = "aborted", "abgebrochen"
 
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name="masters")
     public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)

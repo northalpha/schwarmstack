@@ -4,20 +4,29 @@ Der Browser führt die S3-Anfragen selbst aus; hier wird nur entschieden, welche
 welchen Master signiert wird, und nach dem Upload der Master übernommen.
 """
 
+import logging
 import re
+from datetime import timedelta
 from pathlib import PurePosixPath
 
+from django.db import transaction
+from django.db.models import Q, Sum
+from django.template.defaultfilters import filesizeformat
 from django.utils import timezone
 
 from storage import S3Request, get_storage
 
 from . import validation
-from .models import Master, Submission
+from .models import Campaign, Master, Submission
 
 # Endungen der Teilnehmenden -> Endung im Speicher
 EXTENSIONS = {".xisf": ".xisf", ".fits": ".fits", ".fit": ".fits", ".fts": ".fits"}
+log = logging.getLogger(__name__)
+
 MAX_PARTS = 10_000
 _SHA256 = re.compile(r"^[0-9a-fA-F]{64}$")
+# Nach dieser Zeit gilt ein nie abgeschlossener Upload als aufgegeben (wie die Lifecycle-Regel).
+STALE_AFTER = timedelta(days=7)
 
 
 class UploadError(Exception):
@@ -26,6 +35,43 @@ class UploadError(Exception):
 
 class NotFinished(Exception):
     """Der Upload ist im Speicher noch nicht abgeschlossen (HTTP 409)."""
+
+
+class Conflict(Exception):
+    """Der Master ist in einem Zustand, der das nicht erlaubt (HTTP 409)."""
+
+
+def release_stale() -> None:
+    """Aufgegebene Uploads geben ihre Reservierung frei."""
+    Master.objects.filter(
+        state=Master.State.UPLOADING, created_at__lt=timezone.now() - STALE_AFTER
+    ).update(state=Master.State.ABORTED)
+
+
+def usage(masters) -> int:
+    """Belegter Platz: angenommene Master mit tatsächlicher Größe, laufende mit angemeldeter."""
+    totals = masters.aggregate(
+        accepted=Sum("size", filter=Q(state=Master.State.ACCEPTED)),
+        reserved=Sum("declared_size", filter=Q(state=Master.State.UPLOADING)),
+    )
+    return (totals["accepted"] or 0) + (totals["reserved"] or 0)
+
+
+def _check_limits(campaign: Campaign, submission: Submission, size: int) -> None:
+    if size > campaign.max_master_size:
+        raise UploadError(
+            f"Ein Master darf höchstens {filesizeformat(campaign.max_master_size)} groß sein."
+        )
+    free = campaign.quota - usage(submission.masters.all())
+    if size > free:
+        raise UploadError(
+            f"Dieser Master passt nicht mehr in die Quote deiner Abgabe: "
+            f"noch {filesizeformat(max(free, 0))} frei."
+        )
+    if size > campaign.global_cap - usage(Master.objects.all()):
+        raise UploadError(
+            "Die Gesamtgrenze der Aktion ist erreicht. Bitte melde dich beim Betreiber."
+        )
 
 
 def start(submission: Submission, *, channel, filename, size) -> tuple[Master, str]:
@@ -40,15 +86,42 @@ def start(submission: Submission, *, channel, filename, size) -> tuple[Master, s
     if isinstance(size, bool) or not isinstance(size, int) or size <= 0:
         raise UploadError("Ungültige Dateigröße.")
 
-    master = Master(
-        submission=submission,
-        channel=channel,
-        original_name=filename.strip()[:255],
-        declared_size=size,
-    )
-    master.key = f"{submission.reference}/{master.public_id.hex}{suffix}"
-    master.save()
+    campaign = Campaign.current()
+    if campaign is None:
+        raise UploadError("Die Aktion ist nicht eingerichtet.")
+
+    # Prüfen und Reservieren in einer Transaktion: Bei SQLite (transaction_mode IMMEDIATE) sind
+    # Schreibtransaktionen serialisiert, gleichzeitige Starts überziehen die Grenzen also nicht.
+    with transaction.atomic():
+        release_stale()
+        _check_limits(campaign, submission, size)
+        master = Master(
+            submission=submission,
+            channel=channel,
+            original_name=filename.strip()[:255],
+            declared_size=size,
+        )
+        master.key = f"{submission.reference}/{master.public_id.hex}{suffix}"
+        master.save()
     return master, get_storage().presign(S3Request("POST", master.key))
+
+
+def abort(master: Master) -> Master:
+    """Bricht einen laufenden Upload ab und gibt die Reservierung frei."""
+    if master.state == Master.State.ABORTED:
+        return master
+    if master.state != Master.State.UPLOADING:
+        raise Conflict("Dieser Master ist schon abgeschlossen.")
+    if master.upload_id:
+        try:
+            get_storage().abort_multipart(master.key, master.upload_id)
+        except Exception:  # noqa: BLE001
+            # Schon abgeräumt (z. B. vom Browser) oder nie angelegt; die Lifecycle-Regel
+            # räumt Reste ohnehin ab. Die Reservierung wird trotzdem freigegeben.
+            log.info("Multipart-Upload war schon weg: %s", master.public_id)
+    master.state = Master.State.ABORTED
+    master.save(update_fields=["state"])
+    return master
 
 
 def sign(master: Master, *, method, key, upload_id=None, part_number=None) -> str:

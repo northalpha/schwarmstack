@@ -9,7 +9,7 @@
   const csrf = root.dataset.csrf;
   const input = root.querySelector("input[type=file]");
   const queue = root.querySelector(".queue");
-  const button = root.querySelector("button");
+  const button = root.querySelector("button.start");
   const channelTemplate = document.getElementById("channel-template");
 
   // Prüfsumme im Web Worker, parallel zum Upload; gemeldet wird sie mit der Fertig-Meldung.
@@ -50,11 +50,15 @@
 
   const uppy = new Uppy.Uppy({
     autoProceed: false,
-    restrictions: { allowedFileTypes: [".xisf", ".fits", ".fit", ".fts"] },
+    restrictions: {
+      allowedFileTypes: [".xisf", ".fits", ".fit", ".fts"],
+      maxFileSize: Number(root.dataset.maxSize) || null,
+    },
     locale: {
       strings: {
         youCanOnlyUploadFileTypes: "Nur XISF- oder FITS-Dateien (%{types}).",
         noDuplicates: "Die Datei „%{fileName}“ ist schon ausgewählt.",
+        exceedsSize: "Größer als die erlaubten %{size}.",
       },
     },
   });
@@ -93,6 +97,7 @@
   });
 
   const rows = new Map();
+  let uploadStarted = false;
 
   function updateButton() {
     const files = uppy.getFiles();
@@ -124,11 +129,39 @@
     const status = document.createElement("span");
     status.className = "status";
     status.textContent = "Kanal wählen";
-    row.append(name, select, progress, status);
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "cancel";
+    cancel.textContent = "Abbrechen";
+    cancel.addEventListener("click", () => cancelFile(file.id));
+    row.append(name, select, progress, status, cancel);
     queue.append(row);
     rows.set(file.id, row);
     updateButton();
   });
+
+  // Abbrechen: Uppy bricht den Multipart-Upload im Speicher ab, der Server gibt die
+  // Reservierung frei. Vor dem Start wird die Datei nur aus der Liste genommen.
+  async function cancelFile(fileId) {
+    const file = uppy.getFile(fileId);
+    const row = rows.get(fileId);
+    const masterId = file && file.meta.masterId;
+    if (file) uppy.removeFile(fileId);
+    rows.delete(fileId);
+    if (!masterId) {
+      row.remove();
+      updateButton();
+      return;
+    }
+    row.querySelector(".cancel").remove();
+    row.dataset.state = "aborted";
+    row.querySelector(".status").textContent = "abgebrochen";
+    try {
+      await post(`${base}${masterId}/abbrechen/`);
+    } catch (error) {
+      row.querySelector(".status").textContent = error.message;
+    }
+  }
 
   uppy.on("restriction-failed", (file, error) => {
     const row = document.createElement("li");
@@ -153,6 +186,7 @@
       const result = await post(`${base}${masterId}/fertig/`, { sha256 });
       const text = result.reason ? `${result.stateLabel}: ${result.reason}` : result.stateLabel;
       setStatus(file.id, text, result.state);
+      rows.get(file.id)?.querySelector(".cancel")?.remove();
     } catch (error) {
       setStatus(file.id, error.message, "error");
     } finally {
@@ -162,6 +196,8 @@
 
   uppy.on("upload-error", (file, error) => {
     setStatus(file.id, error.message, "error");
+    const row = rows.get(file.id);
+    if (row) row.querySelector(".cancel")?.remove();
   });
 
   let finishing = 0;
@@ -180,7 +216,8 @@
   function maybeReload() {
     // Erst neu laden, wenn alle Fertig-Meldungen durch sind. Kurz stehen lassen, damit
     // Ablehnungsgründe lesbar sind; die Liste zeigt sie danach auch.
-    if (uploadsDone && finishing === 0 && uploadsDone.failed.length === 0) {
+    const done = uploadsDone;
+    if (uploadStarted && done && finishing === 0 && done.failed.length === 0 && done.successful.length > 0) {
       window.setTimeout(() => window.location.reload(), 1500);
     }
   }
@@ -200,6 +237,7 @@
     button.disabled = true;
     input.disabled = true;
     for (const row of rows.values()) row.querySelector("select").disabled = true;
+    uploadStarted = true;
     for (const file of uppy.getFiles()) checksum(file);
     uppy.upload();
   });
