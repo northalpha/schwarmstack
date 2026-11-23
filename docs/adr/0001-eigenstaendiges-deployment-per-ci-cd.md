@@ -4,7 +4,7 @@ Schwarmstack wird als Container-Image gebaut und per CI/CD ausgerollt (Staging u
 
 - Zwei Umgebungen: **Produktion** unter `upload.dzvf.de` (Hetzner-Host, Hetzner-S3-Bucket) und **Staging** unter `upload.northalpha.de` (eigene kleine Hetzner-VM des Betreibers, eigener Bucket). Staging hängt damit nicht von DNS-Einträgen bei DZVF ab. Lokale Entwicklung läuft ohne Server, mit lokaler Platte.
 - Beide laufen mit Docker Compose aus demselben Image: App (gunicorn) und Caddy (TLS). SQLite liegt auf einem Volume.
-- GitHub Actions baut das Image nach GHCR. Jeder Push auf `main` rollt nach Staging aus, ein Tag `vX.Y.Z` nach Produktion, mit manueller Freigabe. Ausgerollt wird per SSH (`docker compose pull && docker compose up -d`). Secrets liegen als GitHub-Environment-Secrets.
+- GitHub Actions baut das Image nach GHCR. Jeder Push auf `main` rollt nach Staging aus, ein Tag `vX.Y.Z` nach Produktion, mit manueller Freigabe. Ausgerollt wird per SSH: Image holen, Migrationen als eigener Schritt (schlagen sie fehl, läuft die alte Version weiter), `docker compose up -d`, danach muss `/healthz` antworten (Ablauf in `docs/betrieb/deployment.md`). Secrets liegen als GitHub-Environment-Secrets.
 
 ## Considered Options
 

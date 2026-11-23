@@ -76,8 +76,11 @@ PasswordAuthentication no
 KbdInteractiveAuthentication no
 AllowUsers $DEPLOY_USER
 EOF
+# Beim ersten Start läuft sshd über Socket-Aktivierung oft noch nicht; das Verzeichnis braucht
+# `sshd -t`, und try-reload-or-restart scheitert nicht an einem inaktiven Dienst.
+install -d -m 0755 /run/sshd
 sshd -t
-systemctl reload ssh
+systemctl try-reload-or-restart ssh
 
 # -- Sicherheitsupdates selbst einspielen, bei Bedarf nachts neu starten ----------------------
 cat > /etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
