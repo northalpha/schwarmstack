@@ -4,7 +4,7 @@ from django.views.decorators.http import require_http_methods
 
 from . import access
 from .forms import SubmissionForm
-from .models import Campaign, Phase, Submission
+from .models import Campaign, Master, Phase, Submission
 from .services import create_submission
 
 
@@ -63,6 +63,8 @@ def submission(request, reference):
             "submission": submission,
             "own": _own(request),
             "can_add": can_add,
+            "masters": submission.masters.all(),
+            "channels": Master.Channel.choices,
         },
     )
 
