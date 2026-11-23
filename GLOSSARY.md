@@ -78,6 +78,14 @@ _Avoid_: Kontingent, Limit (ohne Bezug)
 
 ### Auswertung
 
+**Admin**:
+Der geschützte Bereich, in dem Betreiber die Aktion pflegen, Abgaben ansehen und im Auftrag von Teilnehmenden korrigieren. Jede Änderung darin ist mit Betreiber und Zeitpunkt nachvollziehbar.
+_Avoid_: Backend, Dashboard, Verwaltung
+
+**Statistik**:
+Die Kennzahlen zur laufenden Aktion, die nur Betreiber im Admin sehen: Abgaben, Master je Zustand und Kanal, Belegung, Dubletten, Ablehnungsgründe und der Verlauf je Tag. Zählt Abgaben, nie Personen.
+_Avoid_: Reporting, Analytics, Auswertung (für die Zahlen)
+
 **Export**:
 Die Übergabe aller Master an den Betreiber am Ende der Aktion: ein Manifest und je Master ein zeitlich begrenzter Download-Link. Vor dem Ende der Aktion plus Nachfrist ist ein Export nur vorläufig; erst der endgültige Export startet die Löschfristen.
 _Avoid_: Download (für den Gesamtvorgang), Archiv, Paket
