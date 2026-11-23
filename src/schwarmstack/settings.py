@@ -5,6 +5,8 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = Path(os.environ.get("DATA_DIR", BASE_DIR.parent / "var"))
+# SQLite legt die Datenbankdatei an, aber nicht das Verzeichnis darüber.
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def env_bool(name: str, default: bool = False) -> bool:
