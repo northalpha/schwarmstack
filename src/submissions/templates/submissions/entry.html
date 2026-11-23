@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Abgabe anlegen – Schwarmstack{% endblock %}
+{% block content %}
+<h1>Mitmachen bei {{ campaign.object_name }}</h1>
+<p>Lege eine Abgabe an. Danach lädst du deine Master hoch. Ein Konto brauchst du nicht; deine Abgabe ist nur in diesem Browser erreichbar.</p>
+<form method="post" novalidate>
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form %}{% include "submissions/_field.html" %}{% endfor %}
+  <button type="submit">Abgabe anlegen</button>
+</form>
+{% endblock %}

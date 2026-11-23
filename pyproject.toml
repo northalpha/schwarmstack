@@ -29,4 +29,6 @@ select = ["E", "F", "I", "B", "UP", "DJ", "S"]
 "tests/**" = ["S101"]
 
 [tool.pytest.ini_options]
-# Django-Testsettings und Pfade kommen mit dem ersten Ticket des Neuaufbaus.
+DJANGO_SETTINGS_MODULE = "settings_test"
+pythonpath = ["src", "tests"]
+testpaths = ["tests"]
