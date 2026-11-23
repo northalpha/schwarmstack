@@ -58,3 +58,6 @@ button {
   border: 2px solid var(--accent);
   border-radius: .25rem;
 }
+a { color: var(--accent); }
+.own { border-bottom: 1px solid var(--border); padding-bottom: .5rem; }
+.own ul { margin: .25rem 0 0; padding-left: 1.25rem; }
