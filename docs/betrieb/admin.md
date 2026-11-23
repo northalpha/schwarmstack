@@ -37,8 +37,8 @@ Lokal ohne Docker: `uv run python src/manage.py createsuperuser`.
 - **Protokoll**: jede Änderung, Löschung, jeder Rückzug, Widerruf und Download mit Betreiber und
   Zeitpunkt.
 
-## Noch offen mit dem Deployment (#27)
+## Deployment
 
-- `ADMIN_PATH` in die Variablen der Environments `staging` und `production` und in die `.env` des
-  Deploy-Jobs; der Pflicht-Check des Produktions-Jobs soll ohne ihn abbrechen.
-- Statische Dateien des Admin (CSS/JS) per `collectstatic` ins Image, ausgeliefert über WhiteNoise.
+`ADMIN_PATH` steht als Variable im GitHub-Environment und kommt mit jedem Deploy in die `.env`;
+ohne ihn bricht der Deploy-Job ab. Die statischen Dateien des Admin liegen im Image und kommen
+über WhiteNoise. Siehe [`deployment.md`](deployment.md).

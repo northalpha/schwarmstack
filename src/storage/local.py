@@ -6,6 +6,7 @@ konfiguriert ist), der die nötigen S3-Antworten für Uppy nachbildet.
 
 import hashlib
 import json
+import os
 import re
 import shutil
 import uuid
@@ -88,6 +89,11 @@ class LocalStorage:
 
     def abort_multipart(self, key: str, upload_id: str) -> None:
         shutil.rmtree(self._checked_upload(key, upload_id), ignore_errors=True)
+
+    def ensure_reachable(self) -> None:
+        self.root.mkdir(parents=True, exist_ok=True)
+        if not os.access(self.root, os.W_OK):
+            raise StorageError(f"Nicht beschreibbar: {self.root}")
 
     def download_url(self, key: str) -> str:
         self._object(key)  # Schlüssel prüfen
