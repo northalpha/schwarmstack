@@ -1,0 +1,79 @@
+"""Spielt im Test den Browser (Uppy mit dem AWS-S3-Plugin) gegen die HTTP-Naht."""
+
+import json
+import re
+from xml.sax.saxutils import escape
+
+PART_SIZE = 8
+
+
+def start(client, reference, *, channel="L", filename="m101_L.fits", size):
+    return client.post(
+        f"/abgabe/{reference}/master/",
+        json.dumps({"channel": channel, "filename": filename, "size": size}),
+        content_type="application/json",
+    )
+
+
+def sign(client, reference, master_id, **request):
+    return client.post(
+        f"/abgabe/{reference}/master/{master_id}/signieren/",
+        json.dumps(request),
+        content_type="application/json",
+    )
+
+
+def finish(client, reference, master_id):
+    return client.post(f"/abgabe/{reference}/master/{master_id}/fertig/")
+
+
+def _tag(xml, name):
+    return re.search(rf"<{name}>(.*?)</{name}>", xml).group(1)
+
+
+def send_parts(client, reference, master_id, key, upload_id, data, part_size=PART_SIZE):
+    parts = []
+    for number, offset in enumerate(range(0, len(data), part_size), start=1):
+        url = sign(
+            client, reference, master_id,
+            method="PUT", key=key, uploadId=upload_id, partNumber=number,
+        ).json()["url"]  # fmt: skip
+        response = client.put(
+            url, data[offset : offset + part_size], content_type="application/octet-stream"
+        )
+        assert response.status_code == 200, response.content
+        parts.append((number, response["ETag"]))
+    return parts
+
+
+def complete(client, reference, master_id, key, upload_id, parts):
+    url = sign(client, reference, master_id, method="POST", key=key, uploadId=upload_id).json()[
+        "url"
+    ]
+    body = (
+        "<CompleteMultipartUpload>"
+        + "".join(
+            f"<Part><PartNumber>{n}</PartNumber><ETag>{escape(e)}</ETag></Part>" for n, e in parts
+        )
+        + "</CompleteMultipartUpload>"
+    )
+    response = client.post(url, body, content_type="application/xml")
+    assert response.status_code == 200, response.content
+    return response
+
+
+def create(client, url):
+    response = client.post(url, b"", content_type="application/octet-stream")
+    assert response.status_code == 200, response.content
+    return _tag(response.content.decode(), "UploadId")
+
+
+def upload(client, reference, data, *, channel="L", filename="m101_L.fits", part_size=PART_SIZE):
+    """Kompletter Ablauf wie im Browser; gibt die Antwort der Fertig-Meldung zurück."""
+    started = start(client, reference, channel=channel, filename=filename, size=len(data))
+    assert started.status_code == 201, started.content
+    body = started.json()
+    upload_id = create(client, body["url"])
+    parts = send_parts(client, reference, body["masterId"], body["key"], upload_id, data, part_size)
+    complete(client, reference, body["masterId"], body["key"], upload_id, parts)
+    return finish(client, reference, body["masterId"])

@@ -82,6 +82,12 @@ SUBMISSION_COOKIE_SECURE = env_bool("SUBMISSION_COOKIE_SECURE", not DEBUG)
 # Version des Hinweistextes, auf den sich eine Einwilligung bezieht.
 CONSENT_TEXT_VERSION = os.environ.get("CONSENT_TEXT_VERSION", "2026-11")
 
+# Speicher für Master (ADR 0005): "local" (lokale Platte) oder später "s3".
+STORAGE_BACKEND = os.environ.get("STORAGE_BACKEND", "local")
+STORAGE_LOCAL_DIR = Path(os.environ.get("STORAGE_LOCAL_DIR", DATA_DIR / "storage"))
+# Gültigkeit signierter Links für einzelne S3-Anfragen.
+UPLOAD_LINK_SECONDS = int(os.environ.get("UPLOAD_LINK_SECONDS", 900))
+
 # TLS terminiert vor der App (Caddy); Caddy setzt X-Forwarded-Proto.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_CONTENT_TYPE_NOSNIFF = True
