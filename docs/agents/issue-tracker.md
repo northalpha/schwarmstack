@@ -2,6 +2,8 @@
 
 Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
 
+**Cloud sessions (claude.ai/code):** `gh` reaches only `gh api search/...` there. Use the GitHub MCP tools instead, with the same operations: `mcp__github__issue_read` to read an issue with its comments, `mcp__github__issue_write` to create, label or close one, `mcp__github__add_issue_comment` to comment. When briefing a sub-agent, paste the issue text into its prompt.
+
 ## Conventions
 
 - **Create an issue**: `gh issue create --title "..." --body "..."`. Use a heredoc for multi-line bodies.
