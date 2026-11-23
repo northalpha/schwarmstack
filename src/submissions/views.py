@@ -63,7 +63,9 @@ def submission(request, reference):
         if phase in (Phase.OPEN, Phase.GRACE)
         else masters.none()
     )
-    show_uploader = phase is Phase.OPEN or (phase is Phase.GRACE and resumable.exists())
+    show_uploader = not submission.is_withdrawn and (
+        phase is Phase.OPEN or (phase is Phase.GRACE and resumable.exists())
+    )
     can_add = (
         campaign is not None
         and campaign.phase().accepts_new_submissions
