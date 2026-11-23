@@ -1,5 +1,7 @@
 """Prüfung der Master nach dem Upload (Ticket #13)."""
 
+import hashlib
+
 import pytest
 from files import fits, xisf
 from uploads_helper import complete, create, finish, send_parts, sign, start, upload
@@ -102,7 +104,7 @@ def test_groesse_weicht_von_der_angemeldeten_ab(client, reference, storage_dir):
     upload_id = create(client, body["url"])
     parts = send_parts(client, reference, body["masterId"], body["key"], upload_id, data, 4096)
     complete(client, reference, body["masterId"], body["key"], upload_id, parts)
-    response = finish(client, reference, body["masterId"]).json()
+    response = finish(client, reference, body["masterId"], hashlib.sha256(data).hexdigest()).json()
     assert response["state"] == "rejected"
     assert "Größe" in response["reason"]
     assert objects(storage_dir) == []

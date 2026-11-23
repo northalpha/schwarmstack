@@ -1,5 +1,6 @@
 """Spielt im Test den Browser (Uppy mit dem AWS-S3-Plugin) gegen die HTTP-Naht."""
 
+import hashlib
 import json
 import re
 from xml.sax.saxutils import escape
@@ -23,8 +24,16 @@ def sign(client, reference, master_id, **request):
     )
 
 
-def finish(client, reference, master_id):
-    return client.post(f"/abgabe/{reference}/master/{master_id}/fertig/")
+DUMMY_SHA256 = "0" * 64
+
+
+def finish(client, reference, master_id, sha256=DUMMY_SHA256):
+    body = {} if sha256 is None else {"sha256": sha256}
+    return client.post(
+        f"/abgabe/{reference}/master/{master_id}/fertig/",
+        json.dumps(body),
+        content_type="application/json",
+    )
 
 
 def _tag(xml, name):
@@ -76,4 +85,4 @@ def upload(client, reference, data, *, channel="L", filename="m101_L.fits", part
     upload_id = create(client, body["url"])
     parts = send_parts(client, reference, body["masterId"], body["key"], upload_id, data, part_size)
     complete(client, reference, body["masterId"], body["key"], upload_id, parts)
-    return finish(client, reference, body["masterId"])
+    return finish(client, reference, body["masterId"], hashlib.sha256(data).hexdigest())

@@ -129,6 +129,16 @@ class Master(models.Model):
     upload_id = models.CharField(max_length=1024, blank=True)
     state = models.CharField(max_length=16, choices=State.choices, default=State.UPLOADING)
     rejection_reason = models.CharField("Grund der Ablehnung", max_length=255, blank=True)
+    # Vom Browser berechnet und gemeldet, vom Server nicht bestätigt (ADR 0005).
+    sha256 = models.CharField("Prüfsumme", max_length=64, blank=True, db_index=True)
+    duplicate_of = models.ForeignKey(
+        "self",
+        verbose_name="Dublette von",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="duplicates",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 
