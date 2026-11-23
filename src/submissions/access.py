@@ -8,6 +8,8 @@ from django.utils import timezone
 
 COOKIE_NAME = "schwarmstack_abgaben"
 _SALT = "submissions.access"
+# Ein Browser kann höchstens so viele Abgaben halten (ADR 0002).
+MAX_PER_BROWSER = 3
 # Puffer über Ende der Aktion plus Nachfrist hinaus, damit die Abgabe danach noch ansehbar ist.
 _EXTRA = 30 * 86400
 
@@ -23,7 +25,7 @@ def grant(response, request, reference: str, campaign) -> None:
     refs = references(request)
     if reference not in refs:
         refs.append(reference)
-    until = campaign.ends_at + campaign.grace_period
+    until = campaign.closes_at
     max_age = max(int((until - timezone.now()).total_seconds()), 0) + _EXTRA
     response.set_signed_cookie(
         COOKIE_NAME,
@@ -34,6 +36,10 @@ def grant(response, request, reference: str, campaign) -> None:
         secure=settings.SUBMISSION_COOKIE_SECURE,
         samesite="Lax",
     )
+
+
+def has_room(request) -> bool:
+    return len(references(request)) < MAX_PER_BROWSER
 
 
 def may_access(request, reference: str) -> bool:

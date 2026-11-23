@@ -1,6 +1,21 @@
-from datetime import timedelta
+import enum
+from datetime import datetime, timedelta
 
 from django.db import models
+from django.utils import timezone
+
+
+class Phase(enum.Enum):
+    """Zeitfenster der Aktion. Die einzige Stelle, an der Zeiten verglichen werden."""
+
+    BEFORE = "vor Beginn"
+    OPEN = "laufend"
+    GRACE = "in der Nachfrist"
+    CLOSED = "schreibgeschützt"
+
+    @property
+    def accepts_new_submissions(self) -> bool:
+        return self is Phase.OPEN
 
 
 class Campaign(models.Model):
@@ -27,6 +42,21 @@ class Campaign(models.Model):
     @classmethod
     def current(cls) -> "Campaign | None":
         return cls.objects.first()
+
+    @property
+    def closes_at(self) -> datetime:
+        """Ende der Aktion plus Nachfrist: ab hier ist jede Abgabe schreibgeschützt."""
+        return self.ends_at + self.grace_period
+
+    def phase(self, now: datetime | None = None) -> Phase:
+        now = now or timezone.now()
+        if now < self.starts_at:
+            return Phase.BEFORE
+        if now < self.ends_at:
+            return Phase.OPEN
+        if now < self.closes_at:
+            return Phase.GRACE
+        return Phase.CLOSED
 
 
 class Submission(models.Model):
