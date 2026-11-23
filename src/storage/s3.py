@@ -48,6 +48,8 @@ class S3Storage:
                 # Nur dort Prüfsummen, wo S3 sie verlangt (Garage und Hetzner kennen nicht alle).
                 request_checksum_calculation="when_required",
                 response_checksum_validation="when_required",
+                # Fällt der Speicher aus, sollen Anfragen und /healthz bald scheitern statt hängen.
+                connect_timeout=10,
             ),
         )
 
@@ -91,3 +93,6 @@ class S3Storage:
 
     def abort_multipart(self, key: str, upload_id: str) -> None:
         self.client.abort_multipart_upload(Bucket=self.bucket, Key=key, UploadId=upload_id)
+
+    def check(self) -> None:
+        self.client.head_bucket(Bucket=self.bucket)
