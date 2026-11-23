@@ -32,6 +32,18 @@ _Avoid_: Landingpage, Einstiegsseite
 Alles, was eine teilnehmende Person in einem Durchgang zum Projekt beiträgt: ihre Angaben und ihre Dateien. Nur aus dem Browser erreichbar, in dem sie angelegt wurde.
 _Avoid_: Upload (als Sammelbegriff), Einreichung, Beitrag
 
+**Abgabe-Kennung** (`reference`):
+Ein kurzer, lesbarer Code (z. B. `SW-7K3Q`), der eine Abgabe eindeutig benennt. Teilnehmende sehen ihn nach dem Anlegen und nennen ihn, wenn sie sich beim Betreiber melden.
+_Avoid_: ID, Ticketnummer, Token
+
+**Ende der Aktion** (`ends_at`):
+Der Zeitpunkt, ab dem keine neuen Uploads mehr starten. Begonnene Uploads dürfen noch innerhalb der Nachfrist abschließen; danach ist jede Abgabe schreibgeschützt.
+_Avoid_: Deadline, Schluss
+
+**Nachfrist** (`grace_period`):
+Die Zeitspanne nach dem Ende der Aktion (6 Stunden), in der bereits begonnene Uploads noch abgeschlossen werden dürfen.
+_Avoid_: Kulanzzeit, Verlängerung
+
 **Master** (`Master`):
 Eine hochgeladene, lineare und unbearbeitete integrierte Bilddatei (XISF oder FITS, 32 Bit) für genau einen Kanal: ein Filterkanal bei Mono-Kameras, ein debayertes RGB-Bild bei Farbkameras.
 _Avoid_: Stack, Frame, Rohbild, Upload (für die Datei)
@@ -67,5 +79,9 @@ Die Übergabe aller Master an den Betreiber am Ende der Aktion: ein Manifest und
 _Avoid_: Download (für den Gesamtvorgang), Archiv, Paket
 
 **Manifest**:
-Die Liste aller Abgaben und ihrer Master mit Angaben und Prüfsummen, die zum Export gehört.
+Die Liste aller Abgaben und ihrer Master mit Angaben und Prüfsummen, die zum Export gehört. Einzige Quelle für die öffentliche Nennung; Schwarmstack selbst zeigt nichts öffentlich an.
 _Avoid_: Index, Übersicht
+
+**Prüfsumme** (`sha256`):
+Die SHA-256 eines Masters, vom Browser der Teilnehmenden beim Hochladen berechnet und gemeldet. Nicht vom Server bestätigt.
+_Avoid_: Hash (ohne Bezug), ETag
