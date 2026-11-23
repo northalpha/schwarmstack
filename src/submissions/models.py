@@ -1,4 +1,5 @@
 import enum
+import uuid
 from datetime import datetime, timedelta
 
 from django.db import models
@@ -97,3 +98,46 @@ class Consent(models.Model):
 
     def __str__(self):
         return f"{self.submission} – {self.get_kind_display()}"
+
+
+class Master(models.Model):
+    """Master: eine hochgeladene integrierte Bilddatei für genau einen Kanal."""
+
+    class Channel(models.TextChoices):
+        L = "L", "L"
+        R = "R", "R"
+        G = "G", "G"
+        B = "B", "B"
+        HA = "Ha", "Hα"
+        OIII = "OIII", "OIII"
+        SII = "SII", "SII"
+        IR = "IR", "IR"
+        RGB = "RGB", "RGB"
+
+    class State(models.TextChoices):
+        UPLOADING = "uploading", "im Upload"
+        ACCEPTED = "accepted", "angenommen"
+
+    submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name="masters")
+    public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    channel = models.CharField("Kanal", max_length=8, choices=Channel.choices)
+    original_name = models.CharField("Dateiname", max_length=255)
+    declared_size = models.PositiveBigIntegerField("angemeldete Größe")
+    size = models.PositiveBigIntegerField("Größe", null=True, blank=True)
+    key = models.CharField("Objekt-Schlüssel", max_length=255, unique=True)
+    upload_id = models.CharField(max_length=1024, blank=True)
+    state = models.CharField(max_length=16, choices=State.choices, default=State.UPLOADING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Master"
+        verbose_name_plural = "Master"
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.submission} {self.channel} {self.original_name}"
+
+    @property
+    def sidecar_key(self) -> str:
+        return self.key.rsplit(".", 1)[0] + ".json"
