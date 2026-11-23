@@ -16,5 +16,8 @@ jobs:
       - run: uv sync --frozen
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      # Exit-Code 5 heißt "keine Tests gefunden"; gilt nur, solange der Neuaufbau noch keine hat.
-      - run: uv run pytest -q || [ $? -eq 5 ]
+      - run: uv run python src/manage.py makemigrations --check --dry-run
+        env:
+          DEBUG: "1"
+          DATA_DIR: ${{ runner.temp }}/var
+      - run: uv run pytest -q
