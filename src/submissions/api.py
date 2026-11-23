@@ -87,7 +87,9 @@ def sign(request, reference, master_id):
 def finish(request, reference, master_id):
     master = _master(request, reference, master_id)
     try:
-        master = uploads.finish(master)
+        master = uploads.finish(master, sha256=_json(request).get("sha256"))
+    except uploads.UploadError as exc:
+        return _error(exc, 400)
     except uploads.NotFinished as exc:
         return _error(exc, 409)
     return JsonResponse(master_json(master))

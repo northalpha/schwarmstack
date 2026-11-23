@@ -12,6 +12,30 @@
   const button = root.querySelector("button");
   const channelTemplate = document.getElementById("channel-template");
 
+  // Prüfsumme im Web Worker, parallel zum Upload; gemeldet wird sie mit der Fertig-Meldung.
+  const worker = new Worker(root.dataset.shaWorker);
+  const waiting = new Map();
+  worker.onmessage = (event) => {
+    const { id, sha256, error } = event.data;
+    const job = waiting.get(id);
+    waiting.delete(id);
+    if (error) job.reject(new Error(`Prüfsumme: ${error}`));
+    else job.resolve(sha256);
+  };
+  const checksums = new Map(); // Datei-ID -> Promise der SHA-256
+  function checksum(file) {
+    if (!checksums.has(file.id)) {
+      checksums.set(
+        file.id,
+        new Promise((resolve, reject) => {
+          waiting.set(file.id, { resolve, reject });
+          worker.postMessage({ id: file.id, blob: file.data });
+        }),
+      );
+    }
+    return checksums.get(file.id);
+  }
+
   async function post(url, body) {
     const response = await fetch(url, {
       method: "POST",
@@ -124,11 +148,15 @@
   uppy.on("upload-success", async (file) => {
     const masterId = uppy.getFile(file.id).meta.masterId;
     try {
-      const result = await post(`${base}${masterId}/fertig/`);
+      setStatus(file.id, "Prüfsumme wird abgeschlossen …");
+      const sha256 = await checksum(file);
+      const result = await post(`${base}${masterId}/fertig/`, { sha256 });
       const text = result.reason ? `${result.stateLabel}: ${result.reason}` : result.stateLabel;
       setStatus(file.id, text, result.state);
     } catch (error) {
       setStatus(file.id, error.message, "error");
+    } finally {
+      document.dispatchEvent(new Event("schwarmstack:finished"));
     }
   });
 
@@ -136,10 +164,26 @@
     setStatus(file.id, error.message, "error");
   });
 
-  uppy.on("complete", (result) => {
-    // Kurz stehen lassen, damit Ablehnungsgründe lesbar sind; die Liste zeigt sie danach auch.
-    if (result.failed.length === 0) window.setTimeout(() => window.location.reload(), 1500);
+  let finishing = 0;
+  uppy.on("upload-success", () => {
+    finishing += 1;
   });
+  document.addEventListener("schwarmstack:finished", () => {
+    finishing -= 1;
+    maybeReload();
+  });
+  let uploadsDone = null;
+  uppy.on("complete", (result) => {
+    uploadsDone = result;
+    maybeReload();
+  });
+  function maybeReload() {
+    // Erst neu laden, wenn alle Fertig-Meldungen durch sind. Kurz stehen lassen, damit
+    // Ablehnungsgründe lesbar sind; die Liste zeigt sie danach auch.
+    if (uploadsDone && finishing === 0 && uploadsDone.failed.length === 0) {
+      window.setTimeout(() => window.location.reload(), 1500);
+    }
+  }
 
   input.addEventListener("change", () => {
     for (const file of input.files) {
@@ -156,6 +200,7 @@
     button.disabled = true;
     input.disabled = true;
     for (const row of rows.values()) row.querySelector("select").disabled = true;
+    for (const file of uppy.getFiles()) checksum(file);
     uppy.upload();
   });
 })();
