@@ -72,6 +72,10 @@ _Avoid_: Anzeigename, Credit, Pseudonym
 Eine einzelne, ausdrücklich erteilte Zustimmung der Teilnehmenden, z. B. zur Nutzung im Projekt oder zur Veröffentlichung der Nennung.
 _Avoid_: Zustimmung, Opt-in
 
+**Datenschutzhinweis**:
+Der Text in Schwarmstack, der erklärt, wer was wie lange verarbeitet; Verantwortlicher ist DZVF. Er ist versioniert, und jede Einwilligung hält fest, auf welche Version sie sich bezieht.
+_Avoid_: Datenschutzerklärung, Privacy Policy
+
 **Equipment-Foto**:
 Ein optionales Foto der Ausrüstung, das Teilnehmende ihrer Abgabe beilegen können. Kein Master.
 _Avoid_: Setup-Bild
@@ -105,6 +109,10 @@ _Avoid_: Index, Übersicht
 **Löschfrist**:
 Die Zeitspanne nach dem endgültigen Export (30 Tage), nach der Schwarmstack alle Master, Begleitdateien, Equipment-Fotos und Angaben löscht. Danach wird die Installation abgebaut; die Sicherungen laufen nach weiteren 14 Tagen aus.
 _Avoid_: Aufbewahrungsfrist, Retention, Löschfristen (Mehrzahl)
+
+**Nachtrag**:
+Ein Widerruf oder Rückzug, der nach dem endgültigen Export eingeht. Er wirkt in Schwarmstack sofort und wird den Betreibern als Änderung am bereits übergebenen Export gemeldet, damit sie ihre Kopien anpassen.
+_Avoid_: Korrektur, Änderung (ohne Bezug)
 
 **Prüfsumme** (`sha256`):
 Die SHA-256 eines Masters, vom Browser der Teilnehmenden beim Hochladen berechnet und gemeldet. Nicht vom Server bestätigt.
