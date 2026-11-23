@@ -70,7 +70,7 @@ jobs:
       - name: Smoke-Test, /healthz im laufenden Container
         run: |
           docker run --detach --name smoke --publish 8000:8000 \
-            --env DJANGO_SECRET_KEY=smoke --env ALLOWED_HOSTS=localhost \
+            --env DJANGO_SECRET_KEY=smoke --env ALLOWED_HOSTS=localhost --env ADMIN_PATH=smoke \
             "$IMAGE:${{ steps.tag.outputs.tag }}"
           for _ in $(seq 1 30); do
             if curl -fsS http://localhost:8000/healthz; then exit 0; fi

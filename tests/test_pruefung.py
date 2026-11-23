@@ -28,6 +28,12 @@ def objects(storage_dir):
     return sorted(p.name for p in root.rglob("*") if p.is_file()) if root.exists() else []
 
 
+# Kategorien der Ablehnung, wie sie die Statistik zählt (Ticket #29)
+FORMAT = "falsches Format"
+FLOAT = "kein 32-Bit-Gleitkomma"
+PLANES = "falsche Ebenen für den Kanal"
+DAMAGED = "beschädigt oder unvollständig"
+
 GUELTIG = [
     ("FITS mono", "L", "m.fits", fits()),
     ("FITS mono NAXIS3=1", "Ha", "m.fit", fits(planes=1)),
@@ -50,41 +56,44 @@ def test_gueltige_master_werden_angenommen(
 
 
 ABGELEHNT = [
-    ("FITS 16 Bit", "L", "m.fits", fits(bitpix=16), "32-Bit-Gleitkomma"),
-    ("FITS 64 Bit", "L", "m.fits", fits(bitpix=-64), "32-Bit-Gleitkomma"),
-    ("FITS 32 Bit Ganzzahl", "L", "m.fits", fits(bitpix=32), "32-Bit-Gleitkomma"),
-    ("FITS RGB mit einer Ebene", "RGB", "m.fits", fits(), "Kanal RGB"),
-    ("FITS RGB mit NAXIS3=1", "RGB", "m.fits", fits(planes=1), "Kanal RGB"),
-    ("FITS mono mit drei Ebenen", "L", "m.fits", fits(planes=3), "eine Ebene"),
-    ("FITS SIMPLE = F", "L", "m.fits", fits(simple="F"), "FITS"),
-    ("FITS ohne END", "L", "m.fits", fits(end=False), "Header"),
-    ("FITS zu kurz", "L", "m.fits", fits(width=40, height=40, truncate=3000), "kürzer"),
-    ("FITS mit XISF-Endung", "L", "m.xisf", fits(), "XISF"),
-    ("XISF UInt16", "L", "m.xisf", xisf(sample="UInt16"), "32-Bit-Gleitkomma"),
-    ("XISF Float64", "L", "m.xisf", xisf(sample="Float64"), "32-Bit-Gleitkomma"),
-    ("XISF RGB mit einer Ebene", "RGB", "m.xisf", xisf(), "Kanal RGB"),
-    ("XISF mono mit drei Ebenen", "B", "m.xisf", xisf(channels=3), "eine Ebene"),
-    ("XISF zu kurz", "L", "m.xisf", xisf(width=40, height=40, truncate=100), "kürzer"),
-    ("XISF falsche Signatur", "L", "m.xisf", xisf(signature=b"XISF0200"), "XISF"),
-    ("XISF mit FITS-Endung", "L", "m.fits", xisf(), "FITS"),
-    ("XISF ohne Image", "L", "m.xisf", xisf(xml="<xisf/>"), "Header"),
-    ("XISF kaputtes XML", "L", "m.xisf", xisf(xml="<xisf><Image"), "Header"),
+    ("FITS 16 Bit", "L", "m.fits", fits(bitpix=16), "32-Bit-Gleitkomma", FLOAT),
+    ("FITS 64 Bit", "L", "m.fits", fits(bitpix=-64), "32-Bit-Gleitkomma", FLOAT),
+    ("FITS 32 Bit Ganzzahl", "L", "m.fits", fits(bitpix=32), "32-Bit-Gleitkomma", FLOAT),
+    ("FITS RGB mit einer Ebene", "RGB", "m.fits", fits(), "Kanal RGB", PLANES),
+    ("FITS RGB mit NAXIS3=1", "RGB", "m.fits", fits(planes=1), "Kanal RGB", PLANES),
+    ("FITS mono mit drei Ebenen", "L", "m.fits", fits(planes=3), "eine Ebene", PLANES),
+    ("FITS SIMPLE = F", "L", "m.fits", fits(simple="F"), "FITS", FORMAT),
+    ("FITS ohne END", "L", "m.fits", fits(end=False), "Header", DAMAGED),
+    ("FITS zu kurz", "L", "m.fits", fits(width=40, height=40, truncate=3000), "kürzer", DAMAGED),
+    ("FITS mit XISF-Endung", "L", "m.xisf", fits(), "XISF", FORMAT),
+    ("XISF UInt16", "L", "m.xisf", xisf(sample="UInt16"), "32-Bit-Gleitkomma", FLOAT),
+    ("XISF Float64", "L", "m.xisf", xisf(sample="Float64"), "32-Bit-Gleitkomma", FLOAT),
+    ("XISF RGB mit einer Ebene", "RGB", "m.xisf", xisf(), "Kanal RGB", PLANES),
+    ("XISF mono mit drei Ebenen", "B", "m.xisf", xisf(channels=3), "eine Ebene", PLANES),
+    ("XISF zu kurz", "L", "m.xisf", xisf(width=40, height=40, truncate=100), "kürzer", DAMAGED),
+    ("XISF falsche Signatur", "L", "m.xisf", xisf(signature=b"XISF0200"), "XISF", FORMAT),
+    ("XISF mit FITS-Endung", "L", "m.fits", xisf(), "FITS", FORMAT),
+    ("XISF ohne Image", "L", "m.xisf", xisf(xml="<xisf/>"), "Header", DAMAGED),
+    ("XISF kaputtes XML", "L", "m.xisf", xisf(xml="<xisf><Image"), "Header", DAMAGED),
     (
         "XISF mit Entitäten",
         "L",
         "m.xisf",
         xisf(xml='<!DOCTYPE x [<!ENTITY a "aaaa">]><xisf>&a;</xisf>'),
         "Header",
+        DAMAGED,
     ),
-    ("Zufallsdaten", "L", "m.fits", bytes(range(256)) * 20, "FITS"),
+    ("Zufallsdaten", "L", "m.fits", bytes(range(256)) * 20, "FITS", FORMAT),
 ]
 
 
 @pytest.mark.parametrize(
-    ("name", "channel", "filename", "data", "reason"), ABGELEHNT, ids=[a[0] for a in ABGELEHNT]
+    ("name", "channel", "filename", "data", "reason", "category"),
+    ABGELEHNT,
+    ids=[a[0] for a in ABGELEHNT],
 )
 def test_ungueltige_master_werden_abgelehnt_und_geloescht(
-    client, reference, storage_dir, name, channel, filename, data, reason
+    client, reference, storage_dir, name, channel, filename, data, reason, category
 ):
     response = upload(client, reference, data, channel=channel, filename=filename, part_size=4096)
     body = response.json()
@@ -95,6 +104,7 @@ def test_ungueltige_master_werden_abgelehnt_und_geloescht(
     master = Master.objects.get()
     assert master.state == Master.State.REJECTED
     assert reason in master.rejection_reason
+    assert master.get_rejection_category_display() == category
     assert objects(storage_dir) == []  # gelöscht, keine Begleitdatei
 
 
@@ -107,6 +117,7 @@ def test_groesse_weicht_von_der_angemeldeten_ab(client, reference, storage_dir):
     response = finish(client, reference, body["masterId"], hashlib.sha256(data).hexdigest()).json()
     assert response["state"] == "rejected"
     assert "Größe" in response["reason"]
+    assert Master.objects.get().get_rejection_category_display() == "Größe weicht ab"
     assert objects(storage_dir) == []
 
 

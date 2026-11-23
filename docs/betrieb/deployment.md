@@ -81,6 +81,7 @@ Im Repo unter *Settings → Environments* das Environment `staging` anlegen (fü
 |---|---|---|
 | `DEPLOY_HOST` | IP oder Name des Servers | ja |
 | `DOMAIN` | `upload.northalpha.de` | ja |
+| `ADMIN_PATH` | zufällige Zeichenfolge, z. B. `openssl rand -hex 12` ([`admin.md`](admin.md)) | ja |
 | `S3_ENDPOINT_URL` | `https://fsn1.your-objectstorage.com` | ja |
 | `S3_BUCKET` | `schwarmstack-staging` | ja |
 | `S3_REGION` | `fsn1` | ja |
@@ -88,6 +89,7 @@ Im Repo unter *Settings → Environments* das Environment `staging` anlegen (fü
 | `UPLOAD_LINK_SECONDS` | `900` (Standard) | nein |
 | `HSTS_SECONDS` | `0` (Standard); in Produktion z. B. `31536000` | nein |
 | `LOG_LEVEL` | `INFO` (Standard) | nein |
+| `LOGIN_ATTEMPTS_MAX`, `LOGIN_ATTEMPTS_WINDOW_SECONDS` | `5`, `900` (Standard) | nein |
 
 **Secrets**
 
@@ -123,6 +125,12 @@ ssh deploy@<ip>
 cd /opt/schwarmstack && docker compose run --rm app python manage.py campaign --object "M 101" \
   --starts-at 2026-12-01T00:00+01:00 --ends-at 2027-03-31T23:59+02:00 \
   --quota-gib 2 --global-cap-gib 20
+```
+
+Betreiber-Konten für den Admin unter `https://upload.northalpha.de/<ADMIN_PATH>/` legt dasselbe Muster an, je Betreiber einmal:
+
+```bash
+cd /opt/schwarmstack && docker compose run --rm app python manage.py createsuperuser
 ```
 
 ## Zurückrollen

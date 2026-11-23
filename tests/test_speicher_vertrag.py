@@ -171,6 +171,15 @@ def test_falscher_etag_beim_abschluss(backend):
     assert storage.size(k) is None
 
 
+def test_download_link_liefert_die_datei(backend):
+    _, storage, browser = backend
+    k = key()
+    upload(storage, browser, k)
+    reply = browser.send("GET", storage.download_url(k))
+    assert reply.status == 200, reply.text
+    assert reply.body == FIRST + LAST
+
+
 # -- Signatur: nur dort, wo der Speicher sie wirklich prüft (lokal und Garage, nicht moto) --
 
 SIGNING = [
@@ -197,6 +206,23 @@ def test_abgelaufener_link_wird_abgewiesen(signing_backend):
     time.sleep(2.1)
     # AWS und der lokale Adapter antworten 403, Garage 400 ("Date is too old").
     assert browser.send("POST", url).status in (400, 403)
+
+
+def test_abgelaufener_download_link_wird_abgewiesen(signing_backend):
+    storage, browser = signing_backend
+    k = key().replace(".fits", ".json")
+    storage.put_json(k, {"a": 1})
+    url = storage.download_url(k)
+    time.sleep(2.1)
+    assert browser.send("GET", url).status in (400, 403)
+
+
+def test_download_link_gilt_nur_fuer_get(signing_backend):
+    storage, browser = signing_backend
+    k = key().replace(".fits", ".json")
+    storage.put_json(k, {"a": 1})
+    assert browser.send("DELETE", storage.download_url(k)).status in (400, 403)
+    assert storage.size(k) is not None
 
 
 def test_link_mit_fremdem_schluessel_wird_abgewiesen(signing_backend):

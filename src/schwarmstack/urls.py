@@ -1,10 +1,14 @@
 from django.conf import settings
 from django.urls import include, path
 
+import submissions.admin  # noqa: F401  (registriert die Modelle am Admin der Betreiber)
+
 from .health import healthz
+from .operator_site import site
 
 urlpatterns = [
     path("healthz", healthz, name="healthz"),
+    path(f"{settings.ADMIN_PATH}/", site.urls),
     path("", include("submissions.urls")),
 ]
 

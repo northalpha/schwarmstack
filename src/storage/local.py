@@ -95,6 +95,17 @@ class LocalStorage:
         if not os.access(self.root, os.W_OK):
             raise StorageError(f"Nicht beschreibbar: {self.root}")
 
+    def download_url(self, key: str) -> str:
+        self._object(key)  # Schlüssel prüfen
+        return reverse("local_s3", args=[sign_token(S3Request("GET", key))])
+
+    def open(self, key: str):
+        """Öffnet ein Objekt zum Lesen (für den lokalen Download-Endpunkt)."""
+        path = self._object(key)
+        if not path.is_file():
+            raise StorageError("Objekt nicht gefunden")
+        return path.open("rb")
+
     # -- S3-Operationen für den Browser (über den lokalen Endpunkt) ---------
 
     def create_multipart(self, key: str) -> str:

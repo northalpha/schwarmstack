@@ -33,6 +33,10 @@ class Storage(Protocol):
         """Wirft eine Ausnahme, wenn der Speicher nicht erreichbar ist."""
         ...
 
+    def download_url(self, key: str) -> str:
+        """Kurz gültiger Link, mit dem ein Betreiber genau dieses Objekt herunterlädt."""
+        ...
+
 
 def get_storage() -> Storage:
     backend = settings.STORAGE_BACKEND
