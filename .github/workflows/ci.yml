@@ -2,13 +2,30 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*.*.*"]
   pull_request:
+  # Zurückrollen oder erneut ausrollen: ein schon gebautes Image auf eine Umgebung bringen.
+  workflow_dispatch:
+    inputs:
+      umgebung:
+        description: Umgebung
+        type: choice
+        options: [staging, production]
+        default: staging
+      image_tag:
+        description: Image-Tag, z. B. sha-1a2b3c4 oder v1.2.0
+        required: true
+        type: string
 
 permissions:
   contents: read
 
+env:
+  IMAGE: ghcr.io/northalpha/schwarmstack
+
 jobs:
   test:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,6 +33,7 @@ jobs:
       - run: uv sync --frozen
       - run: uv run ruff check .
       - run: uv run ruff format --check .
+      - run: uv run shellcheck deploy/*.sh scripts/*.sh
       - run: uv run python src/manage.py makemigrations --check --dry-run
         env:
           DEBUG: "1"
@@ -28,3 +46,77 @@ jobs:
         run: uv run pytest -q
         env:
           REQUIRE_GARAGE: "1"
+
+  image:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag bestimmen
+        id: tag
+        run: |
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Image bauen
+        run: docker build --tag "$IMAGE:${{ steps.tag.outputs.tag }}" .
+      - name: Smoke-Test, /healthz im laufenden Container
+        run: |
+          docker run --detach --name smoke --publish 8000:8000 \
+            --env DJANGO_SECRET_KEY=smoke --env ALLOWED_HOSTS=localhost \
+            "$IMAGE:${{ steps.tag.outputs.tag }}"
+          for _ in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/healthz; then exit 0; fi
+            sleep 1
+          done
+          docker logs smoke
+          exit 1
+      - name: Nach GHCR pushen
+        if: github.event_name == 'push'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" \
+            | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+          docker push "$IMAGE:${{ steps.tag.outputs.tag }}"
+          docker logout ghcr.io
+
+  staging:
+    needs: image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/ausrollen.yml
+    with:
+      umgebung: staging
+      image_tag: ${{ needs.image.outputs.tag }}
+    secrets: inherit
+
+  production:
+    needs: image
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/ausrollen.yml
+    with:
+      umgebung: production
+      image_tag: ${{ needs.image.outputs.tag }}
+    secrets: inherit
+
+  von-hand:
+    if: github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/ausrollen.yml
+    with:
+      umgebung: ${{ inputs.umgebung }}
+      image_tag: ${{ inputs.image_tag }}
+    secrets: inherit

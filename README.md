@@ -13,6 +13,7 @@ Upload-Dienst für ein gemeinsames Astrofotografie-Projekt der [DZVF-Community](
 
 - [`GLOSSARY.md`](GLOSSARY.md): die gemeinsame Sprache (Aktion, Abgabe, Master, Kanal, Export …)
 - [`docs/adr/`](docs/adr/): Entscheidungen, die schwer umkehrbar sind (Deployment, Upload-Weg, Datenbank …)
+- [`docs/betrieb/`](docs/betrieb/): Betrieb (Deployment nach Staging und Produktion, S3-Speicher)
 - [`docs/agents/`](docs/agents/): Hinweise für Coding-Agenten (Issue-Tracker, Labels, Domain-Docs)
 
 ## Lokal starten

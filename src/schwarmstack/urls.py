@@ -1,7 +1,10 @@
 from django.conf import settings
 from django.urls import include, path
 
+from .health import healthz
+
 urlpatterns = [
+    path("healthz", healthz, name="healthz"),
     path("", include("submissions.urls")),
 ]
 

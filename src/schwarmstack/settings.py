@@ -39,6 +39,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Statische Dateien aus der App selbst, ohne eigenen Webserver im Container.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -78,7 +80,13 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "/static/"
-STATIC_ROOT = DATA_DIR / "static"
+# Im Image liegen die gesammelten Dateien außerhalb des Datenverzeichnisses.
+STATIC_ROOT = Path(os.environ.get("STATIC_ROOT", DATA_DIR / "static"))
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    # Dateinamen mit Hash, damit Browser sie dauerhaft zwischenspeichern dürfen.
+    "staticfiles": {"BACKEND": "schwarmstack.staticfiles.StaticFilesStorage"},
+}
 
 # Zugang zur Abgabe nur über ein signiertes Cookie (ADR 0002).
 SUBMISSION_COOKIE_SECURE = env_bool("SUBMISSION_COOKIE_SECURE", not DEBUG)
