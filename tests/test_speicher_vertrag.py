@@ -136,6 +136,11 @@ def test_loeschen(backend):
     storage.delete(k)  # erneutes Löschen ist kein Fehler
 
 
+def test_erreichbarer_speicher(backend):
+    _, storage, _ = backend
+    storage.ensure_reachable()  # wirft nicht
+
+
 def test_abbrechen_ueber_den_browser(backend):
     _, storage, browser = backend
     k = key()

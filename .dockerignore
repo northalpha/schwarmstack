@@ -1,0 +1,14 @@
+.git
+.github
+.venv
+.claude
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+var
+tests
+docs
+brand
+deploy
+*.whl
