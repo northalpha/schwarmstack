@@ -65,7 +65,7 @@ Die nachträgliche Rücknahme einer Einwilligung auf Bitte der Teilnehmenden. Di
 _Avoid_: Löschung (der Einwilligung), Opt-out
 
 **Nennung** (`credit_name`):
-Der Name, unter dem Teilnehmende im Projekt genannt werden wollen.
+Der Name, unter dem Teilnehmende im Projekt genannt werden wollen. Gibt es nur zusammen mit der Einwilligung zur Veröffentlichung; ohne sie bleibt die Abgabe anonym und nur über ihre Kennung erkennbar.
 _Avoid_: Anzeigename, Credit, Pseudonym
 
 **Einwilligung** (`Consent`):
@@ -95,12 +95,16 @@ Die Kennzahlen zur laufenden Aktion, die nur Betreiber im Admin sehen: Abgaben, 
 _Avoid_: Reporting, Analytics, Auswertung (für die Zahlen)
 
 **Export**:
-Die Übergabe aller Master an den Betreiber am Ende der Aktion: ein Manifest und je Master ein zeitlich begrenzter Download-Link. Vor dem Ende der Aktion plus Nachfrist ist ein Export nur vorläufig; erst der endgültige Export startet die Löschfristen.
+Die Übergabe aller Master an den Betreiber: ein Manifest und je Master ein zeitlich begrenzter Download-Link. Ein **vorläufiger Export** ist jederzeit möglich, enthält aber nur das Manifest ohne Links. Den **endgültigen Export** gibt es genau einmal, frühestens nach Ende der Aktion plus Nachfrist; er friert alle Abgaben ein, auch für Betreiber, und startet die Löschfrist.
 _Avoid_: Download (für den Gesamtvorgang), Archiv, Paket
 
 **Manifest**:
-Die Liste aller Abgaben und ihrer Master mit Angaben und Prüfsummen, die zum Export gehört. Einzige Quelle für die öffentliche Nennung; Schwarmstack selbst zeigt nichts öffentlich an.
+Die Liste aller Abgaben und ihrer Master mit Angaben, Einwilligungen und Prüfsummen, die zum Export gehört. Einzige Quelle für die öffentliche Nennung, denn Schwarmstack selbst zeigt nichts öffentlich an; nach Ablauf der Löschfrist auch der einzige Nachweis der Einwilligungen.
 _Avoid_: Index, Übersicht
+
+**Löschfrist**:
+Die Zeitspanne nach dem endgültigen Export (30 Tage), nach der Schwarmstack alle Master, Begleitdateien, Equipment-Fotos und Angaben löscht. Danach wird die Installation abgebaut; die Sicherungen laufen nach weiteren 14 Tagen aus.
+_Avoid_: Aufbewahrungsfrist, Retention, Löschfristen (Mehrzahl)
 
 **Prüfsumme** (`sha256`):
 Die SHA-256 eines Masters, vom Browser der Teilnehmenden beim Hochladen berechnet und gemeldet. Nicht vom Server bestätigt.
