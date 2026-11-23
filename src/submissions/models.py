@@ -117,6 +117,7 @@ class Master(models.Model):
     class State(models.TextChoices):
         UPLOADING = "uploading", "im Upload"
         ACCEPTED = "accepted", "angenommen"
+        REJECTED = "rejected", "abgelehnt"
 
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name="masters")
     public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
@@ -127,6 +128,7 @@ class Master(models.Model):
     key = models.CharField("Objekt-Schlüssel", max_length=255, unique=True)
     upload_id = models.CharField(max_length=1024, blank=True)
     state = models.CharField(max_length=16, choices=State.choices, default=State.UPLOADING)
+    rejection_reason = models.CharField("Grund der Ablehnung", max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 

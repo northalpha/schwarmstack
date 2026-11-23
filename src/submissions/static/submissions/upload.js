@@ -125,7 +125,8 @@
     const masterId = uppy.getFile(file.id).meta.masterId;
     try {
       const result = await post(`${base}${masterId}/fertig/`);
-      setStatus(file.id, result.stateLabel, result.state);
+      const text = result.reason ? `${result.stateLabel}: ${result.reason}` : result.stateLabel;
+      setStatus(file.id, text, result.state);
     } catch (error) {
       setStatus(file.id, error.message, "error");
     }
@@ -136,7 +137,8 @@
   });
 
   uppy.on("complete", (result) => {
-    if (result.failed.length === 0) window.setTimeout(() => window.location.reload(), 800);
+    // Kurz stehen lassen, damit Ablehnungsgründe lesbar sind; die Liste zeigt sie danach auch.
+    if (result.failed.length === 0) window.setTimeout(() => window.location.reload(), 1500);
   });
 
   input.addEventListener("change", () => {
