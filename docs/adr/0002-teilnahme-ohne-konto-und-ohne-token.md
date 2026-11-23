@@ -4,7 +4,9 @@ Teilnehmende kommen über einen Link auf der Projektwebsite direkt zum Upload, o
 
 ## Consequences
 
-- Bis zum Ende der Aktion können Teilnehmende ihre Abgabe im selben Browser ergänzen, ändern und Master löschen; danach ist sie schreibgeschützt.
+- Bis zum Ende der Aktion können Teilnehmende ihre Abgabe im selben Browser ergänzen, ändern, Master löschen oder sie ganz zurückziehen; danach ist sie schreibgeschützt.
+- Ein Browser kann bis zu 3 Abgaben halten (für unterschiedliche Setups). Die Quote gilt je Abgabe, nicht je Person, weil sich eine Person ohne Konto nicht zuverlässig erkennen lässt.
+- Dieselbe Person in einem anderen Browser erzeugt eine neue Abgabe. Der Betreiber kann Abgaben im Admin zusammenführen.
 - Kein Rückweg von einem anderen Gerät: Wer dort etwas ändern will, wendet sich mit der Abgabe-Kennung an den Betreiber. Die Kennung wird nach dem Anlegen der Abgabe angezeigt und steht im Manifest.
 - Missbrauch lässt sich nicht an einer Identität festmachen: Schutz nur über Quote je Abgabe, Gesamtgrenze für alle Abgaben, Rate-Limit je IP (gespeichert nur als Hash) und optional ALTCHA.
 
