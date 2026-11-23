@@ -1,6 +1,7 @@
 """Speicher im S3-kompatiblen Bucket (Hetzner in Produktion, Garage in CI).
 
-Der Server spricht S3 nur für Größe, Teilabruf, Löschen und Begleitdateien; die Master selbst
+Der Server spricht S3 nur für Größe, Teilabruf, Löschen, Begleitdateien und kurz gültige
+Download-Links für Betreiber; die Master selbst
 lädt der Browser mit signierten Links direkt hoch (ADR 0005).
 """
 
@@ -91,3 +92,8 @@ class S3Storage:
 
     def abort_multipart(self, key: str, upload_id: str) -> None:
         self.client.abort_multipart_upload(Bucket=self.bucket, Key=key, UploadId=upload_id)
+
+    def download_url(self, key: str) -> str:
+        return self.client.generate_presigned_url(
+            "get_object", Params={"Bucket": self.bucket, "Key": key}, ExpiresIn=self.link_seconds
+        )

@@ -48,13 +48,18 @@ def release_stale() -> None:
     ).update(state=Master.State.ABORTED)
 
 
-def usage(masters) -> int:
-    """Belegter Platz: angenommene Master mit tatsächlicher Größe, laufende mit angemeldeter."""
+def usage_parts(masters) -> tuple[int, int]:
+    """Belegung getrennt: (angenommen mit tatsächlicher Größe, reserviert mit angemeldeter)."""
     totals = masters.aggregate(
         accepted=Sum("size", filter=Q(state=Master.State.ACCEPTED)),
         reserved=Sum("declared_size", filter=Q(state=Master.State.UPLOADING)),
     )
-    return (totals["accepted"] or 0) + (totals["reserved"] or 0)
+    return totals["accepted"] or 0, totals["reserved"] or 0
+
+
+def usage(masters) -> int:
+    """Belegung: angenommene Master plus Reservierungen laufender Uploads."""
+    return sum(usage_parts(masters))
 
 
 def _check_limits(campaign: Campaign, submission: Submission, size: int) -> None:
@@ -93,6 +98,8 @@ def _require_phase(*, starting: bool) -> None:
 def start(submission: Submission, *, channel, filename, size) -> tuple[Master, str]:
     """Legt einen Master an und gibt den signierten Link zum Anlegen des Multipart-Uploads."""
     _require_phase(starting=True)
+    if submission.is_withdrawn:
+        raise UploadError("Diese Abgabe wurde zurückgezogen.")
     if channel not in Master.Channel.values:
         raise UploadError("Bitte wähle einen gültigen Kanal.")
     if not isinstance(filename, str) or not filename.strip():
@@ -192,7 +199,9 @@ def finish(master: Master, *, sha256) -> Master:
     master.completed_at = timezone.now()
     master.sha256 = sha256.lower()
     if size != master.declared_size:
-        result = validation.Result(False, "Die Größe weicht von der angemeldeten ab.")
+        result = validation.rejected(
+            validation.Category.SIZE, "Die Größe weicht von der angemeldeten ab."
+        )
     else:
         result = validation.check(
             storage.read_head(master.key, validation.HEAD_BYTES),
@@ -210,6 +219,7 @@ def finish(master: Master, *, sha256) -> Master:
     else:
         master.state = Master.State.REJECTED
         master.rejection_reason = result.reason
+        master.rejection_category = result.category
         storage.delete(master.key)
     master.save(
         update_fields=[
@@ -217,6 +227,7 @@ def finish(master: Master, *, sha256) -> Master:
             "completed_at",
             "state",
             "rejection_reason",
+            "rejection_category",
             "sha256",
             "duplicate_of",
         ]
@@ -230,7 +241,9 @@ def _check_duplicates(master: Master) -> validation.Result:
         pk=master.pk
     )
     if accepted.filter(submission=master.submission).exists():
-        return validation.Result(False, "Diese Datei ist in deiner Abgabe schon vorhanden.")
+        return validation.rejected(
+            validation.Category.DUPLICATE, "Diese Datei ist in deiner Abgabe schon vorhanden."
+        )
     master.duplicate_of = accepted.order_by("created_at").first()
     return validation.ACCEPTED
 

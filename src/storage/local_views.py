@@ -4,7 +4,13 @@ import re
 from xml.sax.saxutils import escape
 
 from django.core import signing
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.http import (
+    FileResponse,
+    Http404,
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseForbidden,
+)
 from django.views.decorators.csrf import csrf_exempt
 
 from . import get_storage
@@ -44,6 +50,11 @@ def local_s3(request, token):
             response = HttpResponse(status=200)
             response["ETag"] = f'"{etag}"'
             return response
+        if request.method == "GET" and upload_id is None:
+            try:
+                return FileResponse(storage.open(key), as_attachment=True)
+            except StorageError as exc:
+                raise Http404 from exc
         if request.method == "GET":
             parts = "".join(
                 f"<Part><PartNumber>{n}</PartNumber><ETag>&quot;{e}&quot;</ETag>"

@@ -1,10 +1,22 @@
+"""Fachverhalten rund um die Abgabe: anlegen, Master löschen, Rückzug, Widerruf.
+
+Admin und Abgabeseite rufen diese Operationen auf; sie selbst kennen keine Anfrage.
+"""
+
+import logging
+
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.utils import timezone
+
+from storage import get_storage
 
 from . import references
-from .models import Consent, Submission
+from .models import Consent, Master, Submission
+from .uploads import sidecar
 
 _ATTEMPTS = 5
+log = logging.getLogger(__name__)
 
 
 def create_submission(*, credit_name, setup_description, publish_credit) -> Submission:
@@ -35,3 +47,85 @@ def create_submission(*, credit_name, setup_description, publish_credit) -> Subm
         except IntegrityError:  # gleichzeitig dieselbe Kennung gezogen
             continue
     raise RuntimeError("Abgabe konnte nicht angelegt werden")
+
+
+# Nur diese Master lassen sich löschen; abgelehnte und abgebrochene haben keine Datei mehr.
+DELETABLE = (Master.State.ACCEPTED, Master.State.UPLOADING)
+
+
+def delete_master(master: Master) -> None:
+    """Löscht einen Master: Datei und Begleitdatei sofort aus dem Speicher, dann den Datensatz.
+
+    Ein Master im Upload wird über das Speicher-Modul abgebrochen. Zeigen andere Master als
+    Dublette auf ihn, wird der früheste von ihnen zum Original.
+    """
+    storage = get_storage()
+    if master.state == Master.State.UPLOADING and master.upload_id:
+        try:
+            storage.abort_multipart(master.key, master.upload_id)
+        except Exception:  # noqa: BLE001
+            # Schon abgeräumt oder abgeschlossen; das Objekt wird unten ohnehin gelöscht.
+            log.info("Multipart-Upload war schon weg: %s", master.public_id)
+    storage.delete(master.key)
+    storage.delete(master.sidecar_key)
+
+    with transaction.atomic():
+        duplicates = list(master.duplicates.order_by("created_at"))
+        if duplicates:
+            new_original, *rest = duplicates
+            new_original.duplicate_of = None
+            new_original.save(update_fields=["duplicate_of"])
+            for duplicate in rest:
+                duplicate.duplicate_of = new_original
+                duplicate.save(update_fields=["duplicate_of"])
+        master.delete()
+    for duplicate in duplicates:
+        if duplicate.state == Master.State.ACCEPTED:
+            storage.put_json(duplicate.sidecar_key, sidecar(duplicate))
+
+
+def details_corrected(submission: Submission) -> None:
+    """Nach einer Korrektur von Nennung oder Setup die Begleitdateien neu schreiben,
+    damit die Zuordnung ohne Datenbank stimmt (ADR 0006)."""
+    storage = get_storage()
+    for master in submission.masters.filter(state=Master.State.ACCEPTED):
+        storage.put_json(master.sidecar_key, sidecar(master))
+
+
+def withdraw(submission: Submission, *, by: Submission.WithdrawnBy) -> Submission:
+    """Rückzug: löscht alle Master, Angaben und Einwilligungen samt Widerruf.
+
+    Es bleiben die Abgabe-Kennung, der Zeitpunkt und wer den Rückzug ausgelöst hat. Eine
+    zurückgezogene Abgabe zählt nicht mehr auf Quote oder Gesamtgrenze und öffnet nicht wieder.
+    """
+    with transaction.atomic():
+        submission = Submission.objects.select_for_update().get(pk=submission.pk)
+        if submission.is_withdrawn:
+            return submission
+        # Zuerst als zurückgezogen markieren: Ab hier startet kein neuer Upload mehr.
+        submission.withdrawn_at = timezone.now()
+        submission.withdrawn_by = by
+        submission.credit_name = ""
+        submission.setup_description = ""
+        submission.save()
+        submission.consents.all().delete()
+    for master in submission.masters.all():
+        if master.state in DELETABLE:
+            delete_master(master)
+    submission.masters.all().delete()
+    return submission
+
+
+def revoke(consent: Consent, *, by: Submission.WithdrawnBy) -> bool:
+    """Widerruf einer Einwilligung: Sie bekommt einen Zeitpunkt und bleibt stehen.
+
+    Der Widerruf der Nutzung im Projekt löst den Rückzug der ganzen Abgabe aus. Gibt zurück,
+    ob sich etwas geändert hat (ein schon vermerkter Widerruf ändert nichts).
+    """
+    if consent.revoked_at is not None:
+        return False
+    consent.revoked_at = timezone.now()
+    consent.save(update_fields=["revoked_at"])
+    if consent.kind == Consent.Kind.PROJECT_USE:
+        withdraw(consent.submission, by=by)
+    return True

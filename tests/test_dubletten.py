@@ -99,6 +99,7 @@ def test_dieselbe_datei_in_derselben_abgabe_wird_abgelehnt(client, reference, st
     first, second = Master.objects.order_by("created_at")
     assert first.state == Master.State.ACCEPTED
     assert second.state == Master.State.REJECTED
+    assert second.get_rejection_category_display() == "Dublette in derselben Abgabe"
     assert (storage_dir / "objects" / first.key).exists()
     assert not (storage_dir / "objects" / second.key).exists()
 
