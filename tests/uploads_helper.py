@@ -4,7 +4,7 @@ import json
 import re
 from xml.sax.saxutils import escape
 
-PART_SIZE = 8
+PART_SIZE = 1024
 
 
 def start(client, reference, *, channel="L", filename="m101_L.fits", size):

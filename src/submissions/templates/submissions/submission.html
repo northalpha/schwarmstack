@@ -18,7 +18,7 @@
   <thead><tr><th>Datei</th><th>Kanal</th><th>Größe</th><th>Zustand</th></tr></thead>
   <tbody>
   {% for m in masters %}
-    <tr data-state="{{ m.state }}"><td>{{ m.original_name }}</td><td>{{ m.get_channel_display }}</td><td>{{ m.size|default:m.declared_size|filesizeformat }}</td><td>{{ m.get_state_display }}</td></tr>
+    <tr data-state="{{ m.state }}"><td>{{ m.original_name }}</td><td>{{ m.get_channel_display }}</td><td>{{ m.size|default:m.declared_size|filesizeformat }}</td><td>{{ m.get_state_display }}{% if m.rejection_reason %}<br><span class="reason">{{ m.rejection_reason }}</span>{% endif %}</td></tr>
   {% endfor %}
   </tbody>
 </table>

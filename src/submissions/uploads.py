@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from storage import S3Request, get_storage
 
+from . import validation
 from .models import Master, Submission
 
 # Endungen der Teilnehmenden -> Endung im Speicher
@@ -78,8 +79,11 @@ def sign(master: Master, *, method, key, upload_id=None, part_number=None) -> st
 
 
 def finish(master: Master) -> Master:
-    """Übernimmt einen fertig hochgeladenen Master und schreibt die Begleitdatei."""
-    if master.state == Master.State.ACCEPTED:
+    """Prüft einen fertig hochgeladenen Master und nimmt ihn an oder lehnt ihn ab.
+
+    Angenommen: Begleitdatei wird geschrieben. Abgelehnt: Datei wird gelöscht, Grund gespeichert.
+    """
+    if master.state != Master.State.UPLOADING:
         return master
     storage = get_storage()
     size = storage.size(master.key)
@@ -88,9 +92,25 @@ def finish(master: Master) -> Master:
 
     master.size = size
     master.completed_at = timezone.now()
-    master.state = Master.State.ACCEPTED
-    storage.put_json(master.sidecar_key, sidecar(master))
-    master.save(update_fields=["size", "completed_at", "state"])
+    if size != master.declared_size:
+        result = validation.Result(False, "Die Größe weicht von der angemeldeten ab.")
+    else:
+        result = validation.check(
+            storage.read_head(master.key, validation.HEAD_BYTES),
+            suffix=PurePosixPath(master.key).suffix,
+            channel=master.channel,
+            channel_label=master.get_channel_display(),
+            size=size,
+        )
+
+    if result.ok:
+        master.state = Master.State.ACCEPTED
+        storage.put_json(master.sidecar_key, sidecar(master))
+    else:
+        master.state = Master.State.REJECTED
+        master.rejection_reason = result.reason
+        storage.delete(master.key)
+    master.save(update_fields=["size", "completed_at", "state", "rejection_reason"])
     return master
 
 
