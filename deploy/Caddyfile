@@ -1,0 +1,32 @@
+# TLS holt und erneuert Caddy selbst. Basic Auth nur, wenn BASIC_AUTH=an (Staging);
+# die direkten Uploads gehen am Proxy vorbei zum S3-Speicher und sind nicht betroffen.
+
+(zugang-an) {
+	@geschuetzt not path /healthz
+	basic_auth @geschuetzt {
+		{$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+	}
+}
+
+(zugang-aus) {
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# IP-Adressen nur gekürzt im Log (ADR 0007).
+	log {
+		output stdout
+		format filter {
+			request>remote_ip ip_mask 24 48
+			request>client_ip ip_mask 24 48
+			request>headers>X-Forwarded-For delete
+			request>headers>Authorization delete
+			request>headers>Cookie delete
+		}
+	}
+
+	import zugang-{$BASIC_AUTH:aus}
+
+	reverse_proxy app:8000
+}

@@ -24,6 +24,10 @@ _Avoid_: Event, Projekt (für den Datensatz), Kampagne
 Die Obergrenze für die Gesamtgröße aller Master aller Abgaben der Aktion.
 _Avoid_: Kapazität, Gesamtquote
 
+**Belegung** (`usage`):
+Der belegte Platz: die Größe der angenommenen Master plus die angemeldete Größe laufender Uploads (Reservierung). Wird gegen Quote und Gesamtgrenze gerechnet.
+_Avoid_: Verbrauch, Auslastung
+
 **Projektwebsite**:
 Die externe Website des Projekts, auf der Teilnehmende den Link zum Upload finden. Nicht Teil von Schwarmstack.
 _Avoid_: Landingpage, Einstiegsseite
@@ -37,7 +41,7 @@ Ein kurzer, lesbarer Code (z. B. `SW-7K3Q`), der eine Abgabe eindeutig benennt. 
 _Avoid_: ID, Ticketnummer, Token
 
 **Rückzug** (`withdrawn`):
-Die Löschung einer ganzen Abgabe durch die Teilnehmenden selbst oder auf ihre Bitte durch einen Betreiber. Master, Foto und Angaben verschwinden; nur die Abgabe-Kennung bleibt als zurückgezogen sichtbar.
+Die Löschung einer ganzen Abgabe, durch die Teilnehmenden selbst oder in ihrem Auftrag durch einen Betreiber. Master, Foto, Angaben und Einwilligungen verschwinden; es bleiben die Abgabe-Kennung, der Zeitpunkt und wer den Rückzug ausgelöst hat. Eine zurückgezogene Abgabe zählt nicht auf Quote oder Gesamtgrenze und öffnet nicht wieder.
 _Avoid_: Stornierung, Abmeldung
 
 **Ende der Aktion** (`ends_at`):
@@ -60,10 +64,6 @@ _Avoid_: Validierung, Check
 Der Filter- bzw. Farbkanal, den ein Master abbildet, z. B. L, R, G, B, Hα, OIII, SII, IR oder RGB. Teilnehmende wählen ihn beim Hochladen.
 _Avoid_: Filter (für den Kanal des Masters), Band
 
-**Widerruf** (`revoked_at`):
-Die nachträgliche Rücknahme einer Einwilligung auf Bitte der Teilnehmenden. Die Einwilligung bleibt mit dem Zeitpunkt des Widerrufs erhalten, damit nachweisbar ist, was wann galt. Der Widerruf der Nutzung im Projekt führt zum Rückzug der Abgabe.
-_Avoid_: Löschung (der Einwilligung), Opt-out
-
 **Nennung** (`credit_name`):
 Der Name, unter dem Teilnehmende im Projekt genannt werden wollen. Gibt es nur zusammen mit der Einwilligung zur Veröffentlichung; ohne sie bleibt die Abgabe anonym und nur über ihre Kennung erkennbar.
 _Avoid_: Anzeigename, Credit, Pseudonym
@@ -71,6 +71,10 @@ _Avoid_: Anzeigename, Credit, Pseudonym
 **Einwilligung** (`Consent`):
 Eine einzelne, ausdrücklich erteilte Zustimmung der Teilnehmenden, z. B. zur Nutzung im Projekt oder zur Veröffentlichung der Nennung.
 _Avoid_: Zustimmung, Opt-in
+
+**Widerruf** (`revoked_at`):
+Die Rücknahme einer Einwilligung. Die Einwilligung bleibt mit dem Zeitpunkt des Widerrufs stehen, damit nachweisbar ist, was wann galt. Der Widerruf der Nutzung im Projekt löst den Rückzug der Abgabe aus.
+_Avoid_: Kündigung, Opt-out
 
 **Datenschutzhinweis**:
 Der Text in Schwarmstack, der erklärt, wer was wie lange verarbeitet; Verantwortlicher ist DZVF. Er ist versioniert, und jede Einwilligung hält fest, auf welche Version sie sich bezieht.
@@ -80,10 +84,6 @@ _Avoid_: Datenschutzerklärung, Privacy Policy
 Ein optionales Foto der Ausrüstung, das Teilnehmende ihrer Abgabe beilegen können. Kein Master.
 _Avoid_: Setup-Bild
 
-**Belegung** (`usage`):
-Die Größe aller angenommenen Master plus der Reservierungen laufender Uploads, gemessen an der Quote einer Abgabe oder an der Gesamtgrenze der Aktion.
-_Avoid_: Verbrauch, Füllstand, Auslastung
-
 **Quote** (`quota`):
 Die Obergrenze für die Gesamtgröße aller Master einer Abgabe.
 _Avoid_: Kontingent, Limit (ohne Bezug)
@@ -91,12 +91,12 @@ _Avoid_: Kontingent, Limit (ohne Bezug)
 ### Auswertung
 
 **Admin**:
-Der geschützte Bereich, in dem Betreiber die Aktion pflegen, Abgaben ansehen und im Auftrag von Teilnehmenden korrigieren. Jede Änderung darin ist mit Betreiber und Zeitpunkt nachvollziehbar.
-_Avoid_: Backend, Dashboard, Verwaltung
+Die Oberfläche nur für Betreiber, mit eigenem Konto je Betreiber: Statistik, Aktion pflegen, Abgaben und Master ansehen und im Auftrag der Teilnehmenden korrigieren. Jeder Eingriff steht im Protokoll.
+_Avoid_: Backend, Dashboard
 
 **Statistik**:
-Die Kennzahlen zur laufenden Aktion, die nur Betreiber im Admin sehen: Abgaben, Master je Zustand und Kanal, Belegung, Dubletten, Ablehnungsgründe und der Verlauf je Tag. Zählt Abgaben, nie Personen.
-_Avoid_: Reporting, Analytics, Auswertung (für die Zahlen)
+Der Stand der Aktion für die Betreiber, Startseite des Admin: Abgaben, Master je Zustand und Kanal, Belegung, Dubletten, Ablehnungen nach Kategorie und der Verlauf je Tag. Zählt Abgaben, nie Personen; nicht öffentlich.
+_Avoid_: Auswertung (für die Seite), Reporting
 
 **Export**:
 Die Übergabe aller Master an den Betreiber: ein Manifest und je Master ein zeitlich begrenzter Download-Link. Ein **vorläufiger Export** ist jederzeit möglich, enthält aber nur das Manifest ohne Links. Den **endgültigen Export** gibt es genau einmal, frühestens nach Ende der Aktion plus Nachfrist; er friert alle Abgaben ein, auch für Betreiber, und startet die Löschfrist.

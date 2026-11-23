@@ -30,7 +30,12 @@ ALLOWED_HOSTS = env_list("ALLOWED_HOSTS") or (["localhost", "127.0.0.1"] if DEBU
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
 
 INSTALLED_APPS = [
+    # Admin nur für Betreiber, ohne Autodiscover: eigene Site in schwarmstack.operator_site.
+    "django.contrib.admin.apps.SimpleAdminConfig",
+    "django.contrib.auth",
     "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
     "django.contrib.staticfiles",
     "schwarmstack",
     "storage",
@@ -39,8 +44,13 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Statische Dateien aus der App selbst, ohne eigenen Webserver im Container.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -55,6 +65,8 @@ TEMPLATES = [
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ]
         },
     }
@@ -78,7 +90,13 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "/static/"
-STATIC_ROOT = DATA_DIR / "static"
+# Im Image liegen die gesammelten Dateien außerhalb des Datenverzeichnisses.
+STATIC_ROOT = Path(os.environ.get("STATIC_ROOT", DATA_DIR / "static"))
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    # Dateinamen mit Hash, damit Browser sie dauerhaft zwischenspeichern dürfen.
+    "staticfiles": {"BACKEND": "schwarmstack.staticfiles.StaticFilesStorage"},
+}
 
 # Zugang zur Abgabe nur über ein signiertes Cookie (ADR 0002).
 SUBMISSION_COOKIE_SECURE = env_bool("SUBMISSION_COOKIE_SECURE", not DEBUG)
@@ -100,6 +118,22 @@ if STORAGE_BACKEND == "s3" and not S3_BUCKET:
     raise RuntimeError("S3_BUCKET ist nicht gesetzt")
 # Gültigkeit signierter Links für einzelne S3-Anfragen.
 UPLOAD_LINK_SECONDS = int(os.environ.get("UPLOAD_LINK_SECONDS", 900))
+
+# Admin für die Betreiber: Pfad aus der Umgebung, damit automatisierte Angriffe ihn nicht auf
+# Anhieb finden. In Produktion ohne Standardwert.
+ADMIN_PATH = os.environ.get("ADMIN_PATH", "").strip().strip("/")
+if not ADMIN_PATH:
+    if not DEBUG:
+        raise RuntimeError("ADMIN_PATH ist nicht gesetzt")
+    ADMIN_PATH = "betrieb"
+# Anmeldung am Admin: höchstens so viele Fehlversuche je IP im Zeitfenster.
+LOGIN_ATTEMPTS_MAX = int(os.environ.get("LOGIN_ATTEMPTS_MAX", 5))
+LOGIN_ATTEMPTS_WINDOW_SECONDS = int(os.environ.get("LOGIN_ATTEMPTS_WINDOW_SECONDS", 15 * 60))
+# Hinter Caddy ist REMOTE_ADDR der Proxy; die IP der Anfrage steht dann als letzter Eintrag in
+# X-Forwarded-For. Nur einschalten, wenn die App ausschließlich hinter dem Proxy erreichbar ist.
+TRUST_X_FORWARDED_FOR = env_bool("TRUST_X_FORWARDED_FOR", not DEBUG)
+SESSION_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_HTTPONLY = True
 
 # TLS terminiert vor der App (Caddy); Caddy setzt X-Forwarded-Proto.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

@@ -44,6 +44,24 @@
 - Lokaler Start im frischen Checkout: Das Datenverzeichnis (`var/` bzw. `DATA_DIR`) wird beim
   Start angelegt. Warum: `migrate` brach sonst mit „unable to open database file“ ab, weil
   SQLite die Datei anlegt, aber nicht das Verzeichnis.
+- Admin für die Betreiber (#29): Djangos Admin unter `/<ADMIN_PATH>/` mit eigenem Konto je
+  Betreiber und gebremster Anmeldung (Fehlversuche je IP-Hash in der Datenbank). Startseite ist
+  die Statistik: Abgaben, Master je Zustand und Kanal, Belegung gegen die Gesamtgrenze,
+  Dubletten, Ablehnungen nach Kategorie und Verlauf je Tag. Die Aktion lässt sich pflegen (Objekt
+  und Beginn ab dem Start gesperrt, Gesamtgrenze nicht unter der Belegung). Abgaben suchen,
+  filtern und korrigieren; Master löschen, Rückzug und Widerruf als Fachverhalten, einzelne Master
+  über einen kurz gültigen Link herunterladen; alles im Protokoll. Die Prüfung liefert jetzt eine
+  feste Kategorie je Ablehnung. Warum: Die Betreiber sollen den Stand der Aktion sehen und
+  Anfragen von Teilnehmenden ohne Zugang zum Server erledigen können. Betrieb:
+  `docs/betrieb/admin.md`.
+- Deployment nach Staging, Produktion vorgesehen (#27): Container-Image (gunicorn, statische
+  Dateien über WhiteNoise), eine Compose-Datei mit Caddy für beide Umgebungen, Einrichtung des
+  Hosts per cloud-init oder SSH (`deploy/host-einrichten.sh`) und Deploy per GitHub Actions:
+  jeder grüne Push auf `main` nach Staging, Tags `vX.Y.Z` nach Freigabe in die Produktion,
+  Zurückrollen über *Run workflow*. Neuer Endpunkt `/healthz` prüft Datenbank und S3-Speicher.
+  Anleitung in `docs/betrieb/deployment.md`. Warum: Der Upload-Weg soll unter echten Bedingungen
+  (TLS, Hetzner-S3, Heimleitung, mehrere Browser) laufen, und die Produktion später auf demselben
+  Weg ohne Umbau.
 
 ## 0.1.0
 
