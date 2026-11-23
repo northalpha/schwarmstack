@@ -40,9 +40,9 @@ def _tag(xml, name):
     return re.search(rf"<{name}>(.*?)</{name}>", xml).group(1)
 
 
-def send_parts(client, reference, master_id, key, upload_id, data, part_size=PART_SIZE):
+def send_parts(client, reference, master_id, key, upload_id, data, part_size=PART_SIZE, first=1):
     parts = []
-    for number, offset in enumerate(range(0, len(data), part_size), start=1):
+    for number, offset in enumerate(range(0, len(data), part_size), start=first):
         url = sign(
             client, reference, master_id,
             method="PUT", key=key, uploadId=upload_id, partNumber=number,

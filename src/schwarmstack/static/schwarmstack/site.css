@@ -77,6 +77,8 @@ select { font: inherit; padding: .3rem; }
 .usage progress { width: 100%; }
 .usage label { font-weight: 400; margin: 0; }
 .queue .cancel { margin: 0; padding: .2rem .6rem; background: transparent; color: var(--accent); border: 1px solid var(--border); font-weight: 400; }
+.notice { padding: .75rem 1rem; border-left: 4px solid var(--accent); background: transparent; }
+.queue .pause { margin: 0; padding: .2rem .6rem; background: transparent; color: var(--accent); border: 1px solid var(--border); font-weight: 400; }
 button:disabled { opacity: .5; cursor: not-allowed; }
 tr[data-state="rejected"] td { color: var(--muted); }
 .reason { color: var(--error); font-size: .9rem; }
