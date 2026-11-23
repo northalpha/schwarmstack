@@ -1,8 +1,0 @@
-{% load static %}{% comment %}
-ALTCHA-Widget, komplett von diesem Server (kein CDN). Einbinden im Formular: {% include "altcha_gate/widget.html" %}
-Nur anzeigen, wenn event.altcha_enabled gilt. Skripte ohne Inline-Code (CSP-tauglich).
-{% endcomment %}<link rel="stylesheet" href="{% static 'altcha_gate/altcha.css' %}">
-<altcha-widget challenge="{% url 'altcha_challenge' %}" name="altcha" language="de" auto="onsubmit" workers="2"></altcha-widget>
-<script type="module" src="{% static 'altcha_gate/altcha.min.js' %}"></script>
-<script type="module" src="{% static 'altcha_gate/altcha-de.js' %}"></script>
-<script type="module" src="{% static 'altcha_gate/altcha-init.js' %}"></script>
