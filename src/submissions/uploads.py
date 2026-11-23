@@ -17,7 +17,7 @@ from django.utils import timezone
 from storage import S3Request, get_storage
 
 from . import validation
-from .models import Campaign, Master, Submission
+from .models import Campaign, Master, Phase, Submission
 
 # Endungen der Teilnehmenden -> Endung im Speicher
 EXTENSIONS = {".xisf": ".xisf", ".fits": ".fits", ".fit": ".fits", ".fts": ".fits"}
@@ -74,8 +74,25 @@ def _check_limits(campaign: Campaign, submission: Submission, size: int) -> None
         )
 
 
+def _require_phase(*, starting: bool) -> None:
+    """Zeitfenster der Aktion: neue Uploads nur während der Aktion, begonnene auch in der
+    Nachfrist; danach ist jede Abgabe schreibgeschützt."""
+    campaign = Campaign.current()
+    phase = campaign.phase() if campaign else Phase.CLOSED
+    if phase is Phase.BEFORE:
+        raise UploadError("Die Aktion hat noch nicht begonnen.")
+    if phase is Phase.CLOSED:
+        raise UploadError("Die Aktion ist vorbei, deine Abgabe ist schreibgeschützt.")
+    if starting and phase is not Phase.OPEN:
+        raise UploadError(
+            "Die Aktion ist beendet. Neue Uploads sind nicht mehr möglich, "
+            "begonnene kannst du in der Nachfrist noch abschließen."
+        )
+
+
 def start(submission: Submission, *, channel, filename, size) -> tuple[Master, str]:
     """Legt einen Master an und gibt den signierten Link zum Anlegen des Multipart-Uploads."""
+    _require_phase(starting=True)
     if channel not in Master.Channel.values:
         raise UploadError("Bitte wähle einen gültigen Kanal.")
     if not isinstance(filename, str) or not filename.strip():
@@ -108,6 +125,7 @@ def start(submission: Submission, *, channel, filename, size) -> tuple[Master, s
 
 def abort(master: Master) -> Master:
     """Bricht einen laufenden Upload ab und gibt die Reservierung frei."""
+    _require_phase(starting=False)
     if master.state == Master.State.ABORTED:
         return master
     if master.state != Master.State.UPLOADING:
@@ -126,6 +144,7 @@ def abort(master: Master) -> Master:
 
 def sign(master: Master, *, method, key, upload_id=None, part_number=None) -> str:
     """Signiert eine S3-Anfrage des Browsers, wenn sie zu diesem Master passt."""
+    _require_phase(starting=False)
     if master.state != Master.State.UPLOADING:
         raise UploadError("Dieser Master ist schon abgeschlossen.")
     if key != master.key:
@@ -161,6 +180,7 @@ def finish(master: Master, *, sha256) -> Master:
     """
     if not isinstance(sha256, str) or not _SHA256.match(sha256):
         raise UploadError("Ungültige Prüfsumme (erwartet: SHA-256 als 64 Hex-Zeichen).")
+    _require_phase(starting=False)
     if master.state != Master.State.UPLOADING:
         return master
     storage = get_storage()
