@@ -84,6 +84,16 @@ def sign(request, reference, master_id):
 
 
 @require_POST
+def abort(request, reference, master_id):
+    master = _master(request, reference, master_id)
+    try:
+        master = uploads.abort(master)
+    except uploads.Conflict as exc:
+        return _error(exc, 409)
+    return JsonResponse(master_json(master))
+
+
+@require_POST
 def finish(request, reference, master_id):
     master = _master(request, reference, master_id)
     try:

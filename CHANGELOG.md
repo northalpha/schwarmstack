@@ -29,6 +29,11 @@
   Garage in CI, `manage.py s3_bucket_setup` für CORS und Lifecycle-Regel, Betriebsanleitung in
   `docs/betrieb/s3-speicher.md`. Warum: Staging und Produktion laufen auf S3, und der Weg
   Browser → S3 → Abschluss soll vor jedem Rollout einmal wirklich gelaufen sein.
+- Quote, Gesamtgrenze und Abbrechen (#15): Vor dem Start prüft der Server Höchstgröße je Master
+  (500 MiB, Einstellung der Aktion), Quote der Abgabe und Gesamtgrenze und reserviert die Größe
+  in derselben Transaktion. Uploads lassen sich abbrechen; nach 7 Tagen nicht abgeschlossene
+  geben ihre Reservierung frei. Die Abgabeseite zeigt die Belegung. Warum: Der Bucket soll nicht
+  über das Budget wachsen, und niemand soll erst nach langem Hochladen scheitern.
 
 ## 0.1.0
 
