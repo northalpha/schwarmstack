@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Abgabe {{ submission.reference }} – Schwarmstack{% endblock %}
 {% block content %}
 {% include "submissions/_own.html" %}
@@ -11,7 +12,36 @@
   <dt>Nennung</dt><dd>{{ submission.credit_name }}</dd>
   {% if submission.setup_description %}<dt>Setup</dt><dd>{{ submission.setup_description|linebreaksbr }}</dd>{% endif %}
 </dl>
+<h2>Master</h2>
+{% if masters %}
+<table class="masters">
+  <thead><tr><th>Datei</th><th>Kanal</th><th>Größe</th><th>Zustand</th></tr></thead>
+  <tbody>
+  {% for m in masters %}
+    <tr data-state="{{ m.state }}"><td>{{ m.original_name }}</td><td>{{ m.get_channel_display }}</td><td>{{ m.size|default:m.declared_size|filesizeformat }}</td><td>{{ m.get_state_display }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Noch keine Master.</p>
+{% endif %}
+
+<section id="uploader" class="uploader" hidden data-base="{% url 'upload_start' submission.reference %}" data-csrf="{{ csrf_token }}">
+  <h3>Master hochladen</h3>
+  <p class="help">XISF oder FITS, 32 Bit, je Kanal eine Datei. Wähle für jede Datei den Kanal, dann starte den Upload.</p>
+  <label for="files">Dateien auswählen</label>
+  <input id="files" type="file" multiple accept=".xisf,.fits,.fit,.fts">
+  <ul class="queue"></ul>
+  <button type="button" disabled>Hochladen</button>
+</section>
+<template id="channel-template"><select><option value="">Kanal …</option>{% for value, label in channels %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></template>
+<noscript><p>Zum Hochladen der Master brauchst du JavaScript.</p></noscript>
+
 {% if can_add %}
 <p><a href="{% url 'new_submission' %}">Weitere Abgabe anlegen</a> – für ein weiteres Setup.</p>
 {% endif %}
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'submissions/vendor/uppy/uppy.min.js' %}" defer></script>
+<script src="{% static 'submissions/upload.js' %}" defer></script>
 {% endblock %}

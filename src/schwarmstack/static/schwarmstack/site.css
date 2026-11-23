@@ -61,3 +61,17 @@ button {
 a { color: var(--accent); }
 .own { border-bottom: 1px solid var(--border); padding-bottom: .5rem; }
 .own ul { margin: .25rem 0 0; padding-left: 1.25rem; }
+table.masters { width: 100%; border-collapse: collapse; }
+table.masters th, table.masters td { text-align: left; padding: .35rem .5rem .35rem 0; border-bottom: 1px solid var(--border); }
+table.masters td:nth-child(3) { white-space: nowrap; }
+.uploader { margin-top: 1.5rem; padding: 1rem; border: 1px solid var(--border); border-radius: .25rem; }
+.uploader h3 { margin-top: 0; }
+.queue { list-style: none; padding: 0; }
+.queue li { display: grid; grid-template-columns: 1fr auto; gap: .25rem .75rem; align-items: center; padding: .5rem 0; border-bottom: 1px solid var(--border); }
+.queue .name { overflow-wrap: anywhere; }
+.queue progress { grid-column: 1 / -1; width: 100%; }
+.queue .status { grid-column: 1 / -1; color: var(--muted); font-size: .9rem; }
+.queue [data-state="accepted"] .status { color: var(--fg); font-weight: 600; }
+[data-state="error"], .queue [data-state="error"] .status { color: var(--error); }
+select { font: inherit; padding: .3rem; }
+button:disabled { opacity: .5; cursor: not-allowed; }
