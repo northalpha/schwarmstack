@@ -10,7 +10,9 @@ from submissions.models import Master, Submission
 
 pytestmark = pytest.mark.django_db
 
-DATA = b"SIMPLE  =                    T" + bytes(range(256)) * 3
+from files import fits, xisf  # noqa: E402
+
+DATA = fits(width=16, height=12)
 
 
 @pytest.fixture
@@ -30,7 +32,8 @@ def stored(storage_dir, key):
 
 
 def test_master_hochladen_und_annehmen(client, reference, storage_dir):
-    response = upload(client, reference, DATA, channel="Ha", filename="M101 Ha.xisf")
+    data = xisf()
+    response = upload(client, reference, data, channel="Ha", filename="M101 Ha.xisf")
     assert response.status_code == 200
     assert response.json()["state"] == "accepted"
 
@@ -38,12 +41,12 @@ def test_master_hochladen_und_annehmen(client, reference, storage_dir):
     assert master.state == Master.State.ACCEPTED
     assert master.channel == "Ha"
     assert master.original_name == "M101 Ha.xisf"
-    assert master.size == len(DATA)
-    assert stored(storage_dir, master.key) == DATA
+    assert master.size == len(data)
+    assert stored(storage_dir, master.key) == data
 
 
 def test_datei_kommt_byte_genau_an_bei_vielen_teilen(client, reference, storage_dir):
-    upload(client, reference, DATA, part_size=5)
+    upload(client, reference, DATA, part_size=500)
     assert stored(storage_dir, Master.objects.get().key) == DATA
 
 
@@ -61,12 +64,12 @@ def test_objekt_schluessel_ohne_dateinamen(client, reference):
     [("a.xisf", ".xisf"), ("a.FITS", ".fits"), ("a.fit", ".fits"), ("a.fts", ".fits")],
 )
 def test_endung_im_schluessel(client, reference, filename, suffix):
-    upload(client, reference, DATA, filename=filename)
+    upload(client, reference, xisf() if suffix == ".xisf" else DATA, filename=filename)
     assert Master.objects.get().key.endswith(suffix)
 
 
 def test_begleitdatei(client, reference, storage_dir, campaign):
-    upload(client, reference, DATA, channel="RGB", filename="farbe.fits")
+    upload(client, reference, fits(planes=3), channel="RGB", filename="farbe.fits")
     master = Master.objects.get()
     sidecar_key = master.key.rsplit(".", 1)[0] + ".json"
     sidecar = json.loads(stored(storage_dir, sidecar_key))
@@ -74,7 +77,7 @@ def test_begleitdatei(client, reference, storage_dir, campaign):
     assert sidecar["credit_name"] == "Ada Sternguck"
     assert sidecar["channel"] == "RGB"
     assert sidecar["original_name"] == "farbe.fits"
-    assert sidecar["size"] == len(DATA)
+    assert sidecar["size"] == len(fits(planes=3))
     assert sidecar["completed_at"]
 
 
@@ -188,7 +191,7 @@ def test_link_passt_nur_zur_signierten_methode(client, reference):
 def test_teile_auflisten(client, reference):
     body = start(client, reference, size=len(DATA)).json()
     upload_id = create(client, body["url"])
-    send_parts(client, reference, body["masterId"], body["key"], upload_id, DATA[:16])
+    send_parts(client, reference, body["masterId"], body["key"], upload_id, DATA[:16], 8)
     url = sign(
         client, reference, body["masterId"], method="GET", key=body["key"], uploadId=upload_id
     ).json()["url"]
@@ -247,7 +250,7 @@ def test_endpunkte_verlangen_csrf(reference, campaign, valid_form, storage_dir):
 
 def test_grosse_teile_gehen_nicht_ueber_den_arbeitsspeicher(client, reference, storage_dir):
     """Teile über Djangos Grenze für Request-Bodies (2,5 MB) werden als Datenstrom geschrieben."""
-    data = bytes(range(256)) * (12 * 1024)  # 3 MB
+    data = fits(width=1024, height=768)  # 3 MB
     response = upload(client, reference, data, part_size=len(data))
     assert response.json()["state"] == "accepted"
     assert stored(storage_dir, Master.objects.get().key) == data
