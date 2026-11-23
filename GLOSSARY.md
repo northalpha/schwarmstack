@@ -29,12 +29,16 @@ Die externe Website des Projekts, auf der Teilnehmende den Link zum Upload finde
 _Avoid_: Landingpage, Einstiegsseite
 
 **Abgabe** (`Submission`):
-Alles, was eine teilnehmende Person in einem Durchgang zum Projekt beiträgt: ihre Angaben und ihre Dateien. Nur aus dem Browser erreichbar, in dem sie angelegt wurde.
+Alles, was eine teilnehmende Person mit einem Setup zur Aktion beiträgt: ihre Angaben und ihre Master. Bleibt bis zum Ende der Aktion offen und ist nur aus dem Browser erreichbar, in dem sie angelegt wurde. Wer mit einem zweiten Setup beiträgt, legt eine weitere Abgabe an.
 _Avoid_: Upload (als Sammelbegriff), Einreichung, Beitrag
 
 **Abgabe-Kennung** (`reference`):
 Ein kurzer, lesbarer Code (z. B. `SW-7K3Q`), der eine Abgabe eindeutig benennt. Teilnehmende sehen ihn nach dem Anlegen und nennen ihn, wenn sie sich beim Betreiber melden.
 _Avoid_: ID, Ticketnummer, Token
+
+**Rückzug** (`withdrawn`):
+Die Löschung einer ganzen Abgabe durch die Teilnehmenden selbst. Master, Foto und Angaben verschwinden; nur die Abgabe-Kennung bleibt als zurückgezogen sichtbar.
+_Avoid_: Stornierung, Abmeldung
 
 **Ende der Aktion** (`ends_at`):
 Der Zeitpunkt, ab dem keine neuen Uploads mehr starten. Begonnene Uploads dürfen noch innerhalb der Nachfrist abschließen; danach ist jede Abgabe schreibgeschützt.
