@@ -65,7 +65,7 @@ Der Filter- bzw. Farbkanal, den ein Master abbildet, z. B. L, R, G, B, Hα, OIII
 _Avoid_: Filter (für den Kanal des Masters), Band
 
 **Nennung** (`credit_name`):
-Der Name, unter dem Teilnehmende im Projekt genannt werden wollen.
+Der Name, unter dem Teilnehmende im Projekt genannt werden wollen. Gibt es nur zusammen mit der Einwilligung zur Veröffentlichung; ohne sie bleibt die Abgabe anonym und nur über ihre Kennung erkennbar.
 _Avoid_: Anzeigename, Credit, Pseudonym
 
 **Einwilligung** (`Consent`):
@@ -75,6 +75,10 @@ _Avoid_: Zustimmung, Opt-in
 **Widerruf** (`revoked_at`):
 Die Rücknahme einer Einwilligung. Die Einwilligung bleibt mit dem Zeitpunkt des Widerrufs stehen, damit nachweisbar ist, was wann galt. Der Widerruf der Nutzung im Projekt löst den Rückzug der Abgabe aus.
 _Avoid_: Kündigung, Opt-out
+
+**Datenschutzhinweis**:
+Der Text in Schwarmstack, der erklärt, wer was wie lange verarbeitet; Verantwortlicher ist DZVF. Er ist versioniert, und jede Einwilligung hält fest, auf welche Version sie sich bezieht.
+_Avoid_: Datenschutzerklärung, Privacy Policy
 
 **Equipment-Foto**:
 Ein optionales Foto der Ausrüstung, das Teilnehmende ihrer Abgabe beilegen können. Kein Master.
@@ -95,12 +99,20 @@ Der Stand der Aktion für die Betreiber, Startseite des Admin: Abgaben, Master j
 _Avoid_: Auswertung (für die Seite), Reporting
 
 **Export**:
-Die Übergabe aller Master an den Betreiber am Ende der Aktion: ein Manifest und je Master ein zeitlich begrenzter Download-Link. Vor dem Ende der Aktion plus Nachfrist ist ein Export nur vorläufig; erst der endgültige Export startet die Löschfristen.
+Die Übergabe aller Master an den Betreiber: ein Manifest und je Master ein zeitlich begrenzter Download-Link. Ein **vorläufiger Export** ist jederzeit möglich, enthält aber nur das Manifest ohne Links. Den **endgültigen Export** gibt es genau einmal, frühestens nach Ende der Aktion plus Nachfrist; er friert alle Abgaben ein, auch für Betreiber, und startet die Löschfrist.
 _Avoid_: Download (für den Gesamtvorgang), Archiv, Paket
 
 **Manifest**:
-Die Liste aller Abgaben und ihrer Master mit Angaben und Prüfsummen, die zum Export gehört. Einzige Quelle für die öffentliche Nennung; Schwarmstack selbst zeigt nichts öffentlich an.
+Die Liste aller Abgaben und ihrer Master mit Angaben, Einwilligungen und Prüfsummen, die zum Export gehört. Einzige Quelle für die öffentliche Nennung, denn Schwarmstack selbst zeigt nichts öffentlich an; nach Ablauf der Löschfrist auch der einzige Nachweis der Einwilligungen.
 _Avoid_: Index, Übersicht
+
+**Löschfrist**:
+Die Zeitspanne nach dem endgültigen Export (30 Tage), nach der Schwarmstack alle Master, Begleitdateien, Equipment-Fotos und Angaben löscht. Danach wird die Installation abgebaut; die Sicherungen laufen nach weiteren 14 Tagen aus.
+_Avoid_: Aufbewahrungsfrist, Retention, Löschfristen (Mehrzahl)
+
+**Nachtrag**:
+Ein Widerruf oder Rückzug, der nach dem endgültigen Export eingeht. Er wirkt in Schwarmstack sofort und wird den Betreibern als Änderung am bereits übergebenen Export gemeldet, damit sie ihre Kopien anpassen.
+_Avoid_: Korrektur, Änderung (ohne Bezug)
 
 **Prüfsumme** (`sha256`):
 Die SHA-256 eines Masters, vom Browser der Teilnehmenden beim Hochladen berechnet und gemeldet. Nicht vom Server bestätigt.
