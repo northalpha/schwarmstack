@@ -15,7 +15,7 @@ Schwarmstack läuft als Container-Image mit Docker Compose (App mit gunicorn, Ca
 - **Tag `vX.Y.Z`:** dasselbe mit Image `vX.Y.Z` → nach **Produktion**, erst nach Freigabe im Environment `production`. Fehlen dort Pflichtwerte, bricht der Job mit einer Liste ab, bevor er den Host anfasst.
 - **Von Hand** (Actions → CI → *Run workflow*): Umgebung und Image-Tag wählen; so wird auch zurückgerollt.
 
-Ein Deploy schreibt die `.env` aus dem GitHub-Environment, kopiert sie mit `compose.yaml` und `Caddyfile` nach `/opt/schwarmstack`, holt das Image mit dem kurzlebigen `GITHUB_TOKEN` (danach `docker logout`), führt `migrate` aus und startet mit `docker compose up -d`. Schlägt die Migration fehl, bleiben die alten Dateien und die alte Version laufen und der Job wird rot. Danach wartet er bis zu 60 s auf `/healthz` über Caddy; antwortet es nicht mit `ok`, ist der Job rot. Während des Neustarts ist die Seite einige Sekunden nicht erreichbar.
+Ein Deploy schreibt die `.env` aus dem GitHub-Environment, kopiert sie mit `compose.yaml` und `Caddyfile` nach `/opt/schwarmstack`, holt das Image mit dem kurzlebigen `GITHUB_TOKEN` (danach `docker logout`), führt `migrate` aus und startet mit `docker compose up -d`. Schlägt die Migration fehl, bleiben die alten Dateien und die alte Version laufen und der Job wird rot; schon angewendete Migrationen derselben Version bleiben allerdings stehen. Danach wartet er bis zu 60 s auf `/healthz` über Caddy; antwortet es nicht mit `ok`, ist der Job rot. Während des Neustarts ist die Seite einige Sekunden nicht erreichbar.
 
 Images werden nie als `latest` getaggt; welcher Stand läuft, steht in `/opt/schwarmstack/.env` (`IMAGE_TAG`) und im Deploy-Verlauf des Environments.
 
@@ -127,7 +127,7 @@ cd /opt/schwarmstack && docker compose run --rm app python manage.py campaign --
 
 ## Zurückrollen
 
-Actions → CI → *Run workflow*: Umgebung und den früheren Image-Tag (`sha-…` oder `vX.Y.Z`) eintragen. Die Tags stehen im Deploy-Verlauf des Environments und unter *Packages* im Repo. Migrationen werden dabei nicht zurückgedreht: Ein älteres Image läuft nur, wenn es mit dem neueren Datenbankschema zurechtkommt.
+Actions → CI → *Run workflow*: Umgebung und den früheren Image-Tag (`sha-…` oder `vX.Y.Z`) eintragen. Für die Produktion unter *Use workflow from* einen Tag `vX.Y.Z` wählen, sonst lässt das Environment den Job nicht zu (nur `v*.*.*` erlaubt). Die Tags stehen im Deploy-Verlauf des Environments und unter *Packages* im Repo. Migrationen werden dabei nicht zurückgedreht: Ein älteres Image läuft nur, wenn es mit dem neueren Datenbankschema zurechtkommt.
 
 ## Auf dem Host nachsehen
 

@@ -5,8 +5,13 @@ from whitenoise.storage import CompressedManifestStaticFilesStorage
 
 def _ohne_source_maps(patterns):
     return tuple(
-        (glob, tuple(p for p in muster if "sourceMappingURL" not in str(p)))
-        for glob, muster in patterns
+        (
+            glob,
+            tuple(
+                ersetzung for ersetzung in ersetzungen if "sourceMappingURL" not in str(ersetzung)
+            ),
+        )
+        for glob, ersetzungen in patterns
     )
 
 

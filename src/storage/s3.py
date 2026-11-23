@@ -36,20 +36,26 @@ class S3Storage:
     ):
         self.bucket = bucket
         self.link_seconds = link_seconds
-        self.client = boto3.client(
-            "s3",
+        verbindung = dict(
             endpoint_url=endpoint_url or None,
             region_name=region or None,
             aws_access_key_id=access_key_id or None,
             aws_secret_access_key=secret_access_key or None,
-            config=Config(
-                signature_version="s3v4",
-                s3={"addressing_style": addressing_style},
-                # Nur dort Prüfsummen, wo S3 sie verlangt (Garage und Hetzner kennen nicht alle).
-                request_checksum_calculation="when_required",
-                response_checksum_validation="when_required",
-                # Fällt der Speicher aus, sollen Anfragen und /healthz bald scheitern statt hängen.
-                connect_timeout=10,
+        )
+        config = Config(
+            signature_version="s3v4",
+            s3={"addressing_style": addressing_style},
+            # Nur dort Prüfsummen, wo S3 sie verlangt (Garage und Hetzner kennen nicht alle).
+            request_checksum_calculation="when_required",
+            response_checksum_validation="when_required",
+        )
+        self.client = boto3.client("s3", **verbindung, config=config)
+        # Für /healthz: ein hängender Speicher soll schnell als nicht erreichbar gelten.
+        self._erreichbarkeit = boto3.client(
+            "s3",
+            **verbindung,
+            config=config.merge(
+                Config(connect_timeout=2, read_timeout=3, retries={"total_max_attempts": 1})
             ),
         )
 
@@ -94,5 +100,5 @@ class S3Storage:
     def abort_multipart(self, key: str, upload_id: str) -> None:
         self.client.abort_multipart_upload(Bucket=self.bucket, Key=key, UploadId=upload_id)
 
-    def check(self) -> None:
-        self.client.head_bucket(Bucket=self.bucket)
+    def ensure_reachable(self) -> None:
+        self._erreichbarkeit.head_bucket(Bucket=self.bucket)

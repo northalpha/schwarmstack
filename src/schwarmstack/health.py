@@ -1,4 +1,4 @@
-"""Gesundheitsprüfung für Deploy-Job und externes Monitoring (ADR 0007).
+"""Erreichbarkeit für Deploy-Job und externes Monitoring (ADR 0007).
 
 Antwortet nur mit ok oder nicht ok; Gründe stehen ausschließlich im Log.
 """
@@ -21,8 +21,8 @@ def healthz(request):
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
-        get_storage().check()
+        get_storage().ensure_reachable()
     except Exception:
-        logger.exception("Gesundheitsprüfung fehlgeschlagen")
+        logger.exception("/healthz: nicht ok")
         return HttpResponse("nicht ok", status=503, content_type="text/plain")
     return HttpResponse("ok", content_type="text/plain")
