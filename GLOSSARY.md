@@ -11,7 +11,7 @@ Eine Person, die über die Projektwebsite kommt und eine Abgabe macht. Hat kein 
 _Avoid_: Nutzer, User, Kunde, Einreicher
 
 **Betreiber** (`operator`):
-Die Person, die das Projekt verantwortet, Schwarmstack betreibt und am Ende alle Dateien weiterverarbeitet. Einzige Person mit Zugang zum Admin.
+Eine der wenigen Personen (derzeit drei), die das Projekt verantworten, Schwarmstack betreiben und am Ende alle Dateien weiterverarbeiten. Nur sie haben Zugang zum Admin, jede mit eigenem Konto; alle haben dieselben Rechte.
 _Avoid_: Admin (für die Person), Moderator
 
 ### Teilnahme
