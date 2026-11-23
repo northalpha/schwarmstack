@@ -66,9 +66,11 @@ def test_master_geht_direkt_in_s3(live_server, transactional_db, s3_settings, br
     page.check("[name=consent_project_use]")
     page.click("button[type=submit]")
 
+    # upload.js wird mit defer geladen und blendet den Uploader erst ein, wenn es bereit ist.
+    page.wait_for_selector("#uploader", state="visible")
     page.set_input_files("#files", str(path))
     page.locator(".queue select").first.select_option("L")
-    page.click(".uploader button")
+    page.click(".uploader button.start")
     page.wait_for_selector("table.masters td:has-text('angenommen')", timeout=60_000)
     assert errors == []
 

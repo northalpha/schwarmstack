@@ -19,7 +19,7 @@ jobs:
       - run: uv run python src/manage.py makemigrations --check --dry-run
         env:
           DEBUG: "1"
-          DATA_DIR: ${{ runner.temp }}/var
+          DATA_DIR: ${{ runner.temp }}
       - name: Garage als S3-Speicher starten
         run: scripts/garage.sh start >> "$GITHUB_ENV"
       - name: Browser für den Durchlauf mit Uppy

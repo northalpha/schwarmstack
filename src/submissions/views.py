@@ -6,6 +6,7 @@ from . import access
 from .forms import SubmissionForm
 from .models import Campaign, Master, Phase, Submission
 from .services import create_submission
+from .uploads import release_stale, usage
 
 
 @require_http_methods(["GET", "POST"])
@@ -50,6 +51,9 @@ def submission(request, reference):
         raise Http404
     submission = get_object_or_404(Submission, reference=reference)
     campaign = Campaign.current()
+    release_stale()
+    used = usage(submission.masters.all())
+    quota = campaign.quota if campaign else 0
     can_add = (
         campaign is not None
         and campaign.phase().accepts_new_submissions
@@ -63,7 +67,11 @@ def submission(request, reference):
             "submission": submission,
             "own": _own(request),
             "can_add": can_add,
-            "masters": submission.masters.all(),
+            "masters": submission.masters.exclude(state=Master.State.ABORTED),
+            "used": used,
+            "quota": quota,
+            "used_percent": min(100, used * 100 // quota) if quota else 0,
+            "max_master_size": campaign.max_master_size if campaign else 0,
             "channels": Master.Channel.choices,
         },
     )
