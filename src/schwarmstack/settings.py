@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.staticfiles",
     "schwarmstack",
+    "storage",
     "submissions",
 ]
 
@@ -85,6 +86,16 @@ CONSENT_TEXT_VERSION = os.environ.get("CONSENT_TEXT_VERSION", "2026-11")
 # Speicher für Master (ADR 0005): "local" (lokale Platte) oder später "s3".
 STORAGE_BACKEND = os.environ.get("STORAGE_BACKEND", "local")
 STORAGE_LOCAL_DIR = Path(os.environ.get("STORAGE_LOCAL_DIR", DATA_DIR / "storage"))
+# S3 (nur bei STORAGE_BACKEND=s3). Zugangsdaten kommen aus der Umgebung, nie aus dem Repo.
+S3_ENDPOINT_URL = os.environ.get("S3_ENDPOINT_URL", "")
+S3_BUCKET = os.environ.get("S3_BUCKET", "")
+S3_REGION = os.environ.get("S3_REGION", "")
+S3_ACCESS_KEY_ID = os.environ.get("S3_ACCESS_KEY_ID", "")
+S3_SECRET_ACCESS_KEY = os.environ.get("S3_SECRET_ACCESS_KEY", "")
+# "virtual" (Bucket im Hostnamen, z. B. Hetzner) oder "path" (Bucket im Pfad, z. B. Garage lokal)
+S3_ADDRESSING_STYLE = os.environ.get("S3_ADDRESSING_STYLE", "virtual")
+if STORAGE_BACKEND == "s3" and not S3_BUCKET:
+    raise RuntimeError("S3_BUCKET ist nicht gesetzt")
 # Gültigkeit signierter Links für einzelne S3-Anfragen.
 UPLOAD_LINK_SECONDS = int(os.environ.get("UPLOAD_LINK_SECONDS", 900))
 

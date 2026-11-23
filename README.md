@@ -27,4 +27,4 @@ DEBUG=1 uv run python manage.py campaign --object "M 101" \
 DEBUG=1 uv run python manage.py runserver
 ```
 
-Tests: `uv run pytest` im Repo-Wurzelverzeichnis.
+Tests: `uv run pytest` im Repo-Wurzelverzeichnis. Mit `scripts/garage.sh start` laufen zusätzlich die Tests gegen echtes S3 (Garage) und der Durchlauf im Browser, siehe [`docs/betrieb/s3-speicher.md`](docs/betrieb/s3-speicher.md).

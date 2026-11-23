@@ -28,3 +28,13 @@ def valid_form():
         "consent_project_use": "on",
         "consent_publish_credit": "on",
     }
+
+
+def pytest_collection_modifyitems(config, items):
+    """In CI (REQUIRE_GARAGE=1) dürfen Garage-Tests nicht still übersprungen werden."""
+    import os
+
+    from storage_backends import garage_available
+
+    if os.environ.get("REQUIRE_GARAGE") and not garage_available():
+        raise pytest.UsageError("REQUIRE_GARAGE ist gesetzt, aber Garage ist nicht konfiguriert")

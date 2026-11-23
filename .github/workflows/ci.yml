@@ -20,4 +20,11 @@ jobs:
         env:
           DEBUG: "1"
           DATA_DIR: ${{ runner.temp }}/var
-      - run: uv run pytest -q
+      - name: Garage als S3-Speicher starten
+        run: scripts/garage.sh start >> "$GITHUB_ENV"
+      - name: Browser für den Durchlauf mit Uppy
+        run: uv run playwright install --with-deps chromium
+      - name: Tests (inklusive Garage und Browser)
+        run: uv run pytest -q
+        env:
+          REQUIRE_GARAGE: "1"

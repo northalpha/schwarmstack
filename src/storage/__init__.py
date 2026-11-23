@@ -37,4 +37,16 @@ def get_storage() -> Storage:
         from .local import LocalStorage
 
         return LocalStorage(settings.STORAGE_LOCAL_DIR)
+    if backend == "s3":
+        from .s3 import S3Storage
+
+        return S3Storage(
+            bucket=settings.S3_BUCKET,
+            endpoint_url=settings.S3_ENDPOINT_URL,
+            region=settings.S3_REGION,
+            access_key_id=settings.S3_ACCESS_KEY_ID,
+            secret_access_key=settings.S3_SECRET_ACCESS_KEY,
+            addressing_style=settings.S3_ADDRESSING_STYLE,
+            link_seconds=settings.UPLOAD_LINK_SECONDS,
+        )
     raise ImproperlyConfigured(f"Unbekannter Speicher: {backend!r}")
