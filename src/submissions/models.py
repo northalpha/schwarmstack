@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from django.db import models
 from django.utils import timezone
 
+from .validation import Category
+
 
 class Phase(enum.Enum):
     """Zeitfenster der Aktion. Die einzige Stelle, an der Zeiten verglichen werden."""
@@ -66,10 +68,19 @@ class Campaign(models.Model):
 class Submission(models.Model):
     """Abgabe: Beitrag einer teilnehmenden Person mit einem Setup."""
 
+    class WithdrawnBy(models.TextChoices):
+        PARTICIPANT = "participant", "Teilnehmende"
+        OPERATOR = "operator", "Betreiber"
+
     reference = models.CharField("Abgabe-Kennung", max_length=16, unique=True)
     credit_name = models.CharField("Nennung", max_length=120)
     setup_description = models.TextField("Setup", blank=True, max_length=2000)
     created_at = models.DateTimeField("angelegt", auto_now_add=True)
+    # Rückzug: Nach ihm bleiben nur Kennung, Zeitpunkt und wer ihn ausgelöst hat.
+    withdrawn_at = models.DateTimeField("zurückgezogen am", null=True, blank=True)
+    withdrawn_by = models.CharField(
+        "zurückgezogen durch", max_length=16, choices=WithdrawnBy.choices, blank=True
+    )
 
     class Meta:
         verbose_name = "Abgabe"
@@ -78,6 +89,10 @@ class Submission(models.Model):
 
     def __str__(self):
         return self.reference
+
+    @property
+    def is_withdrawn(self) -> bool:
+        return self.withdrawn_at is not None
 
 
 class Consent(models.Model):
@@ -88,9 +103,11 @@ class Consent(models.Model):
         PUBLISH_CREDIT = "publish_credit", "Veröffentlichung der Nennung"
 
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name="consents")
-    kind = models.CharField(max_length=32, choices=Kind.choices)
-    granted_at = models.DateTimeField(auto_now_add=True)
-    text_version = models.CharField(max_length=32)
+    kind = models.CharField("Art", max_length=32, choices=Kind.choices)
+    granted_at = models.DateTimeField("erteilt am", auto_now_add=True)
+    text_version = models.CharField("Fassung des Hinweistextes", max_length=32)
+    # Widerruf: Die Einwilligung bleibt stehen, damit nachweisbar ist, was wann galt.
+    revoked_at = models.DateTimeField("widerrufen am", null=True, blank=True)
 
     class Meta:
         verbose_name = "Einwilligung"
@@ -131,8 +148,16 @@ class Master(models.Model):
     size = models.PositiveBigIntegerField("Größe", null=True, blank=True)
     key = models.CharField("Objekt-Schlüssel", max_length=255, unique=True)
     upload_id = models.CharField(max_length=1024, blank=True)
-    state = models.CharField(max_length=16, choices=State.choices, default=State.UPLOADING)
+    state = models.CharField(
+        "Zustand", max_length=16, choices=State.choices, default=State.UPLOADING
+    )
     rejection_reason = models.CharField("Grund der Ablehnung", max_length=255, blank=True)
+    rejection_category = models.CharField(
+        "Art der Ablehnung",
+        max_length=16,
+        blank=True,
+        choices=[(c.value, c.label) for c in Category],
+    )
     # Vom Browser berechnet und gemeldet, vom Server nicht bestätigt (ADR 0005).
     sha256 = models.CharField("Prüfsumme", max_length=64, blank=True, db_index=True)
     duplicate_of = models.ForeignKey(
@@ -143,8 +168,8 @@ class Master(models.Model):
         on_delete=models.SET_NULL,
         related_name="duplicates",
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    completed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField("angelegt", auto_now_add=True)
+    completed_at = models.DateTimeField("abgeschlossen", null=True, blank=True)
 
     class Meta:
         verbose_name = "Master"

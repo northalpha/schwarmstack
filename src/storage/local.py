@@ -89,6 +89,17 @@ class LocalStorage:
     def abort_multipart(self, key: str, upload_id: str) -> None:
         shutil.rmtree(self._checked_upload(key, upload_id), ignore_errors=True)
 
+    def download_url(self, key: str) -> str:
+        self._object(key)  # Schlüssel prüfen
+        return reverse("local_s3", args=[sign_token(S3Request("GET", key))])
+
+    def open(self, key: str):
+        """Öffnet ein Objekt zum Lesen (für den lokalen Download-Endpunkt)."""
+        path = self._object(key)
+        if not path.is_file():
+            raise StorageError("Objekt nicht gefunden")
+        return path.open("rb")
+
     # -- S3-Operationen für den Browser (über den lokalen Endpunkt) ---------
 
     def create_multipart(self, key: str) -> str:

@@ -32,7 +32,11 @@ def garage_storage(**kwargs) -> S3Storage:
 class Reply:
     status: int
     headers: dict
-    text: str
+    body: bytes
+
+    @property
+    def text(self) -> str:
+        return self.body.decode("utf-8", "replace")
 
 
 class HttpBrowser:
@@ -41,7 +45,7 @@ class HttpBrowser:
     def send(self, method, url, body=b"", content_type=None) -> Reply:
         headers = {"Content-Type": content_type} if content_type else {}
         response = requests.request(method, url, data=body, headers=headers, timeout=30)
-        return Reply(response.status_code, dict(response.headers), response.text)
+        return Reply(response.status_code, dict(response.headers), response.content)
 
 
 class DjangoBrowser:
@@ -54,7 +58,8 @@ class DjangoBrowser:
         response = self.client.generic(
             method, url, data=body, content_type=content_type or "application/octet-stream"
         )
-        return Reply(response.status_code, dict(response.items()), response.content.decode())
+        body = b"".join(response.streaming_content) if response.streaming else response.content
+        return Reply(response.status_code, dict(response.items()), body)
 
 
 @pytest.fixture(scope="session")
