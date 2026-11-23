@@ -85,3 +85,7 @@ _Avoid_: Index, Übersicht
 **Prüfsumme** (`sha256`):
 Die SHA-256 eines Masters, vom Browser der Teilnehmenden beim Hochladen berechnet und gemeldet. Nicht vom Server bestätigt.
 _Avoid_: Hash (ohne Bezug), ETag
+
+**Dublette** (`duplicate_of`):
+Ein Master, dessen Prüfsumme schon in einer anderen Abgabe vorkommt. Wird angenommen und markiert; in derselben Abgabe wird dieselbe Datei abgelehnt.
+_Avoid_: Kopie, doppelter Upload
