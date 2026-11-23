@@ -1,3 +1,9 @@
+## Navigation
+
+- Wo was im Code liegt: `docs/agents/codebase.md`.
+- Prüfen wie in CI: `scripts/pruefen.sh` (mit Garage und Browser; `--schnell` ohne).
+- Changelog-Einträge: eine Datei je Änderung in `changelog.d/`, nicht in `CHANGELOG.md`.
+
 ## Agent skills
 
 ### Issue tracker

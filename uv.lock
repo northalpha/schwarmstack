@@ -3,6 +3,12 @@ revision = 3
 requires-python = ">=3.12"
 
 [[package]]
+name = "actionlint-py"
+version = "1.7.12.25"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/33/75/36ee89db39bb3620d1e46fe1f6ec77d6000d30ff45345699e51b4c850e83/actionlint_py-1.7.12.25.tar.gz", hash = "sha256:83f83be4cd317c79b15cbb7022787513a6994f00bfb2dd8da02fa4e62b4f640d", size = 12438, upload-time = "2026-09-22T16:24:42.477Z" }
+
+[[package]]
 name = "altcha"
 version = "2.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1228,6 +1234,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-timeout"
+version = "2.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ac/82/4c9ecabab13363e72d880f2fb504c5f750433b2b6f16e99f4ec21ada284c/pytest_timeout-2.4.0.tar.gz", hash = "sha256:7e68e90b01f9eff71332b25001f85c75495fc4e3a836701876183c4bcfd0540a", size = 17973, upload-time = "2025-05-05T19:44:34.99Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fa/b6/3127540ecdf1464a00e5a01ee60a1b09175f6913f0644ac748494d9c4b21/pytest_timeout-2.4.0-py3-none-any.whl", hash = "sha256:c42667e5cdadb151aeb5b26d114aff6bdf5a907f176a007a30b940d3d865b5c2", size = 14382, upload-time = "2025-05-05T19:44:33.502Z" },
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.org/simple" }
@@ -1664,10 +1682,12 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "actionlint-py" },
     { name = "moto", extra = ["server"] },
     { name = "playwright" },
     { name = "pytest" },
     { name = "pytest-django" },
+    { name = "pytest-timeout" },
     { name = "ruff" },
     { name = "shellcheck-py" },
 ]
@@ -1686,10 +1706,12 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "actionlint-py", specifier = ">=1.7" },
     { name = "moto", extras = ["server"], specifier = ">=5.1" },
     { name = "playwright", specifier = ">=1.55" },
     { name = "pytest", specifier = ">=9.2.0" },
     { name = "pytest-django", specifier = ">=4.14.0" },
+    { name = "pytest-timeout", specifier = ">=2.4" },
     { name = "ruff", specifier = ">=0.17.6" },
     { name = "shellcheck-py", specifier = ">=0.11.0.1" },
 ]
