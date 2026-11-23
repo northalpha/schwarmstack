@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Keine weitere Abgabe möglich</h1>
+<p>Ein Browser kann höchstens {{ max_per_browser }} Abgaben halten. Du kannst deine bestehenden Abgaben weiter ergänzen. Wenn du mit einem weiteren Setup beitragen möchtest, melde dich beim Betreiber.</p>
+{% include "submissions/_own_links.html" %}
+{% endblock %}
