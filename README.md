@@ -1,6 +1,9 @@
-# Schwarmstack
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="brand/schwarmstack-logo-dark-bg.svg">
+  <img alt="Schwarmstack – Viele Teleskope, ein Stack." src="brand/schwarmstack-logo.svg" width="480">
+</picture>
 
-> Viele Teleskope, ein Stack.
+# Schwarmstack
 
 Upload-Dienst für ein gemeinsames Astrofotografie-Projekt der [DZVF-Community](https://community.dzvf.de): Teilnehmende laden ihre Master (XISF/FITS, 32 Bit) hoch, der Betreiber führt sie zu einem Bild zusammen.
 
