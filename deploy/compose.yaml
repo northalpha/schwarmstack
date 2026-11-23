@@ -1,0 +1,47 @@
+# Dieselbe Datei für Staging und Produktion (ADR 0001); Unterschiede nur über die .env,
+# die der Deploy-Job bei jedem Deploy aus dem GitHub-Environment schreibt.
+name: schwarmstack
+
+x-logging: &logging
+  # Logs gehen ins Journal des Hosts; das hält sie 7 Tage (ADR 0007, host-einrichten.sh).
+  driver: journald
+  options:
+    tag: "{{.Name}}"
+
+services:
+  app:
+    image: ghcr.io/northalpha/schwarmstack:${IMAGE_TAG:?IMAGE_TAG fehlt}
+    env_file: .env
+    environment:
+      DEBUG: "0"
+      DATA_DIR: /data
+      ALLOWED_HOSTS: ${DOMAIN:?DOMAIN fehlt}
+      CSRF_TRUSTED_ORIGINS: https://${DOMAIN}
+    volumes:
+      # SQLite auf der lokalen Platte des Hosts (ADR 0006).
+      - ./data:/data
+    restart: unless-stopped
+    logging: *logging
+
+  caddy:
+    image: caddy:2.10.2
+    depends_on: [app]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+      BASIC_AUTH: ${BASIC_AUTH:-aus}
+      BASIC_AUTH_USER: ${BASIC_AUTH_USER:-}
+      BASIC_AUTH_HASH: ${BASIC_AUTH_HASH:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  caddy_data:
+  caddy_config:
