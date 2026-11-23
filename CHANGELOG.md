@@ -14,6 +14,11 @@
   der sich für den Browser wie S3 verhält; Upload mit Uppy 6.0.7 (mitgeliefert) per
   Multipart, Kanalwahl je Master, Master-Liste auf der Abgabeseite und Begleitdatei je Master.
   Warum: der erste durchgehende Weg, auf dem S3-Adapter, Prüfung und Quote aufsetzen.
+- Prüfung der Master (#13): Nach dem Upload wird der Header gelesen (XISF über `defusedxml`,
+  FITS über die Header-Karten). Angenommen werden nur 32-Bit-Gleitkomma mit einer Ebene, bei
+  RGB mit drei; abweichende Größe, zu kurze Dateien und falsche Formate werden abgelehnt, die
+  Datei gelöscht und der Grund angezeigt. Warum: Der Betreiber soll am Ende nur brauchbare
+  Master bekommen, und Teilnehmende sollen sofort wissen, was sie anders exportieren müssen.
 
 ## 0.1.0
 

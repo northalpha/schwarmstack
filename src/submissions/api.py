@@ -44,6 +44,7 @@ def master_json(master: Master) -> dict:
         "channel": master.channel,
         "name": master.original_name,
         "size": master.size,
+        "reason": master.rejection_reason,
     }
 
 

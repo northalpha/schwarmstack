@@ -75,3 +75,5 @@ table.masters td:nth-child(3) { white-space: nowrap; }
 [data-state="error"], .queue [data-state="error"] .status { color: var(--error); }
 select { font: inherit; padding: .3rem; }
 button:disabled { opacity: .5; cursor: not-allowed; }
+tr[data-state="rejected"] td { color: var(--muted); }
+.reason { color: var(--error); font-size: .9rem; }
