@@ -122,7 +122,7 @@ class Submission(models.Model):
 
 
 class Consent(models.Model):
-    """Einwilligung: eine einzelne, ausdrücklich erteilte Zustimmung."""
+    """Einwilligung: ausdrücklich von den Teilnehmenden erteilt, je Zweck eine eigene."""
 
     class Kind(models.TextChoices):
         PROJECT_USE = "project_use", "Nutzung im Projekt"

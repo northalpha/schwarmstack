@@ -4,11 +4,11 @@ import socket
 import time
 
 import pytest
-from storage_backends import moto_endpoint, moto_storage  # noqa: F401  (Fixture)
+from storage_backends import moto_storage
 
 
 @pytest.fixture
-def s3_settings(settings, moto_endpoint):  # noqa: F811
+def s3_settings(settings, moto_endpoint):
     settings.STORAGE_BACKEND = "s3"
     settings.S3_ENDPOINT_URL = moto_endpoint
     settings.S3_REGION = "us-east-1"

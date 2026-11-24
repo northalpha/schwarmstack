@@ -145,6 +145,30 @@ def test_signieren_nur_fuer_die_eigene_upload_id(client, reference):
     assert response.status_code == 400
 
 
+def test_erfundene_upload_id_trifft_nur_den_eigenen_master(client, reference, campaign):
+    # Der Server übernimmt die erste Upload-ID des Browsers ungeprüft (ADR 0009).
+    campaign.quota = len(DATA)
+    campaign.save()
+    body = start(client, reference, size=len(DATA)).json()
+
+    def sign_part(upload_id):
+        return sign(
+            client, reference, body["masterId"],
+            method="PUT", key=body["key"], uploadId=upload_id, partNumber=1,
+        )  # fmt: skip
+
+    erfunden = "0" * 32  # sieht aus wie eine ID des lokalen Adapters (UUID als Hex)
+    url = sign_part(erfunden).json()["url"]
+    assert client.put(url, DATA[:8], content_type="application/octet-stream").status_code >= 400
+
+    # Die echte Upload-ID wird danach nicht mehr signiert ...
+    assert sign_part(create(client, body["url"])).status_code == 400
+    # ... aber Abbrechen gibt die Reservierung frei, und ein neuer Upload passt wieder.
+    abort = client.post(f"/abgabe/{reference}/master/{body['masterId']}/abbrechen/")
+    assert abort.json()["state"] == "aborted"
+    assert start(client, reference, size=len(DATA)).status_code == 201
+
+
 @pytest.mark.parametrize(
     "request_",
     [

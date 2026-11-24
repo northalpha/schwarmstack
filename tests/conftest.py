@@ -1,6 +1,8 @@
 from datetime import timedelta
 
 import pytest
+from admin_helper import PASSWORD
+from django.test import Client
 from django.utils import timezone
 
 from submissions.models import Campaign, Submission
@@ -42,6 +44,32 @@ def reference(client, campaign, valid_form, storage_dir):
     """Eine angelegte Abgabe, deren Kennung im Cookie des Test-Clients steht."""
     client.post("/", valid_form)
     return Submission.objects.get().reference
+
+
+@pytest.fixture
+def operator(db, django_user_model):
+    """Ein Betreiber-Konto für den Admin."""
+    return django_user_model.objects.create_superuser("ada", "ada@example.org", PASSWORD)
+
+
+@pytest.fixture
+def operator_client(operator):
+    """Test-Client, als Betreiber angemeldet."""
+    client = Client()
+    client.force_login(operator)
+    return client
+
+
+@pytest.fixture(scope="session")
+def moto_endpoint():
+    """S3 mit moto als eigener Server, einmal je Testlauf."""
+    from moto.server import ThreadedMotoServer
+
+    server = ThreadedMotoServer(ip_address="127.0.0.1", port=0, verbose=False)
+    server.start()
+    host, port = server.get_host_and_port()
+    yield f"http://{host}:{port}"
+    server.stop()
 
 
 def pytest_collection_modifyitems(config, items):
