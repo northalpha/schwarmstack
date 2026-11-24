@@ -1,10 +1,13 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}Submission anlegen – Schwarmstack{% endblock %}
+{% block mainclass %}page-new{% endblock %}
 {% block content %}
+<div class="head">
 <h1>Mitmachen bei {{ campaign.object_name }}</h1>
-<p>Lege eine Submission an. Danach lädst du deine Master hoch. Ein Konto brauchst du nicht; deine Submission ist nur in diesem Browser erreichbar.</p>
-<form method="post" novalidate>
+<p class="lead">Lege eine Submission an. Danach lädst du deine Master hoch. Ein Konto brauchst du nicht; deine Submission ist nur in diesem Browser erreichbar.</p>
+</div>
+<form method="post" novalidate class="card form">
   {% csrf_token %}
   {{ form.non_field_errors }}
   {% for field in form %}{% include "submissions/_field.html" %}{% endfor %}
