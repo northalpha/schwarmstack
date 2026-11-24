@@ -245,7 +245,7 @@ class SubmissionAdmin(admin.ModelAdmin):
     search_fields = ["reference", "credit_name"]
     list_display = [
         "reference",
-        "credit_name",
+        "credit",
         "setup_short",
         "master_count",
         "channels",
@@ -301,11 +301,22 @@ class SubmissionAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False  # Löschen heißt Rückzug, und der hat seine eigene Seite.
 
+    def get_fields(self, request, obj=None):
+        if obj is not None and not obj.publishes_credit:
+            # Ohne Einwilligung zur Veröffentlichung gibt es keine Nennung, auch nicht
+            # nachträglich: statt des Feldes nur der Hinweis „anonym“ (Ticket #33).
+            return ["credit" if f == "credit_name" else f for f in self.fields]
+        return self.fields
+
     def get_readonly_fields(self, request, obj=None):
-        readonly = ["reference", "created_at", "withdrawn_at", "withdrawn_by"]
+        readonly = ["reference", "credit", "created_at", "withdrawn_at", "withdrawn_by"]
         if obj is not None and obj.is_withdrawn:
             readonly += ["credit_name", "setup_description"]
         return readonly
+
+    @admin.display(description="Nennung", ordering="credit_name")
+    def credit(self, submission):
+        return submission.credit_name or "anonym"
 
     @admin.display(description="Setup")
     def setup_short(self, submission):
@@ -473,7 +484,10 @@ class SubmissionAdmin(admin.ModelAdmin):
                 "alle Master und Angaben werden endgültig gelöscht."
             )
         else:
-            question += " Die Einwilligung bleibt mit dem Zeitpunkt des Widerrufs stehen."
+            question += (
+                " Die Nennung wird gelöscht und aus den Begleitdateien entfernt; die Abgabe "
+                "bleibt anonym. Die Einwilligung bleibt mit dem Zeitpunkt des Widerrufs stehen."
+            )
         return self._confirm(
             request,
             submission,

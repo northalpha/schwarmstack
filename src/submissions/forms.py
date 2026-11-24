@@ -7,8 +7,11 @@ class SubmissionForm(forms.Form):
     credit_name = forms.CharField(
         label="Nennung",
         max_length=120,
-        help_text="Unter diesem Namen wirst du im Projekt genannt.",
-        error_messages={"required": REQUIRED},
+        required=False,
+        help_text=(
+            "Unter diesem Namen wirst du im Projekt genannt. Nur mit Häkchen bei der "
+            "Veröffentlichung; ohne Häkchen speichern wir keinen Namen."
+        ),
     )
     setup_description = forms.CharField(
         label="Dein Setup",
@@ -26,3 +29,13 @@ class SubmissionForm(forms.Form):
         required=False,
         help_text="Freiwillig. Ohne Häkchen trägst du anonym bei.",
     )
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("consent_publish_credit") and not cleaned.get("credit_name"):
+            self.add_error(
+                "credit_name",
+                "Pflichtangabe: Ohne Nennung können wir dich nicht nennen. Trag einen Namen ein "
+                "oder nimm das Häkchen bei der Veröffentlichung weg.",
+            )
+        return cleaned
