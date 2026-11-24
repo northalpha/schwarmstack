@@ -10,10 +10,10 @@ src/
 │   └── staticfiles.py     # WhiteNoise-Storage
 ├── submissions/           # Fachmodul: Aktion, Submission, Master, Einwilligung
 │   ├── models.py
-│   ├── services.py        # Fachverhalten zur Submission: anlegen, Master löschen, Angaben ändern, Löschung, Widerruf
-│   ├── uploads.py         # Upload-Ablauf: Quote, Gesamtgrenze, Zeitfenster, Dubletten, Begleitdatei
+│   ├── services.py        # Fachverhalten zur Submission (Details im Modul-Docstring)
+│   ├── uploads.py         # Upload-Ablauf und seine Regeln (Details im Modul-Docstring)
 │   ├── validation.py      # Prüfung der Master (XISF/FITS-Header), Ablehnungskategorien
-│   ├── exposure.py        # Belichtungsangaben: Header-Whitelist lesen, Vorschläge, Herkunft (ADR 0010)
+│   ├── exposure.py        # Belichtungsangaben (ADR 0010)
 │   ├── access.py          # signiertes Cookie: welche Submissions gehören zu diesem Browser
 │   ├── views.py, api.py   # Seiten für Teilnehmende / JSON-API für Uppy
 │   ├── public.py          # öffentlich ohne Cookie: /zahlen.json (Community-Zahlen, ADR 0009)
