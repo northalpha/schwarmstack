@@ -8,6 +8,7 @@ from django.utils import timezone
 from files import fits
 from uploads_helper import Participant
 
+from submissions import services
 from submissions.models import Consent, Phase, Submission
 
 pytestmark = pytest.mark.django_db
@@ -108,3 +109,11 @@ def test_fremde_namensnennung_laesst_sich_nicht_widerrufen(participant, another)
     stranger = another()
     assert stranger.client.post(revoke_url(participant)).status_code == 404
     assert credit_consent(participant).revoked_at is None
+
+
+def test_widerruf_nach_loeschung_in_einem_anderen_tab_aendert_nichts(participant):
+    """Rückfrage offen, in einem anderen Tab gelöscht: Der Widerruf läuft ins Leere, ohne Fehler."""
+    consent = credit_consent(participant)
+    participant.client.post(f"/submission/{participant.reference}/loeschen/")
+    assert not services.revoke(consent)
+    assert Submission.objects.get(pk=participant.submission.pk).is_deleted
