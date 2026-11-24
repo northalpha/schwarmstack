@@ -221,6 +221,9 @@
 
   uppy.on("upload-success", async (file) => {
     const masterId = uppy.getFile(file.id).meta.masterId;
+    // Uppy meldet den letzten Fortschritt nicht immer mit 100 %; hochgeladen ist die Datei hier.
+    const bar = rows.get(file.id)?.querySelector("progress");
+    if (bar) bar.value = 100;
     try {
       setStatus(file.id, "Prüfsumme wird abgeschlossen …");
       const sha256 = await checksum(file);

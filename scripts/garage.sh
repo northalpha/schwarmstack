@@ -55,7 +55,7 @@ s3 = boto3.client("s3", endpoint_url="http://127.0.0.1:$PORT", region_name="gara
                   aws_access_key_id="$KEY_ID", aws_secret_access_key="$SECRET")
 s3.put_bucket_cors(Bucket="$BUCKET", CORSConfiguration={"CORSRules": [{
     "AllowedOrigins": ["*"], "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
-    "AllowedHeaders": ["*"], "ExposeHeaders": ["ETag"], "MaxAgeSeconds": 3600}]})
+    "AllowedHeaders": ["*"], "ExposeHeaders": ["ETag", "x-amz-error-code"], "MaxAgeSeconds": 3600}]})
 PY
 
   cat <<ENV

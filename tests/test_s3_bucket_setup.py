@@ -28,7 +28,7 @@ def test_setzt_cors_und_lifecycle(s3):
     call_command("s3_bucket_setup", "--origin", "https://upload.dzvf.de")
     cors = s3.client.get_bucket_cors(Bucket=s3.bucket)["CORSRules"][0]
     assert cors["AllowedOrigins"] == ["https://upload.dzvf.de"]
-    assert "ETag" in cors["ExposeHeaders"]
+    assert set(cors["ExposeHeaders"]) == {"ETag", "x-amz-error-code"}
     assert set(cors["AllowedMethods"]) == {"GET", "PUT", "POST", "DELETE"}
     rule = s3.client.get_bucket_lifecycle_configuration(Bucket=s3.bucket)["Rules"][0]
     assert rule["AbortIncompleteMultipartUpload"]["DaysAfterInitiation"] == 7
