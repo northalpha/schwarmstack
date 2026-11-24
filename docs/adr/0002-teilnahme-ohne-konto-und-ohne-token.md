@@ -4,7 +4,7 @@ Teilnehmende kommen über einen Link auf der Projektwebsite direkt zum Upload, o
 
 ## Consequences
 
-- Bis zum Ende der Aktion können Teilnehmende ihre Submission im selben Browser ergänzen, ändern, Master löschen oder sie ganz löschen; danach ist sie schreibgeschützt.
+- Bis zum Ende der Aktion können Teilnehmende ihre Submission im selben Browser ergänzen, ändern, Master löschen oder sie ganz löschen; danach ist sie schreibgeschützt. Ausgenommen ist der Widerruf der Einwilligung zur Namensnennung: Er geht jederzeit auf der Submission-Seite, solange die Submission nicht gelöscht ist (DSGVO Art. 7 Abs. 3, Ticket #68).
 - Ein Browser kann bis zu 3 Submissions halten (für unterschiedliche Setups). Die Quote gilt je Submission, nicht je Person, weil sich eine Person ohne Konto nicht zuverlässig erkennen lässt.
 - Dieselbe Person in einem anderen Browser erzeugt eine neue Submission. Der Betreiber kann Submissions im Admin zusammenführen.
 - Kein Rückweg von einem anderen Gerät: Wer dort etwas ändern will, wendet sich mit der Submission-ID an den Betreiber. Die Submission-ID wird nach dem Anlegen der Submission angezeigt und steht im Manifest.
