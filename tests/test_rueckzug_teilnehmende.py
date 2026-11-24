@@ -5,10 +5,15 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 from files import fits
+from uploads_helper import finish, sign, start
 
 from submissions.models import Master, Submission
 
 pytestmark = pytest.mark.django_db
+
+
+def page_url(participant):
+    return f"/abgabe/{participant.reference}/"
 
 
 def withdraw_url(participant):
@@ -62,9 +67,23 @@ def test_nach_dem_ende_der_aktion_kein_rueckzug(participant, campaign, after):
     campaign.save()
     content = participant.client.get(f"/abgabe/{participant.reference}/").content.decode()
     assert withdraw_url(participant) not in content
-    assert participant.client.get(withdraw_url(participant)).status_code == 403
-    assert participant.client.post(withdraw_url(participant)).status_code == 403
+    for method in (participant.client.get, participant.client.post):
+        response = method(withdraw_url(participant), follow=True)
+        assert response.redirect_chain == [(page_url(participant), 302)]
+        assert "nicht mehr ändern" in response.content.decode()
     assert not Submission.objects.get(pk=participant.submission.pk).is_withdrawn
+
+
+def test_rueckzug_meldet_den_erfolg(participant):
+    response = participant.client.post(withdraw_url(participant), follow=True)
+    assert "Deine Abgabe wurde zurückgezogen." in response.content.decode()
+
+
+def test_zweiter_rueckzug_fuehrt_zur_abgabeseite(participant):
+    participant.client.post(withdraw_url(participant))
+    response = participant.client.post(withdraw_url(participant))
+    assert response.status_code == 302
+    assert response["Location"] == page_url(participant)
 
 
 def test_fremde_abgabe_laesst_sich_nicht_zurueckziehen(participant, another):
@@ -116,7 +135,9 @@ def test_nach_dem_ende_der_aktion_kein_master_loeschen(participant, campaign):
     campaign.save()
     page = participant.client.get(f"/abgabe/{participant.reference}/").content.decode()
     assert delete_url(participant, master) not in page
-    assert participant.client.post(delete_url(participant, master)).status_code == 403
+    response = participant.client.post(delete_url(participant, master))
+    assert response.status_code == 302
+    assert response["Location"] == page_url(participant)
     assert Master.objects.filter(pk=master.pk).exists()
 
 
@@ -127,3 +148,20 @@ def test_fremden_master_nicht_loeschen(participant, another):
     assert stranger.client.post(foreign).status_code == 404
     assert stranger.client.post(delete_url(participant, master)).status_code == 404
     assert Master.objects.filter(pk=master.pk).exists()
+
+
+def test_upload_eines_geloeschten_masters_meldet_das_verstaendlich(participant):
+    """Der Master wird gelöscht, während ein anderer Tab ihn noch hochlädt."""
+    data = fits()
+    body = start(participant.client, participant.reference, size=len(data)).json()
+    master = Master.objects.get(public_id=body["masterId"])
+    participant.client.post(delete_url(participant, master))
+
+    signed = sign(
+        participant.client, participant.reference, body["masterId"],
+        method="PUT", key=body["key"], uploadId="x", partNumber=1,
+    )  # fmt: skip
+    assert signed.status_code == 404
+    assert signed.json()["error"] == "Dieser Master wurde gelöscht."
+    finished = finish(participant.client, participant.reference, body["masterId"])
+    assert finished.json()["error"] == "Dieser Master wurde gelöscht."
