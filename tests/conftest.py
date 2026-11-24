@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 
-from submissions.models import Campaign
+from submissions.models import Campaign, Submission
 
 GIB = 1024**3
 
@@ -35,6 +35,13 @@ def valid_form():
         "consent_project_use": "on",
         "consent_publish_credit": "on",
     }
+
+
+@pytest.fixture
+def reference(client, campaign, valid_form, storage_dir):
+    """Eine angelegte Abgabe, deren Kennung im Cookie des Test-Clients steht."""
+    client.post("/", valid_form)
+    return Submission.objects.get().reference
 
 
 def pytest_collection_modifyitems(config, items):

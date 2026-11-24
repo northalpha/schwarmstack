@@ -6,15 +6,7 @@ import pytest
 from django.utils import timezone
 from uploads_helper import start
 
-from submissions.models import Submission
-
 pytestmark = pytest.mark.django_db
-
-
-@pytest.fixture
-def reference(client, campaign, valid_form, storage_dir):
-    client.post("/", valid_form)
-    return Submission.objects.get().reference
 
 
 def page(client, reference):

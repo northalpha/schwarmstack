@@ -9,7 +9,7 @@ from django.utils import timezone
 from files import fits
 from uploads_helper import complete, create, finish, send_parts, sign, start, upload
 
-from submissions.models import Master, Submission
+from submissions.models import Master
 
 pytestmark = pytest.mark.django_db
 
@@ -18,12 +18,6 @@ pytestmark = pytest.mark.django_db
 def storage_dir(settings, tmp_path):
     settings.STORAGE_LOCAL_DIR = tmp_path / "speicher"
     return settings.STORAGE_LOCAL_DIR
-
-
-@pytest.fixture
-def reference(client, campaign, valid_form, storage_dir):
-    client.post("/", valid_form)
-    return Submission.objects.get().reference
 
 
 def ended(campaign, ago):
