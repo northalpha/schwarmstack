@@ -38,6 +38,11 @@ Lokal ohne Docker: `uv run python src/manage.py createsuperuser`.
   „anonym“ und bekommen auch nachträglich keinen Namen. Mit Einwilligung lässt sich die Nennung
   nicht leeren; soll die Abgabe anonym werden, den Widerruf der Veröffentlichung vermerken. Er
   löscht die Nennung samt Eintrag in den Begleitdateien.
+- **Belichtungsangaben**: je angenommenem Master über den Link „Belichtungsangaben“ in der
+  Abgabe korrigieren, auch nach dem Ende der Aktion. Geänderte Werte bekommen die Herkunft
+  `manuell`. Für Master, die vor dem Feature hochgeladen wurden, liest
+  `docker compose run --rm app python manage.py backfill_exposure` die Header einmal erneut;
+  Werte von Hand bleiben dabei unangetastet, und der Befehl lässt sich wiederholen (ADR 0010).
 - **Download zur Kontrolle**: einzelne angenommene Master über einen Link, der
   `UPLOAD_LINK_SECONDS` (Standard 15 Minuten) gilt.
 - **Protokoll**: jede Änderung, Löschung, jeder Rückzug, Widerruf und Download mit Betreiber und

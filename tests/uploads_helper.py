@@ -121,5 +121,16 @@ class Participant:
         response = upload(self.client, self.reference, data, **kwargs)
         return Master.objects.get(public_id=response.json()["masterId"])
 
+    def page(self) -> str:
+        return self.client.get(f"/abgabe/{self.reference}/").content.decode()
+
+    def save_exposure(self, master, **data):
+        """Belichtungsangaben über die JSON-API ändern, wie die Abgabeseite mit JavaScript."""
+        return self.client.post(
+            f"/abgabe/{self.reference}/master/{master.public_id}/belichtung/",
+            json.dumps(data),
+            content_type="application/json",
+        )
+
     def used(self):
         return self.client.get(f"/abgabe/{self.reference}/").context["used"]
