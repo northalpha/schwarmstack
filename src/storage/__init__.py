@@ -1,4 +1,4 @@
-"""Speicher für Master und Begleitdateien (ADR 0005).
+"""Speicher für Master und Begleitdateien (ADR 0005, ADR 0009).
 
 Eine kleine Schnittstelle mit zwei Adaptern: lokale Platte (Tests, lokale Entwicklung) und S3.
 Der Browser lädt Master per Multipart-Upload direkt in den Speicher; der Server stellt nur
