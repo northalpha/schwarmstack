@@ -3,7 +3,8 @@
 #
 #   auf-dem-host.sh <image-tag> <domain> <registry-benutzer>   (Registry-Token auf stdin)
 #
-# Schlägt die Migration fehl, bleiben die alten Dateien und die alte Version laufen.
+# Schlagen Bucket-Einrichtung oder Migration fehl, bleiben die alten Dateien und die alte
+# Version laufen.
 set -euo pipefail
 
 IMAGE_TAG=${1:?Image-Tag fehlt}
@@ -33,11 +34,26 @@ for datei in "${DATEIEN[@]}"; do
 done
 rm -f neu/auf-dem-host.sh
 
-echo "Migrieren"
-if ! docker compose run --rm --no-deps app python manage.py migrate --noinput; then
+zuruecklegen() {
   for datei in "${DATEIEN[@]}"; do
     if [[ -f vorher/$datei ]]; then cp -p "vorher/$datei" "$datei"; fi
   done
+}
+
+# CORS für genau diese Domain (der Befehl wandelt Umlaut-Domains in Punycode um) und danach ein
+# CORS-Preflight wie im Browser: Ohne passende Freigabe scheitert jeder Upload im Browser.
+echo "Bucket einrichten und CORS prüfen"
+if ! docker compose run --rm --no-deps app \
+  python manage.py s3_bucket_setup --origin "https://$DOMAIN"; then
+  zuruecklegen
+  echo "::error::Bucket-Einrichtung oder CORS-Prüfung fehlgeschlagen, die bisherige Version" \
+    "läuft weiter." >&2
+  exit 1
+fi
+
+echo "Migrieren"
+if ! docker compose run --rm --no-deps app python manage.py migrate --noinput; then
+  zuruecklegen
   echo "::error::Migration fehlgeschlagen, die bisherige Version läuft weiter." >&2
   exit 1
 fi
