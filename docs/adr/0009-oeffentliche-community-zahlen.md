@@ -4,7 +4,8 @@ Schwarmstack gibt unter `GET /zahlen.json` die Community-Zahlen aus: Submissions
 
 ## Consequences
 
-- Neue Felder kommen nur additiv dazu (etwa Werte aus den Headern, #50); bestehende Schlüssel ändern sich nicht.
+- Neue Felder kommen nur additiv dazu; bestehende Schlüssel ändern sich nicht.
+- Belichtung: `lights`, `exposureSeconds` (ganze Sekunden) und `mastersWithExposure`. Summiert wird über angenommene Master ohne Dubletten (anders als `masters` und `bytes`), damit dieselbe Aufnahme nicht doppelt zählt. Master ohne Angaben fehlen in den Summen, `mastersWithExposure` macht die Lücke sichtbar.
 - Die Zahlen rechnet eine eigene, rein lesende Funktion; der öffentliche Pfad schreibt nie (kein Aufräumen liegengebliebener Uploads wie in der Statistik).
 - Ein Cache im Prozess (`LocMemCache`, Standard 10 s, `COMMUNITY_CACHE_SECONDS`) begrenzt die Last; Gunicorn-Worker können kurz voneinander abweichen. Ein Rate-Limit macht Caddy, nicht die App.
 - CORS setzt die Ansicht von Hand für die Ursprünge aus `COMMUNITY_ORIGINS`; `*` ist nur zum Testen auf Staging gedacht. Basic Auth auf Staging lässt `/zahlen.json` wie `/healthz` durch.

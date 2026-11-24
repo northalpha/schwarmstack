@@ -107,7 +107,7 @@ Der Stand der Aktion für die Betreiber, Startseite des Admin: Submissions, Mast
 _Avoid_: Auswertung (für die Seite), Reporting
 
 **Community-Zahlen**:
-Die wenigen Summen zur Aktion, die Schwarmstack öffentlich als JSON ausgibt, damit die Community-Seite sie anzeigen kann: Submissions, angenommene Master und ihre Datenmenge. Nur aggregierte Summen, nie Namen, Submission-IDs oder einzelne Submissions.
+Die wenigen Summen zur Aktion, die Schwarmstack öffentlich als JSON ausgibt, damit die Community-Seite sie anzeigen kann: Submissions, angenommene Master und ihre Datenmenge, dazu die aufsummierten Lights und die Gesamtbelichtung. Nur aggregierte Summen, nie Namen, Submission-IDs oder einzelne Submissions.
 _Avoid_: öffentliche Statistik, Live-Zahlen
 
 **Export**:

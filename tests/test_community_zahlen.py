@@ -14,6 +14,14 @@ from submissions.services import delete_submission
 pytestmark = pytest.mark.django_db
 
 URL = "/zahlen.json"
+NULL = {
+    "submissions": 0,
+    "masters": 0,
+    "bytes": 0,
+    "lights": 0,
+    "exposureSeconds": 0,
+    "mastersWithExposure": 0,
+}
 L_DATA = fits()
 
 
@@ -31,7 +39,7 @@ def zahlen(client=None, **headers):
 
 
 def test_ohne_aktion_nullen():
-    assert zahlen().json() == {"submissions": 0, "masters": 0, "bytes": 0}
+    assert zahlen().json() == NULL
 
 
 @pytest.fixture
@@ -55,20 +63,20 @@ def bestand(campaign, valid_form, storage_dir):
 
 def test_zaehlregeln(bestand):
     # A, B und C; D ist gelöscht. Master: L aus A und die Dublette aus B.
-    assert zahlen().json() == {"submissions": 3, "masters": 2, "bytes": 2 * len(L_DATA)}
+    assert zahlen().json() == {**NULL, "submissions": 3, "masters": 2, "bytes": 2 * len(L_DATA)}
 
 
 def test_vor_beginn_200(campaign):
     campaign.starts_at = timezone.now() + timedelta(days=1)
     campaign.save()
-    assert zahlen().json() == {"submissions": 0, "masters": 0, "bytes": 0}
+    assert zahlen().json() == NULL
 
 
 def test_nach_ende_bleiben_die_zahlen(bestand, campaign):
     campaign.starts_at = timezone.now() - timedelta(days=60)
     campaign.ends_at = timezone.now() - timedelta(days=30)
     campaign.save()
-    assert zahlen().json() == {"submissions": 3, "masters": 2, "bytes": 2 * len(L_DATA)}
+    assert zahlen().json() == {**NULL, "submissions": 3, "masters": 2, "bytes": 2 * len(L_DATA)}
 
 
 def test_ohne_cookie_mit_cache_control(settings):
@@ -112,6 +120,21 @@ def test_cache_aus_mit_null(settings, campaign, valid_form, django_assert_num_qu
     assert zahlen().json()["submissions"] == 0
     new_submission(valid_form)
     assert zahlen().json()["submissions"] == 1
-    with django_assert_num_queries(3):
+    with django_assert_num_queries(4):
         zahlen()
     assert zahlen()["Cache-Control"] == "public, max-age=0"
+
+
+def test_belichtung_summiert_ohne_dubletten_und_ohne_unfertiges(bestand):
+    from submissions.models import Master
+
+    angenommen = Master.objects.filter(state=Master.State.ACCEPTED, submission__deleted_at=None)
+    original = angenommen.get(duplicate_of__isnull=True)
+    dublette = angenommen.get(duplicate_of__isnull=False)
+    Master.objects.filter(pk=original.pk).update(light_count=10, total_exposure="1800.4")
+    Master.objects.filter(pk=dublette.pk).update(light_count=10, total_exposure="1800.4")
+    Master.objects.filter(state=Master.State.REJECTED).update(light_count=99, total_exposure="999")
+    numbers = zahlen().json()
+    assert numbers["lights"] == 10
+    assert numbers["exposureSeconds"] == 1800
+    assert numbers["mastersWithExposure"] == 1
