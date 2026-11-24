@@ -13,6 +13,11 @@ urlpatterns = [
         views.delete_submission,
         name="delete_submission",
     ),
+    path(
+        "submission/<str:reference>/namensnennung/widerrufen/",
+        views.revoke_credit,
+        name="revoke_credit",
+    ),
     path("submission/<str:reference>/master/", api.start, name="upload_start"),
     path(
         "submission/<str:reference>/master/<uuid:master_id>/loeschen/",

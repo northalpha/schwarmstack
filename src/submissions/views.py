@@ -88,6 +88,7 @@ def submission(request, reference):
             "show_uploader": shows_uploader(submission),
             "may_start": may_start(submission),
             "may_change": services.changeable_by_participant(submission),
+            "may_revoke": services.consent_revocable_by_participant(submission) is not None,
             **quota_usage(submission),
             "max_master_size": campaign.max_master_size if campaign else 0,
             "channels": Master.Channel.choices,
@@ -159,6 +160,30 @@ def delete_master(request, reference, master_id):
     )
 
 
+@require_http_methods(["GET", "POST"])
+def revoke_credit(request, reference):
+    """Widerruf der Einwilligung zur Namensnennung, jederzeit (Ticket #68)."""
+    submission = _own_submission(request, reference)
+    consent = services.consent_revocable_by_participant(submission)
+    if consent is None:
+        return redirect("submission", submission.reference)
+    if request.method == "POST":
+        services.revoke(consent)
+        messages.info(request, "Deine Einwilligung zur Namensnennung ist widerrufen.")
+        return redirect("submission", submission.reference)
+    return _confirm(
+        request,
+        submission,
+        title="Namensnennung widerrufen",
+        question=(
+            "Deine Namensnennung wird gelöscht, die Submission ist danach anonym. Deine Master "
+            "bleiben im Projekt."
+        ),
+        details=[f"Namensnennung: {submission.credit_name}"],
+        button="Ja, widerrufen",
+    )
+
+
 def _own_submission(request, reference) -> Submission:
     if not access.may_access(request, reference):
         raise Http404
@@ -176,7 +201,7 @@ def _not_changeable(request, submission):
 
 
 def _confirm(request, submission, *, title, question, button, details=()):
-    """Rückfrage vor dem Löschen; Abbrechen führt zurück zur Submission-Seite."""
+    """Rückfrage vor dem Löschen oder dem Widerruf; Abbrechen führt zurück zur Submission-Seite."""
     return render(
         request,
         "submissions/confirm.html",
