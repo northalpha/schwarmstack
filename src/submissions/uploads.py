@@ -249,10 +249,14 @@ def _check_duplicates(master: Master) -> validation.Result:
 
 
 def sidecar(master: Master) -> dict:
-    """Angaben neben dem Master, damit die Zuordnung ohne Datenbank rekonstruierbar ist."""
+    """Angaben neben dem Master, damit die Zuordnung ohne Datenbank rekonstruierbar ist.
+
+    Die Nennung steht nur bei gültiger Einwilligung zur Veröffentlichung darin.
+    """
+    submission = master.submission
     return {
-        "reference": master.submission.reference,
-        "credit_name": master.submission.credit_name,
+        "reference": submission.reference,
+        "credit_name": (submission.credit_name or None) if submission.publishes_credit else None,
         "channel": master.channel,
         "original_name": master.original_name,
         "size": master.size,

@@ -12,7 +12,7 @@
 {% else %}
 <h2>Angaben</h2>
 <dl>
-  <dt>Nennung</dt><dd>{{ submission.credit_name }}</dd>
+  <dt>Nennung</dt><dd>{% if submission.credit_name %}{{ submission.credit_name }}{% else %}anonym<br><span class="help">Ohne Einwilligung zur Veröffentlichung haben wir keinen Namen gespeichert.</span>{% endif %}</dd>
   {% if submission.setup_description %}<dt>Setup</dt><dd>{{ submission.setup_description|linebreaksbr }}</dd>{% endif %}
 </dl>
 <h2>Master</h2>

@@ -215,6 +215,7 @@ def revoke_url(consent):
 
 
 def test_widerruf_der_nennung_bleibt_als_vermerk(operator_client, participant):  # noqa: F811
+    """Der Widerruf der Veröffentlichung löscht die Nennung (Ticket #33)."""
     consent = participant.submission.consents.get(kind=Consent.Kind.PUBLISH_CREDIT)
     assert operator_client.get(revoke_url(consent)).status_code == 200
     consent.refresh_from_db()
@@ -225,12 +226,27 @@ def test_widerruf_der_nennung_bleibt_als_vermerk(operator_client, participant): 
     assert consent.revoked_at is not None
     submission = Submission.objects.get(pk=participant.submission.pk)
     assert not submission.is_withdrawn
-    assert submission.credit_name == "Ada Sternguck"
+    assert submission.credit_name == ""
     assert any("Widerruf" in m for m in log_messages(submission))
 
     # Ein zweiter Widerruf ändert nichts und steht nicht doppelt im Protokoll.
     operator_client.post(revoke_url(consent))
     assert sum("Widerruf" in m for m in log_messages(submission)) == 1
+
+
+def test_widerruf_der_nennung_schreibt_die_begleitdateien_neu(
+    operator_client,  # noqa: F811
+    participant,
+    storage_dir,
+):
+    """Ticket #33: Danach steht in keiner Begleitdatei der Abgabe mehr ein Name."""
+    first = participant.upload(fits(), filename="a.fits")
+    second = participant.upload(xisf(), filename="b.xisf")
+    assert sidecar(storage_dir, first)["credit_name"] == "Ada Sternguck"
+    consent = participant.submission.consents.get(kind=Consent.Kind.PUBLISH_CREDIT)
+    operator_client.post(revoke_url(consent))
+    assert sidecar(storage_dir, first)["credit_name"] is None
+    assert sidecar(storage_dir, second)["credit_name"] is None
 
 
 def test_widerruf_der_nutzung_im_projekt_zieht_die_abgabe_zurueck(
@@ -353,6 +369,35 @@ def test_korrigierte_nennung_steht_in_der_begleitdatei(
     url = submission_url(participant.submission)
     operator_client.post(url, change_form_data(operator_client.get(url), credit_name="Ada S."))
     assert sidecar(storage_dir, master)["credit_name"] == "Ada S."
+
+
+def test_anonyme_abgabe_heisst_im_admin_anonym(operator_client, valid_form, campaign):  # noqa: F811
+    """Ticket #33."""
+    del valid_form["consent_publish_credit"]
+    anonymous = Participant(valid_form)
+    row = next(
+        line
+        for line in operator_client.get(LIST).content.decode().splitlines()
+        if anonymous.reference in line
+    )
+    assert "anonym" in row
+    assert "anonym" in operator_client.get(submission_url(anonymous.submission)).content.decode()
+
+
+def test_anonyme_abgabe_bekommt_im_admin_keine_nennung(
+    operator_client,  # noqa: F811
+    valid_form,
+    campaign,
+):
+    """Ticket #33: Ohne Einwilligung keine Nennung, auch nicht nachträglich durch Betreiber."""
+    del valid_form["consent_publish_credit"]
+    anonymous = Participant(valid_form)
+    url = submission_url(anonymous.submission)
+    data = change_form_data(operator_client.get(url), credit_name="Ada", setup_description="Neu")
+    assert operator_client.post(url, data).status_code == 302
+    submission = Submission.objects.get(pk=anonymous.submission.pk)
+    assert submission.credit_name == ""
+    assert submission.setup_description == "Neu"
 
 
 def test_einwilligungen_lassen_sich_nicht_erteilen(operator_client, valid_form, campaign):  # noqa: F811

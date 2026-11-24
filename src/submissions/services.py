@@ -20,10 +20,16 @@ log = logging.getLogger(__name__)
 
 
 def create_submission(*, credit_name, setup_description, publish_credit) -> Submission:
-    """Legt eine Abgabe samt Einwilligungen an und vergibt eine freie Abgabe-Kennung."""
+    """Legt eine Abgabe samt Einwilligungen an und vergibt eine freie Abgabe-Kennung.
+
+    Die Nennung gibt es nur mit der Einwilligung zur Veröffentlichung; ohne sie wird ein
+    eingegebener Name verworfen und die Abgabe bleibt anonym.
+    """
     kinds = [Consent.Kind.PROJECT_USE]
     if publish_credit:
         kinds.append(Consent.Kind.PUBLISH_CREDIT)
+    else:
+        credit_name = ""
     for _ in range(_ATTEMPTS):
         reference = references.new_reference(
             lambda r: Submission.objects.filter(reference=r).exists()
@@ -119,13 +125,21 @@ def withdraw(submission: Submission, *, by: Submission.WithdrawnBy) -> Submissio
 def revoke(consent: Consent, *, by: Submission.WithdrawnBy) -> bool:
     """Widerruf einer Einwilligung: Sie bekommt einen Zeitpunkt und bleibt stehen.
 
-    Der Widerruf der Nutzung im Projekt löst den Rückzug der ganzen Abgabe aus. Gibt zurück,
+    Der Widerruf der Nutzung im Projekt löst den Rückzug der ganzen Abgabe aus. Der Widerruf
+    der Veröffentlichung löscht die Nennung und schreibt die Begleitdateien neu. Gibt zurück,
     ob sich etwas geändert hat (ein schon vermerkter Widerruf ändert nichts).
     """
     if consent.revoked_at is not None:
         return False
-    consent.revoked_at = timezone.now()
-    consent.save(update_fields=["revoked_at"])
+    submission = consent.submission
+    with transaction.atomic():
+        consent.revoked_at = timezone.now()
+        consent.save(update_fields=["revoked_at"])
+        if consent.kind == Consent.Kind.PUBLISH_CREDIT:
+            submission.credit_name = ""
+            submission.save(update_fields=["credit_name"])
     if consent.kind == Consent.Kind.PROJECT_USE:
-        withdraw(consent.submission, by=by)
+        withdraw(submission, by=by)
+    else:
+        details_corrected(submission)
     return True
