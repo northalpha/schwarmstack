@@ -161,12 +161,13 @@ def test_abbrechen_durch_den_server(backend):
     assert browser.send("GET", storage.presign(S3Request("GET", k, upload_id))).status >= 400
 
 
-def test_upload_id_gilt_nur_fuer_ihren_schluessel(backend):
+def test_upload_id_gilt_nur_fuer_ihren_schluessel(backend, request):
     # Der Server übernimmt die Upload-ID vom Browser ungeprüft (ADR 0009). Das ist nur
     # tragbar, weil der Speicher sie an den Schlüssel bindet, unter dem sie angelegt wurde.
     name, storage, browser = backend
     if name == "moto":
-        pytest.xfail("moto prüft beim Teil-Upload nicht, ob Upload-ID und Schlüssel passen")
+        reason = "moto prüft beim Teil-Upload nicht, ob Upload-ID und Schlüssel passen"
+        request.applymarker(pytest.mark.xfail(reason=reason, strict=True))
     eigen, fremd = key(), key()
     upload_id = create(storage, browser, fremd)
     url = storage.presign(S3Request("PUT", eigen, upload_id, 1))

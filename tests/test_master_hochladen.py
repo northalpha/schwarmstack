@@ -156,20 +156,19 @@ def test_erfundene_upload_id_trifft_nur_den_eigenen_master(client, reference, ca
     campaign.quota = len(DATA)
     campaign.save()
     body = start(client, reference, size=len(DATA)).json()
-    erfunden = "0" * 32
-    url = sign(
-        client, reference, body["masterId"],
-        method="PUT", key=body["key"], uploadId=erfunden, partNumber=1,
-    ).json()["url"]  # fmt: skip
+
+    def sign_part(upload_id):
+        return sign(
+            client, reference, body["masterId"],
+            method="PUT", key=body["key"], uploadId=upload_id, partNumber=1,
+        )  # fmt: skip
+
+    erfunden = "0" * 32  # sieht aus wie eine ID des lokalen Adapters (UUID als Hex)
+    url = sign_part(erfunden).json()["url"]
     assert client.put(url, DATA[:8], content_type="application/octet-stream").status_code >= 400
 
     # Die echte Upload-ID wird danach nicht mehr signiert ...
-    echt = create(client, body["url"])
-    response = sign(
-        client, reference, body["masterId"],
-        method="PUT", key=body["key"], uploadId=echt, partNumber=1,
-    )  # fmt: skip
-    assert response.status_code == 400
+    assert sign_part(create(client, body["url"])).status_code == 400
     # ... aber Abbrechen gibt die Reservierung frei, und ein neuer Upload passt wieder.
     abort = client.post(f"/abgabe/{reference}/master/{body['masterId']}/abbrechen/")
     assert abort.json()["state"] == "aborted"
