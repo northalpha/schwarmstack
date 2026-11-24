@@ -1,0 +1,1 @@
+- Prüfung: Views, API und Admin dürfen nichts selbst speichern oder löschen (`tests/test_fachregeln_ort.py`). Warum: Fachregeln landeten viermal zuerst in der View und wurden erst im Review nach `services` verschoben.

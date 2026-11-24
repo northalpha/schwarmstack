@@ -1,7 +1,7 @@
 # Coding Standards
 
 Für das Review: Regeln, die ein Urteil brauchen. Alles Mechanische prüft `scripts/pruefen.sh`
-(ruff, shellcheck, actionlint, doppelte Glossar-Begriffe, Changelog-Ort, Migrationen); was dort
+(ruff, shellcheck, actionlint, doppelte Glossar-Begriffe, Changelog-Ort, Migrationen, Schreibzugriffe in Views); was dort
 grün ist, wird im Review nicht wiederholt.
 
 ## Sprache des Fachgebiets
@@ -39,7 +39,8 @@ grün ist, wird im Review nicht wiederholt.
   `src/submissions/services.py`, Regeln zum Upload (Quote, Gesamtgrenze, Zeitfenster,
   Dubletten) in `src/submissions/uploads.py`. Views, API und Admin rufen sie auf und entscheiden
   selbst nichts Fachliches; eine Regel, die in einer View oder im Admin neu entsteht, ist ein
-  Befund.
+  Befund. Schreibzugriffe dort fängt `tests/test_fachregeln_ort.py`; im Review bleiben
+  Bedingungen („darf das jetzt?“), die dort stehen, obwohl sie Fachverhalten sind.
 - Zugriff auf Dateien nur über `storage.get_storage()` und das `Storage`-Protokoll in
   `src/storage/__init__.py`. Eine neue Methode bekommt jeder Adapter (`local.py`, `s3.py`) und
   einen Fall in `tests/test_speicher_contract.py`, der für alle Adapter läuft.
