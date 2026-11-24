@@ -12,6 +12,7 @@ import urllib.error
 import urllib.request
 from urllib.parse import urlsplit
 
+from botocore.exceptions import ClientError
 from django.core.management.base import BaseCommand, CommandError
 
 from storage import S3Request, get_storage
@@ -124,14 +125,22 @@ class Command(BaseCommand):
             if origin not in origins:
                 origins.append(origin)
         client, bucket = storage.client, storage.bucket
-        client.put_bucket_cors(Bucket=bucket, CORSConfiguration=cors_rules(origins))
-        client.put_bucket_lifecycle_configuration(
-            Bucket=bucket, LifecycleConfiguration=lifecycle_rules()
+        cors_gesetzt = self._setzen(
+            "PutBucketCors",
+            lambda: client.put_bucket_cors(Bucket=bucket, CORSConfiguration=cors_rules(origins)),
         )
-        self.stdout.write(
-            f"Bucket {bucket}: CORS für {', '.join(origins)}, "
-            f"unvollständige Uploads nach {ABORT_AFTER_DAYS} Tagen abräumen."
+        lifecycle_gesetzt = self._setzen(
+            "PutBucketLifecycleConfiguration",
+            lambda: client.put_bucket_lifecycle_configuration(
+                Bucket=bucket, LifecycleConfiguration=lifecycle_rules()
+            ),
         )
+        if cors_gesetzt:
+            self.stdout.write(f"Bucket {bucket}: CORS für {', '.join(origins)}.")
+        if lifecycle_gesetzt:
+            self.stdout.write(
+                f"Bucket {bucket}: unvollständige Uploads nach {ABORT_AFTER_DAYS} Tagen abräumen."
+            )
         failed = {origin: p for origin in origins if (p := preflight_problems(storage, origin))}
         if failed:
             details = "; ".join(f"{o}: {', '.join(p)}" for o, p in failed.items())
@@ -139,3 +148,23 @@ class Command(BaseCommand):
                 f"CORS-Freigabe greift nicht, Uploads aus dem Browser würden scheitern. {details}"
             )
         self.stdout.write("CORS-Preflight für alle Herkünfte erfolgreich.")
+
+    def _setzen(self, operation, call) -> bool:
+        """Setzt eine Bucket-Regel; verweigert der Speicher das, nur eine Warnung (#73).
+
+        Hetzner lehnt seit dem 24.11.2026 Schreibzugriffe auf die Bucket-Konfiguration mit 403
+        ab. Die Regeln aus früheren Deploys bleiben im Bucket; ob die CORS-Freigabe greift,
+        entscheidet der Preflight danach.
+        """
+        try:
+            call()
+        except ClientError as exc:
+            if exc.response.get("Error", {}).get("Code") != "AccessDenied":
+                raise
+            # ::warning:: macht die Meldung im Deploy-Job auf GitHub sichtbar.
+            self.stderr.write(
+                f"::warning::{operation} vom Speicher verweigert (AccessDenied), "
+                "die bisherige Regel im Bucket bleibt."
+            )
+            return False
+        return True
