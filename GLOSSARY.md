@@ -130,6 +130,14 @@ _Avoid_: Korrektur, Änderung (ohne Bezug)
 Die SHA-256 eines Masters, vom Browser der Teilnehmenden beim Hochladen berechnet und gemeldet. Nicht vom Server bestätigt.
 _Avoid_: Hash (ohne Bezug), ETag
 
+**Belichtungsangaben** (`exposure`):
+Die technischen Aufnahmeangaben eines Masters: Belichtung pro Light, Anzahl Lights, Gesamtbelichtung, Instrument und Teleskop. Werden beim Abschluss des Uploads aus einer festen Auswahl von Header-Schlüsseln gelesen und können von den Teilnehmenden bis zum Ende der Aktion ergänzt werden. Jeder Wert trägt seine Herkunft: aus dem Header, berechnet oder von Hand. Standort- und Personendaten gehören nie dazu.
+_Avoid_: Metadaten, Aufnahmedaten, Header (für die Werte)
+
+**Erzeuger** (`creator`):
+Das Programm oder Gerät, das einen Master geschrieben hat, aus `ORIGIN`, `SWCREATE` oder `XISF:CreatorApplication`. Bestimmt, wie `EXPTIME` zu deuten ist (Gesamtzeit oder pro Light).
+_Avoid_: Software, Hersteller
+
 **Dublette** (`duplicate_of`):
 Ein Master, dessen Prüfsumme schon in einer anderen Submission vorkommt. Wird angenommen und markiert; in derselben Submission wird dieselbe Datei abgelehnt.
 _Avoid_: Kopie, doppelter Upload

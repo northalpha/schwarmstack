@@ -22,7 +22,7 @@ from schwarmstack.models import ProtocolEntry
 from schwarmstack.operator_site import site
 from storage import get_storage
 
-from . import services, uploads
+from . import exposure, services, uploads
 from .models import Campaign, Consent, Master, Phase, Submission
 
 # -- Aktion --------------------------------------------------------------------
@@ -240,6 +240,12 @@ class MasterInline(admin.TabularInline):
         links = []
         if master.state == Master.State.ACCEPTED:
             links.append((_master_url("download", master), "Herunterladen"))
+            links.append(
+                (
+                    reverse("operator:submissions_master_change", args=[master.pk]),
+                    "Belichtungsangaben",
+                )
+            )
         if master.state in services.DELETABLE:
             links.append((_master_url("delete", master), "Löschen …"))
         return format_html_join(" · ", '<a href="{}">{}</a>', links) or "–"
@@ -534,6 +540,37 @@ class SubmissionAdmin(admin.ModelAdmin):
 # -- Master (Liste, z. B. abgelehnte nach Kategorie) ---------------------------
 
 
+class ExposureForm(forms.ModelForm):
+    """Belichtungsangaben im Admin: dieselben Regeln wie auf der Submission-Seite (ADR 0010).
+
+    Zahlen sind Textfelder, damit `exposure.parse` wie auf der Submission-Seite auch ein
+    Dezimalkomma annimmt.
+    """
+
+    exposure_per_light = forms.CharField(label="Belichtung pro Light (s)", required=False)
+    light_count = forms.CharField(label="Anzahl Lights", required=False)
+    total_exposure = forms.CharField(label="Gesamtbelichtung (s)", required=False)
+
+    class Meta:
+        model = Master
+        fields = list(exposure.FIELDS)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in exposure.NUMBERS:
+            self.initial[name] = exposure.show(getattr(self.instance, name))
+
+    def clean(self):
+        cleaned = super().clean()
+        for name in exposure.FIELDS:
+            if name in cleaned and name not in self.errors:
+                try:
+                    cleaned[name] = exposure.parse(name, cleaned[name])
+                except exposure.InvalidInput as exc:
+                    self.add_error(name, str(exc))
+        return cleaned
+
+
 @admin.register(Master, site=site)
 class MasterAdmin(admin.ModelAdmin):
     list_display = [
@@ -550,12 +587,56 @@ class MasterAdmin(admin.ModelAdmin):
     search_fields = ["submission__reference", "original_name", "sha256"]
     list_select_related = ["submission"]
     list_display_links = None
+    # Ändern lassen sich nur die Belichtungsangaben angenommener Master, auch nach der Aktion.
+    form = ExposureForm
+    fields = [
+        "submission_link",
+        "channel",
+        "original_name",
+        *exposure.FIELDS,
+        "sources",
+        "creator",
+        "header_exptime",
+        "header_conflicts",
+    ]
+    readonly_fields = [
+        "submission_link",
+        "channel",
+        "original_name",
+        "sources",
+        "creator",
+        "header_exptime",
+        "header_conflicts",
+    ]
 
     def has_add_permission(self, request):
         return False
 
+    def has_view_permission(self, request, obj=None):
+        return super().has_view_permission(request, obj) and (
+            obj is None or services.exposure_changeable_by_operator(obj)
+        )
+
     def has_change_permission(self, request, obj=None):
-        return False
+        return super().has_change_permission(request, obj) and (
+            obj is None or services.exposure_changeable_by_operator(obj)
+        )
+
+    def save_model(self, request, obj, form, change):
+        # Geänderte Werte werden `manuell`; gespeichert wird über das Fachverhalten.
+        changed = {name: form.cleaned_data[name] for name in form.changed_data}
+        services.change_exposure(Master.objects.get(pk=obj.pk), changed)
+
+    @admin.display(description="Herkunft")
+    def sources(self, master):
+        return format_html_join(
+            ", ",
+            "{}: {}",
+            (
+                (exposure.LABELS[name], getattr(master, f"get_{name}_source_display")() or "–")
+                for name in exposure.FIELDS
+            ),
+        )
 
     def has_delete_permission(self, request, obj=None):
         return False

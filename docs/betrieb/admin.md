@@ -40,6 +40,11 @@ Lokal ohne Docker: `uv run python src/manage.py createsuperuser`.
   den Widerruf der Namensnennung vermerken. Er löscht die Namensnennung samt Eintrag in den
   Begleitdateien. Die Einwilligung zur Nutzung im Projekt lässt sich nicht widerrufen: Wer sie
   nicht mehr will, dessen Submission wird gelöscht; die Löschung ist der Nachweis.
+- **Belichtungsangaben**: je angenommenem Master über den Link „Belichtungsangaben“ in der
+  Submission ändern, auch nach dem Ende der Aktion. Geänderte Werte bekommen die Herkunft
+  `manuell`. Für Master, die vor dem Feature hochgeladen wurden, liest
+  `docker compose run --rm app python manage.py backfill_exposure` die Header einmal erneut;
+  Werte von Hand bleiben dabei unangetastet, und der Befehl lässt sich wiederholen (ADR 0010).
 - **Download zur Kontrolle**: einzelne angenommene Master über einen Link, der
   `UPLOAD_LINK_SECONDS` (Standard 15 Minuten) gilt.
 - **Protokoll**: jede Änderung, Löschung, jeder Widerruf und Download mit Betreiber und

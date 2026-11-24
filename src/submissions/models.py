@@ -5,7 +5,10 @@ from datetime import datetime, timedelta
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
+from django.utils.functional import cached_property
 
+from . import exposure
+from .exposure import Source
 from .validation import Category
 
 
@@ -162,6 +165,10 @@ class Consent(models.Model):
         return f"{self.submission} – {self.get_kind_display()}"
 
 
+def _source_field():
+    return models.CharField("Herkunft", max_length=16, choices=Source.choices, blank=True)
+
+
 class Master(models.Model):
     """Master: eine hochgeladene integrierte Bilddatei für genau einen Kanal."""
 
@@ -215,6 +222,29 @@ class Master(models.Model):
     last_activity_at = models.DateTimeField("zuletzt aktiv", null=True, blank=True)
     completed_at = models.DateTimeField("abgeschlossen", null=True, blank=True)
 
+    # Belichtungsangaben (ADR 0010): je Wert eine Herkunft, leer heißt „kein Wert“.
+    exposure_per_light = models.DecimalField(
+        "Belichtung pro Light (s)", max_digits=14, decimal_places=4, null=True, blank=True
+    )
+    exposure_per_light_source = _source_field()
+    light_count = models.PositiveIntegerField("Anzahl Lights", null=True, blank=True)
+    light_count_source = _source_field()
+    total_exposure = models.DecimalField(
+        "Gesamtbelichtung (s)", max_digits=14, decimal_places=4, null=True, blank=True
+    )
+    total_exposure_source = _source_field()
+    instrument = models.CharField("Instrument", max_length=100, blank=True)
+    instrument_source = _source_field()
+    telescope = models.CharField("Teleskop", max_length=100, blank=True)
+    telescope_source = _source_field()
+    creator = models.CharField("Erzeuger", max_length=100, blank=True)
+    # EXPTIME eines unbekannten Erzeugers: Was es bedeutet, entscheiden die Teilnehmenden.
+    header_exptime = models.DecimalField(
+        "EXPTIME ungedeutet (s)", max_digits=14, decimal_places=4, null=True, blank=True
+    )
+    # FITS-Keyword -> sein Wert, wenn die XISF-Property ihm widersprach und Vorrang hatte.
+    header_conflicts = models.JSONField("Widersprüche im Header", default=dict, blank=True)
+
     class Meta:
         verbose_name = "Master"
         verbose_name_plural = "Master"
@@ -222,6 +252,11 @@ class Master(models.Model):
 
     def __str__(self):
         return f"{self.submission} {self.channel} {self.original_name}"
+
+    @cached_property
+    def exposure_proposal(self) -> exposure.Proposal:
+        """Belichtungsangaben für die Anzeige: Werte, Vorschlag, Hinweise."""
+        return exposure.proposal(self)
 
     @property
     def sidecar_key(self) -> str:
