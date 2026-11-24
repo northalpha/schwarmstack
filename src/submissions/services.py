@@ -3,8 +3,6 @@
 Admin und Abgabeseite rufen diese Operationen auf; sie selbst kennen keine Anfrage.
 """
 
-import logging
-
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -13,10 +11,9 @@ from storage import get_storage
 
 from . import references
 from .models import Consent, Master, Submission
-from .uploads import sidecar
+from .uploads import abort_multipart, sidecar
 
 _ATTEMPTS = 5
-log = logging.getLogger(__name__)
 
 
 def create_submission(*, credit_name, setup_description, publish_credit) -> Submission:
@@ -66,12 +63,8 @@ def delete_master(master: Master) -> None:
     Dublette auf ihn, wird der früheste von ihnen zum Original.
     """
     storage = get_storage()
-    if master.state == Master.State.UPLOADING and master.upload_id:
-        try:
-            storage.abort_multipart(master.key, master.upload_id)
-        except Exception:  # noqa: BLE001
-            # Schon abgeräumt oder abgeschlossen; das Objekt wird unten ohnehin gelöscht.
-            log.info("Multipart-Upload war schon weg: %s", master.public_id)
+    if master.state == Master.State.UPLOADING:
+        abort_multipart(master)
     storage.delete(master.key)
     storage.delete(master.sidecar_key)
 
@@ -90,9 +83,9 @@ def delete_master(master: Master) -> None:
             storage.put_json(duplicate.sidecar_key, sidecar(duplicate))
 
 
-def details_corrected(submission: Submission) -> None:
-    """Nach einer Korrektur von Nennung oder Setup die Begleitdateien neu schreiben,
-    damit die Zuordnung ohne Datenbank stimmt (ADR 0006).
+def details_changed(submission: Submission) -> None:
+    """Nach einer Änderung von Nennung oder Setup (im Admin oder durch einen Widerruf) die
+    Begleitdateien neu schreiben, damit die Zuordnung ohne Datenbank stimmt (ADR 0006).
 
     Ohne gültige Einwilligung zur Veröffentlichung bleibt die Abgabe anonym: Eine nachträglich
     eingetragene Nennung wird verworfen.
@@ -143,6 +136,6 @@ def revoke(consent: Consent, *, by: Submission.WithdrawnBy) -> bool:
     if consent.kind == Consent.Kind.PROJECT_USE:
         withdraw(consent.submission, by=by)
     elif consent.kind == Consent.Kind.PUBLISH_CREDIT:
-        # Ohne gültige Einwilligung verwirft die Korrektur die Nennung.
-        details_corrected(consent.submission)
+        # Ohne gültige Einwilligung wird die Nennung dabei verworfen.
+        details_changed(consent.submission)
     return True

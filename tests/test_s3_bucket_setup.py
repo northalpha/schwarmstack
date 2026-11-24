@@ -4,14 +4,14 @@ import uuid
 
 import pytest
 from django.core.management import CommandError, call_command
-from storage_backends import moto_endpoint, moto_storage  # noqa: F401
+from storage_backends import moto_storage
 
 from storage.management.commands import s3_bucket_setup
 from storage.management.commands.s3_bucket_setup import normalize_origin
 
 
 @pytest.fixture
-def s3(settings, moto_endpoint):  # noqa: F811
+def s3(settings, moto_endpoint):
     bucket = f"b{uuid.uuid4().hex[:12]}"
     storage = moto_storage(moto_endpoint, bucket)
     settings.STORAGE_BACKEND = "s3"

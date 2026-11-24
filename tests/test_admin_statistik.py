@@ -4,7 +4,7 @@ import datetime as dt
 from zoneinfo import ZoneInfo
 
 import pytest
-from admin_helper import ADMIN, operator, operator_client, submission_url  # noqa: F401
+from admin_helper import ADMIN, submission_url
 from django.test import Client
 from django.utils import timezone
 from files import fits, xisf
@@ -28,7 +28,7 @@ def new_submission(form):
 
 
 @pytest.fixture
-def bestand(campaign, valid_form, settings, tmp_path, operator_client):  # noqa: F811
+def bestand(campaign, valid_form, settings, tmp_path, operator_client):
     """A: L + Hα angenommen. B: Dublette von A, zwei abgelehnt. C: ein Upload läuft.
     D: zurückgezogen. E: ein abgebrochener Upload."""
     settings.STORAGE_LOCAL_DIR = tmp_path
@@ -60,13 +60,13 @@ def statistik(client):
     return response, response.context["statistik"]
 
 
-def test_abgaben_aktiv_und_zurueckgezogen(operator_client, bestand):  # noqa: F811
+def test_abgaben_aktiv_und_zurueckgezogen(operator_client, bestand):
     _, s = statistik(operator_client)
     assert s.submissions_active == 4
     assert s.submissions_withdrawn == 1
 
 
-def test_master_je_zustand(operator_client, bestand):  # noqa: F811
+def test_master_je_zustand(operator_client, bestand):
     _, s = statistik(operator_client)
     assert dict(s.masters_by_state) == {
         "im Upload": 1,
@@ -76,7 +76,7 @@ def test_master_je_zustand(operator_client, bestand):  # noqa: F811
     }
 
 
-def test_angenommene_master_je_kanal(operator_client, bestand):  # noqa: F811
+def test_angenommene_master_je_kanal(operator_client, bestand):
     _, s = statistik(operator_client)
     assert {c.label: (c.count, c.size) for c in s.channels} == {
         "L": (2, 2 * len(L_DATA)),
@@ -84,7 +84,7 @@ def test_angenommene_master_je_kanal(operator_client, bestand):  # noqa: F811
     }
 
 
-def test_belegung_gegen_die_gesamtgrenze(operator_client, bestand):  # noqa: F811
+def test_belegung_gegen_die_gesamtgrenze(operator_client, bestand):
     _, s = statistik(operator_client)
     assert s.accepted == 2 * len(L_DATA) + len(HA_DATA)
     assert s.reserved == 1000
@@ -92,12 +92,12 @@ def test_belegung_gegen_die_gesamtgrenze(operator_client, bestand):  # noqa: F81
     assert s.global_cap == 400 * GIB
 
 
-def test_dubletten(operator_client, bestand):  # noqa: F811
+def test_dubletten(operator_client, bestand):
     _, s = statistik(operator_client)
     assert s.duplicates == 1
 
 
-def test_ablehnungen_nach_kategorie_mit_link_zur_liste(operator_client, bestand):  # noqa: F811
+def test_ablehnungen_nach_kategorie_mit_link_zur_liste(operator_client, bestand):
     response, s = statistik(operator_client)
     counts = {r.label: r.count for r in s.rejections}
     assert counts["kein 32-Bit-Gleitkomma"] == 1
@@ -110,7 +110,7 @@ def test_ablehnungen_nach_kategorie_mit_link_zur_liste(operator_client, bestand)
     assert [m.original_name for m in listed] == ["r.fits"]
 
 
-def test_verlauf_je_tag_in_berliner_zeit(operator_client, bestand):  # noqa: F811
+def test_verlauf_je_tag_in_berliner_zeit(operator_client, bestand):
     # 23:30 UTC am 10. Januar ist in Berlin schon der 11.
     Submission.objects.filter(pk=bestand["e"].pk).update(
         created_at=dt.datetime(2025, 1, 10, 23, 30, tzinfo=dt.UTC)
@@ -133,5 +133,5 @@ def test_verlauf_je_tag_in_berliner_zeit(operator_client, bestand):  # noqa: F81
     assert days[today].accepted == 2 * len(L_DATA)
 
 
-def test_ohne_aktion_trotzdem_erreichbar(operator_client, db):  # noqa: F811
+def test_ohne_aktion_trotzdem_erreichbar(operator_client, db):
     assert operator_client.get(ADMIN).status_code == 200

@@ -203,6 +203,18 @@ class WithdrawnFilter(_YesNoFilter):
         return Q(withdrawn_at__isnull=False)
 
 
+def _change_url(submission_id):
+    return reverse("operator:submissions_submission_change", args=[submission_id])
+
+
+def _master_label(master):
+    return f"{master.get_channel_display()} {master.original_name}"
+
+
+def _master_size(master):
+    return filesizeformat(master.size or master.declared_size)
+
+
 class MasterInline(admin.TabularInline):
     model = Master
     fk_name = "submission"
@@ -228,14 +240,14 @@ class MasterInline(admin.TabularInline):
 
     @admin.display(description="Größe")
     def size_display(self, master):
-        return filesizeformat(master.size or master.declared_size)
+        return _master_size(master)
 
     @admin.display(description="Dublette von")
     def duplicate_link(self, master):
         original = master.duplicate_of
         if original is None:
             return "–"
-        url = reverse("operator:submissions_submission_change", args=[original.submission_id])
+        url = _change_url(original.submission_id)
         return format_html('<a href="{}">{}</a>', url, original.submission.reference)
 
     @admin.display(description="Aktionen")
@@ -335,7 +347,7 @@ class SubmissionAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
         if change and form.changed_data:
-            services.details_corrected(obj)
+            services.details_changed(obj)
 
     def has_add_permission(self, request):
         return False
@@ -346,7 +358,7 @@ class SubmissionAdmin(admin.ModelAdmin):
     def get_fields(self, request, obj=None):
         if obj is not None and not obj.publishes_credit:
             # Ohne Einwilligung zur Veröffentlichung keine Nennung, auch nicht nachträglich
-            # (services.details_corrected): statt des Feldes nur „anonym“ (Ticket #33).
+            # (services.details_changed): statt des Feldes nur „anonym“ (Ticket #33).
             return ["credit_display" if f == "credit_name" else f for f in self.fields]
         return self.fields
 
@@ -413,9 +425,6 @@ class SubmissionAdmin(admin.ModelAdmin):
             *super().get_urls(),
         ]
 
-    def _change_url(self, submission):
-        return reverse("operator:submissions_submission_change", args=[submission.pk])
-
     def _confirm(self, request, submission, *, title, question, details=(), button):
         return TemplateResponse(
             request,
@@ -428,7 +437,7 @@ class SubmissionAdmin(admin.ModelAdmin):
                 "question": question,
                 "details": details,
                 "button": button,
-                "cancel_url": self._change_url(submission),
+                "cancel_url": _change_url(submission.pk),
             },
         )
 
@@ -445,7 +454,7 @@ class SubmissionAdmin(admin.ModelAdmin):
                 services.withdraw(submission, by=Submission.WithdrawnBy.OPERATOR)
                 self.log_change(request, submission, "Abgabe zurückgezogen")
                 self.message_user(request, f"Abgabe {submission} wurde zurückgezogen.")
-            return HttpResponseRedirect(self._change_url(submission))
+            return HttpResponseRedirect(_change_url(submission.pk))
         return self._confirm(
             request,
             submission,
@@ -469,11 +478,11 @@ class SubmissionAdmin(admin.ModelAdmin):
             raise Http404
         submission = master.submission
         if request.method == "POST":
-            description = f"{master.get_channel_display()} {master.original_name}"
+            description = _master_label(master)
             services.delete_master(master)
             self.log_change(request, submission, f"Master {description} gelöscht")
             self.message_user(request, f"Master {description} wurde gelöscht.")
-            return HttpResponseRedirect(self._change_url(submission))
+            return HttpResponseRedirect(_change_url(submission.pk))
         return self._confirm(
             request,
             submission,
@@ -487,9 +496,7 @@ class SubmissionAdmin(admin.ModelAdmin):
                 )
             ),
             details=[
-                f"{master.get_channel_display()} · {master.original_name} · "
-                f"{filesizeformat(master.size or master.declared_size)} · "
-                f"{master.get_state_display()}"
+                f"{_master_label(master)} · {_master_size(master)} · {master.get_state_display()}"
             ],
             button="Ja, löschen",
         )
@@ -502,7 +509,7 @@ class SubmissionAdmin(admin.ModelAdmin):
         self.log_change(
             request,
             master.submission,
-            f"Master {master.get_channel_display()} {master.original_name} heruntergeladen",
+            f"Master {_master_label(master)} heruntergeladen",
         )
         return HttpResponseRedirect(url)
 
@@ -518,7 +525,7 @@ class SubmissionAdmin(admin.ModelAdmin):
                 if withdraws:
                     self.log_change(request, submission, "Abgabe zurückgezogen (nach Widerruf)")
                 self.message_user(request, f"Widerruf vermerkt: {label}.", messages.SUCCESS)
-            return HttpResponseRedirect(self._change_url(submission))
+            return HttpResponseRedirect(_change_url(submission.pk))
         question = f"Widerruf der Einwilligung „{consent.get_kind_display()}“ vermerken?"
         if withdraws:
             question += (
@@ -570,7 +577,7 @@ class MasterAdmin(admin.ModelAdmin):
 
     @admin.display(description="Abgabe", ordering="submission__reference")
     def submission_link(self, master):
-        url = reverse("operator:submissions_submission_change", args=[master.submission_id])
+        url = _change_url(master.submission_id)
         return format_html('<a href="{}">{}</a>', url, master.submission.reference)
 
 
