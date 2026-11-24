@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
 
 from submissions.models import Campaign
+from submissions.uploads import check_global_cap
 
 GIB = 1024**3
 
@@ -44,6 +45,7 @@ class Command(BaseCommand):
         campaign.max_master_size = int(opts["max_master_mib"] * 1024**2)
         try:
             campaign.full_clean()
+            check_global_cap(campaign.global_cap)
         except ValidationError as exc:
             raise CommandError(" ".join(exc.messages)) from exc
         campaign.save()
