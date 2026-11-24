@@ -129,6 +129,12 @@ def withdraw(submission: Submission, *, by: Submission.WithdrawnBy) -> Submissio
     return submission
 
 
+def revocation_withdraws(consent: Consent) -> bool:
+    """Ob der Widerruf dieser Einwilligung die ganze Abgabe zurückzieht: nur bei der Nutzung
+    im Projekt, ohne sie kann die Abgabe nicht bleiben."""
+    return consent.kind == Consent.Kind.PROJECT_USE
+
+
 def revoke(consent: Consent, *, by: Submission.WithdrawnBy) -> bool:
     """Widerruf einer Einwilligung: Sie bekommt einen Zeitpunkt und bleibt stehen.
 
@@ -140,7 +146,7 @@ def revoke(consent: Consent, *, by: Submission.WithdrawnBy) -> bool:
         return False
     consent.revoked_at = timezone.now()
     consent.save(update_fields=["revoked_at"])
-    if consent.kind == Consent.Kind.PROJECT_USE:
+    if revocation_withdraws(consent):
         withdraw(consent.submission, by=by)
     elif consent.kind == Consent.Kind.PUBLISH_CREDIT:
         # Ohne gültige Einwilligung wird die Nennung dabei verworfen.

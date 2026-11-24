@@ -7,10 +7,13 @@ welchen Master signiert wird, und nach dem Upload der Master übernommen.
 import logging
 import re
 from datetime import timedelta
+from decimal import ROUND_UP, Decimal
 from pathlib import PurePosixPath
 
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q, Sum
+from django.db.models.functions import Coalesce
 from django.template.defaultfilters import filesizeformat
 from django.utils import timezone
 
@@ -51,13 +54,26 @@ def release_stale() -> None:
     ).update(state=Master.State.ABORTED)
 
 
+def _usage_sums(prefix: str = "") -> tuple[Sum, Sum]:
+    """Die eine Definition der Belegung: angenommene Master mit tatsächlicher Größe,
+    laufende Uploads mit angemeldeter. `prefix` führt von einem anderen Modell zu den Mastern."""
+    return (
+        Sum(f"{prefix}size", filter=Q(**{f"{prefix}state": Master.State.ACCEPTED})),
+        Sum(f"{prefix}declared_size", filter=Q(**{f"{prefix}state": Master.State.UPLOADING})),
+    )
+
+
 def usage_parts(masters) -> tuple[int, int]:
     """Belegung getrennt: (angenommen mit tatsächlicher Größe, reserviert mit angemeldeter)."""
-    totals = masters.aggregate(
-        accepted=Sum("size", filter=Q(state=Master.State.ACCEPTED)),
-        reserved=Sum("declared_size", filter=Q(state=Master.State.UPLOADING)),
-    )
+    accepted, reserved = _usage_sums()
+    totals = masters.aggregate(accepted=accepted, reserved=reserved)
     return totals["accepted"] or 0, totals["reserved"] or 0
+
+
+def submission_usage():
+    """Belegung je Abgabe als Ausdruck für `Submission.objects.annotate(used=…)`."""
+    accepted, reserved = _usage_sums("masters__")
+    return Coalesce(accepted, 0) + Coalesce(reserved, 0)
 
 
 def usage(masters) -> int:
@@ -71,6 +87,22 @@ def quota_usage(submission: Submission) -> dict:
     used = usage(submission.masters.all())
     quota = campaign.quota if campaign else 0
     return {"used": used, "quota": quota, "percent": min(100, used * 100 // quota) if quota else 0}
+
+
+def check_global_cap(global_cap: int) -> None:
+    """Die Gesamtgrenze darf nicht unter die aktuelle Belegung sinken (sonst ValidationError).
+
+    Aufgegebene Uploads geben vorher ihre Reservierung frei, damit sie nicht mitzählen.
+    """
+    release_stale()
+    used = usage(Master.objects.all())
+    if global_cap < used:
+        gib = (Decimal(used) / 1024**3).quantize(Decimal("0.000001"), ROUND_UP)
+        raise ValidationError(
+            f"Die Gesamtgrenze darf nicht unter der aktuellen Belegung liegen "
+            f"({filesizeformat(used)}, aufgerundet {gib} GiB).",
+            code="below_usage",
+        )
 
 
 def _check_limits(campaign: Campaign, submission: Submission, size: int) -> None:
@@ -90,28 +122,52 @@ def _check_limits(campaign: Campaign, submission: Submission, size: int) -> None
         )
 
 
-def _require_phase(*, starting: bool) -> None:
+def _phase_refusal(*, starting: bool) -> str | None:
     """Zeitfenster der Aktion: neue Uploads nur während der Aktion, begonnene auch in der
-    Nachfrist; danach ist jede Abgabe schreibgeschützt."""
+    Nachfrist; danach ist jede Abgabe schreibgeschützt. Gibt den Grund einer Ablehnung zurück."""
     phase = Campaign.current_phase()
     if phase is Phase.BEFORE:
-        raise UploadError("Die Aktion hat noch nicht begonnen.")
+        return "Die Aktion hat noch nicht begonnen."
     if phase is Phase.CLOSED:
-        raise UploadError("Die Aktion ist vorbei, deine Abgabe ist schreibgeschützt.")
+        return "Die Aktion ist vorbei, deine Abgabe ist schreibgeschützt."
     if starting and phase is not Phase.OPEN:
-        raise UploadError(
+        return (
             "Die Aktion ist beendet. Neue Uploads sind nicht mehr möglich, "
             "begonnene kannst du in der Nachfrist noch abschließen."
         )
+    return None
+
+
+def _require_phase(*, starting: bool) -> None:
+    if reason := _phase_refusal(starting=starting):
+        raise UploadError(reason)
+
+
+def may_start(submission: Submission) -> bool:
+    """Ob die Abgabe jetzt einen neuen Upload beginnen darf."""
+    return not submission.is_withdrawn and _phase_refusal(starting=True) is None
 
 
 def interrupted(masters):
     """Unterbrochene Uploads, die sich noch fortsetzen oder abbrechen lassen: während der Aktion
     und in der Nachfrist. Danach ist die Abgabe schreibgeschützt."""
-    phase = Campaign.current_phase()
-    if phase not in (Phase.OPEN, Phase.GRACE):
+    if _phase_refusal(starting=False):
         return masters.none()
     return masters.filter(state=Master.State.UPLOADING)
+
+
+def resumable(masters):
+    """Unterbrochene Uploads, die sich fortsetzen lassen: Der Multipart-Upload im Speicher ist
+    schon angelegt. Abbrechen lässt sich jeder unterbrochene (`interrupted`)."""
+    return interrupted(masters).exclude(upload_id="")
+
+
+def shows_uploader(submission: Submission) -> bool:
+    """Ob die Abgabeseite den Uploader zeigt: zum Beginnen neuer Uploads oder, in der
+    Nachfrist, zum Fortsetzen begonnener."""
+    if submission.is_withdrawn:
+        return False
+    return may_start(submission) or resumable(submission.masters.all()).exists()
 
 
 def recently_active(masters):

@@ -6,7 +6,8 @@ import pytest
 from files import fits
 from uploads_helper import upload
 
-from submissions.models import Master, Submission
+from submissions import services
+from submissions.models import Consent, Master, Submission
 
 pytestmark = pytest.mark.django_db
 
@@ -102,3 +103,18 @@ def test_begleitdatei_nach_widerruf_hat_keine_nennung(client, campaign, valid_fo
     response = upload(client, submission.reference, fits())
     master = Master.objects.get(public_id=response.json()["masterId"])
     assert sidecar(storage_dir, master)["credit_name"] is None
+
+
+def test_nur_der_widerruf_der_nutzung_zieht_die_abgabe_zurueck(participant):
+    """Ticket #42: Admin und `revoke` fragen dieselbe Regel."""
+    submission = Submission.objects.get(reference=participant.reference)
+    consents = {c.kind: c for c in submission.consents.all()}
+    assert not services.revocation_withdraws(consents[Consent.Kind.PUBLISH_CREDIT])
+    assert services.revocation_withdraws(consents[Consent.Kind.PROJECT_USE])
+
+    services.revoke(consents[Consent.Kind.PUBLISH_CREDIT], by=Submission.WithdrawnBy.OPERATOR)
+    submission.refresh_from_db()
+    assert not submission.is_withdrawn
+    services.revoke(consents[Consent.Kind.PROJECT_USE], by=Submission.WithdrawnBy.OPERATOR)
+    submission.refresh_from_db()
+    assert submission.is_withdrawn
