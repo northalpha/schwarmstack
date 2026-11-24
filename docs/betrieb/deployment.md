@@ -63,13 +63,7 @@ Mit dem Fingerabdruck vergleichen, den der Server selbst meldet (beim ersten `ss
 
 ## 5. Bucket
 
-In der Hetzner Console unter *Object Storage* einen eigenen Bucket für Staging und eigene S3-Zugangsdaten anlegen. CORS und Lifecycle-Regel setzt dann ein lokaler Lauf mit denselben Werten wie die App (Details in [`s3-speicher.md`](s3-speicher.md)):
-
-```bash
-STORAGE_BACKEND=s3 S3_ENDPOINT_URL=https://fsn1.your-objectstorage.com S3_BUCKET=schwarmstack-staging \
-  S3_REGION=fsn1 S3_ACCESS_KEY_ID=… S3_SECRET_ACCESS_KEY=… DEBUG=1 \
-  uv run python src/manage.py s3_bucket_setup --origin https://upload.northalpha.de
-```
+In der Hetzner Console unter *Object Storage* einen eigenen Bucket für Staging und eigene S3-Zugangsdaten anlegen. CORS und Lifecycle-Regel setzt jeder Deploy selbst (`s3_bucket_setup --origin https://$DOMAIN` in `auf-dem-host.sh`, Details in [`s3-speicher.md`](s3-speicher.md)); von Hand ist nichts einzurichten. Eine Umlaut-Domain wird dabei in Punycode umgewandelt. Greift die CORS-Freigabe danach nicht, bricht der Deploy vor der Migration ab, und die bisherige Version läuft weiter.
 
 ## 6. GitHub-Environment
 
