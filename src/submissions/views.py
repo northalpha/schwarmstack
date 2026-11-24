@@ -106,9 +106,7 @@ def change_details(request, reference):
     }
     form = DetailsForm(request.POST or None, initial=initial, submission=submission)
     if request.method == "POST" and form.is_valid():
-        changed = services.change_details(submission, **form.cleaned_data)
-        if changed:
-            services.log_participant_change(submission, "Angaben geändert (durch Teilnehmende)")
+        services.change_details(submission, **form.cleaned_data)
         messages.info(request, "Deine Angaben wurden geändert.")
         return redirect("submission", submission.reference)
     return render(request, "submissions/details.html", {"submission": submission, "form": form})
