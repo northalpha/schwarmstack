@@ -1,4 +1,4 @@
-"""Rauchtest für den Prototyp scripts/header_prototyp.py (Issue #49)."""
+"""Rauchtest für den Prototyp scripts/header_prototyp.py (Ticket #49)."""
 
 import importlib.util
 import json
@@ -43,6 +43,9 @@ def _ordner(tmp_path):
         )
     )
     (ordner / "kaputt.fts").write_bytes(b"kein Header")
+    (ordner / "abgeschnitten.fits").write_bytes(
+        files.fits(keywords=[("EXPTIME", 60.0, "")], truncate=100)
+    )
     (ordner / "notizen.txt").write_text("wird ignoriert")
     return ordner
 
@@ -55,9 +58,11 @@ def test_ordner_ergibt_html_und_json(tmp_path):
 
     daten = json.loads((ausgabe / "header.json").read_text())
     by_name = {Path(d["pfad"]).name: d for d in daten["dateien"]}
-    assert sorted(by_name) == ["L.fits", "R.fit", "RGB.xisf", "kaputt.fts"]
+    assert sorted(by_name) == ["L.fits", "R.fit", "RGB.xisf", "abgeschnitten.fits", "kaputt.fts"]
 
     assert by_name["kaputt.fts"]["fehler"]
+    assert by_name["abgeschnitten.fits"]["fehler"]
+    assert by_name["abgeschnitten.fits"]["eintraege"], "gelesener Header bleibt sichtbar"
     assert by_name["L.fits"]["erzeuger"] == "N.I.N.A. 3.1"
     assert by_name["RGB.xisf"]["erzeuger"] == "PixInsight 1.9"
 
@@ -87,4 +92,4 @@ def test_ordner_ergibt_html_und_json(tmp_path):
 
     uebersicht = {(z["herkunft"], z["schluessel"]): z for z in daten["uebersicht"]}
     exptime = uebersicht[("FITS-Keyword", "EXPTIME")]
-    assert (exptime["dateien"], exptime["verschiedene_werte"]) == (3, 3)
+    assert (exptime["dateien"], exptime["verschiedene_werte"]) == (4, 4)
