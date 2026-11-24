@@ -46,7 +46,7 @@ def test_nur_mit_s3(settings):
 
 
 def test_umlautdomain_als_punycode(s3):
-    call_command("s3_bucket_setup", "--origin", "https://Upload.bücher.example/")
+    call_command("s3_bucket_setup", "--origin", "https://Upload.Bücher.example/")
     cors = s3.client.get_bucket_cors(Bucket=s3.bucket)["CORSRules"][0]
     assert cors["AllowedOrigins"] == ["https://upload.xn--bcher-kva.example"]
 
