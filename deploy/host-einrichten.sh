@@ -29,7 +29,8 @@ fi
 
 # -- Docker und Compose-Plugin aus dem offiziellen Docker-apt-Repo ---------------------------
 apt-get update -q
-apt-get install -yq ca-certificates curl unattended-upgrades
+# cron: Löschung nach der Löschfrist und Aufräumen (Crontab schreibt auf-dem-host.sh).
+apt-get install -yq ca-certificates cron curl unattended-upgrades
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 chmod a+r /etc/apt/keyrings/docker.asc

@@ -11,6 +11,15 @@
 {% block content %}
 {% with s=statistik %}
 <div class="statistik">
+  {% if campaign.exported_at %}
+  <section>
+    <h2>Export</h2>
+    <p>Endgültiger Export am {{ campaign.exported_at|date:"j. N Y, H:i" }}.
+    {% if campaign.deleted_at %}Daten gelöscht am {{ campaign.deleted_at|date:"j. N Y, H:i" }}.
+    {% else %}Löschfrist: noch {{ days_left }} Tag{{ days_left|pluralize:"e" }}.{% endif %}
+    <a href="{% url 'operator:submissions_campaign_export' campaign.pk %}">Zum Export</a></p>
+  </section>
+  {% endif %}
   <section>
     <h2>Abgaben</h2>
     <table>

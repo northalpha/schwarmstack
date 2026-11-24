@@ -1,9 +1,10 @@
+from django.conf import settings
 from django.contrib import messages
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
-from . import access, services
+from . import access, privacy, services
 from .forms import SubmissionForm
 from .models import Campaign, Master, Phase, Submission
 from .services import create_submission
@@ -57,7 +58,23 @@ def new_submission(request):
         response = redirect("submission", submission.reference)
         access.grant(response, request, submission.reference, campaign)
         return response
+    context["privacy_version"] = settings.CONSENT_TEXT_VERSION
     return render(request, "submissions/entry.html", {**context, "form": form})
+
+
+@require_http_methods(["GET"])
+def privacy_notice(request, version=None):
+    """Datenschutzhinweis in der aktuellen oder einer früheren Fassung."""
+    current = settings.CONSENT_TEXT_VERSION
+    version = version or current
+    name = privacy.template_name(version)
+    if name is None:
+        raise Http404
+    return render(
+        request,
+        name,
+        {"version": version, "current": current, "contact": settings.PRIVACY_CONTACT},
+    )
 
 
 @require_http_methods(["GET"])

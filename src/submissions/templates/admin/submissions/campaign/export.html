@@ -1,0 +1,41 @@
+{% extends "admin/base_site.html" %}
+{% block breadcrumbs %}{% include "admin/submissions/campaign/_breadcrumbs.html" %}{% endblock %}
+{% block content %}
+{% url 'operator:submissions_campaign_export_manifest' original.pk as manifest_url %}
+{% url 'operator:submissions_campaign_export_download_list' original.pk as list_url %}
+{% if not original.exported_at %}
+<h2>Vorläufiger Export</h2>
+<p>Das Manifest mit allen Abgaben, angenommenen Mastern und Einwilligungen nach heutigem Stand, ohne Download-Links. Stichproben gehen über den Download einzelner Master in der Abgabe.</p>
+<p><a class="button" href="{{ manifest_url }}">Manifest herunterladen (vorläufig)</a></p>
+
+<h2>Endgültiger Export</h2>
+{% if refusal %}
+<p>{{ refusal }}</p>
+{% else %}
+<p>Den endgültigen Export gibt es genau einmal. Danach kann niemand mehr etwas an den Abgaben ändern, auch kein Betreiber; nur Widerruf und Rückzug bleiben möglich (als Nachtrag). Nach 30 Tagen löscht Schwarmstack alle Master und Angaben.</p>
+<p><a class="button" href="{% url 'operator:submissions_campaign_export_finalize' original.pk %}">Endgültigen Export auslösen …</a></p>
+{% endif %}
+{% else %}
+<h2>Endgültiger Export</h2>
+<p>Ausgelöst am {{ original.exported_at|date:"j. N Y, H:i" }}.
+{% if original.deleted_at %}Die Daten wurden am {{ original.deleted_at|date:"j. N Y, H:i" }} gelöscht.
+{% else %}Löschfrist: noch {{ days_left }} Tag{{ days_left|pluralize:"e" }}, Löschung am {{ original.deletes_at|date:"j. N Y, H:i" }}.{% endif %}</p>
+{% if links_available %}
+<p>Jedes Herunterladen stellt neue Links aus, die 7 Tage gelten, und steht im Protokoll.</p>
+<p><a class="button" href="{{ manifest_url }}">Manifest mit Links</a>
+<a class="button" href="{{ list_url }}">Download-Liste für aria2c</a></p>
+<p class="help">Laden: <code>aria2c -i download-liste.txt -d &lt;Ziel&gt;</code>. aria2c gleicht die Prüfsummen nach dem Laden ab.</p>
+{% endif %}
+{% endif %}
+
+<h2>Nachträge</h2>
+{% if amended %}
+<p>Widerruf oder Rückzug nach dem endgültigen Export. Bitte lokale Kopien und die Credits-Liste anpassen.</p>
+<table>
+<thead><tr><th>Abgabe</th><th>Nachtrag am</th><th>zurückgezogen</th></tr></thead>
+{% for s in amended %}
+<tr><td><a href="{% url 'operator:submissions_submission_change' s.pk %}">{{ s.reference }}</a></td><td>{{ s.amended_at|date:"j. N Y, H:i" }}</td><td>{% if s.withdrawn_at %}ja{% else %}nein{% endif %}</td></tr>
+{% endfor %}
+</table>
+{% else %}<p>Keine.</p>{% endif %}
+{% endblock %}

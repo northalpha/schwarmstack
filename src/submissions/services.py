@@ -1,4 +1,4 @@
-"""Fachverhalten rund um die Abgabe: anlegen, Master löschen, Rückzug, Widerruf.
+"""Fachverhalten rund um die Abgabe: anlegen, Master löschen, Rückzug, Widerruf, Nachtrag.
 
 Admin und Abgabeseite rufen diese Operationen auf; sie selbst kennen keine Anfrage.
 """
@@ -7,6 +7,7 @@ from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from schwarmstack import notices
 from storage import get_storage
 
 from . import references
@@ -98,6 +99,31 @@ def details_corrected(submission: Submission) -> None:
         storage.put_json(master.sidecar_key, sidecar(master))
 
 
+def correctable_by_operator() -> bool:
+    """Ob Betreiber Abgaben korrigieren und Master löschen dürfen: bis zum endgültigen Export.
+
+    Danach müssen Manifest und Speicher übereinstimmen; nur Widerruf und Rückzug bleiben
+    möglich, als Nachtrag (ADR 0008).
+    """
+    campaign = Campaign.current()
+    return campaign is None or not campaign.is_exported
+
+
+def _amendment(submission: Submission, what: str) -> None:
+    """Nach dem endgültigen Export ist ein Widerruf oder Rückzug ein Nachtrag: Er wird an der
+    Abgabe vermerkt und den Betreibern gemeldet, damit sie ihre Kopien anpassen."""
+    if correctable_by_operator():
+        return
+    submission.amended_at = timezone.now()
+    submission.save(update_fields=["amended_at"])
+    notices.send(
+        f"Nachtrag zum Export: {submission.reference}",
+        f"{what} für die Abgabe {submission.reference} nach dem endgültigen Export.\n\n"
+        "Bitte lokale Kopien und die Credits-Liste anpassen; die Abgabe steht im Admin unter "
+        "Export → Nachträge.",
+    )
+
+
 def changeable_by_participant(submission: Submission) -> bool:
     """Ob Teilnehmende selbst Master löschen oder die Abgabe zurückziehen dürfen: nur bis zum
     Ende der Aktion und nicht mehr nach einem Rückzug (ADR 0002)."""
@@ -126,6 +152,7 @@ def withdraw(submission: Submission, *, by: Submission.WithdrawnBy) -> Submissio
         if master.state in DELETABLE:
             delete_master(master)
     submission.masters.all().delete()
+    _amendment(submission, "Rückzug")
     return submission
 
 
@@ -151,4 +178,5 @@ def revoke(consent: Consent, *, by: Submission.WithdrawnBy) -> bool:
     elif consent.kind == Consent.Kind.PUBLISH_CREDIT:
         # Ohne gültige Einwilligung wird die Nennung dabei verworfen.
         details_corrected(consent.submission)
+        _amendment(consent.submission, "Widerruf der Veröffentlichung der Nennung")
     return True

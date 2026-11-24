@@ -60,6 +60,20 @@ fi
 
 echo "Starten"
 docker compose up --detach --remove-orphans
+
+# Wiederkehrende Aufgaben (ADR 0008, Ticket #34): Löschung nach Ablauf der Löschfrist (täglich,
+# tut vorher nichts) und IP-Hashes der Anmeldung nach einer Stunde vergessen (stündlich). Der
+# Benutzer deploy hat nur diese Crontab; sie wird bei jedem Deploy vollständig neu geschrieben.
+echo "Cron-Einträge schreiben"
+aufgabe() {
+  printf '%s cd /opt/schwarmstack && docker compose exec -T app python manage.py %s 2>&1 |' "$1" "$2"
+  printf ' logger -t schwarmstack-%s\n' "$2"
+}
+{
+  echo "# Von auf-dem-host.sh geschrieben, nicht von Hand ändern."
+  aufgabe "17 3 * * *" delete_after_export
+  aufgabe "7 * * * *" forget_login_attempts
+} | crontab -
 # Caddy liest das Caddyfile nur beim Start, und `up` erneuert den Container nur bei geänderter
 # Compose-Konfiguration. Außerdem sieht der Container nach dem `mv` oben weiter die alte Datei.
 # Verglichen wird daher mit dem, was Caddy im Container sieht.

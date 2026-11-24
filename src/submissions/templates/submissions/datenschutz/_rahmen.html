@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Datenschutzhinweis – Schwarmstack{% endblock %}
+{% block content %}
+<h1>Datenschutzhinweis</h1>
+<p class="help">Fassung {{ version }}{% if version != current %} (nicht mehr aktuell; <a href="{% url 'privacy_notice' %}">aktuelle Fassung</a>){% endif %}</p>
+{% block hinweis %}{% endblock %}
+{% endblock %}

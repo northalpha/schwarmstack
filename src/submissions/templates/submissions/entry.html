@@ -8,6 +8,7 @@
   {% csrf_token %}
   {{ form.non_field_errors }}
   {% for field in form %}{% include "submissions/_field.html" %}{% endfor %}
+  <p>Was mit deinen Angaben und Mastern geschieht und wie lange, steht im <a href="{% url 'privacy_notice_version' privacy_version %}">Datenschutzhinweis</a>. Deine Einwilligungen beziehen sich auf diese Fassung.</p>
   <button type="submit">Abgabe anlegen</button>
 </form>
 {% endblock %}
