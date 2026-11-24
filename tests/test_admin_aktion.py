@@ -1,6 +1,7 @@
 """Aktion pflegen im Admin (Ticket #29)."""
 
 from datetime import timedelta
+from decimal import Decimal
 
 import pytest
 from admin_helper import ADMIN, change_form_data, operator, operator_client  # noqa: F401
@@ -45,9 +46,9 @@ def test_grenzen_und_zeiten_lassen_sich_aendern(operator_client, campaign):  # n
         ends_at_0=timezone.localtime(new_end).strftime("%d.%m.%Y"),
         ends_at_1=timezone.localtime(new_end).strftime("%H:%M:%S"),
         grace_period="03:00:00",
-        quota=str(3 * GIB),
-        global_cap=str(500 * GIB),
-        max_master_size=str(800 * 1024**2),
+        quota="3",
+        global_cap="500",
+        max_master_size="800",
     )
     assert response.status_code == 302, response.context["adminform"].form.errors
     campaign.refresh_from_db()
@@ -88,19 +89,44 @@ def test_gesamtgrenze_nicht_unter_der_belegung(
     data = fits()
     upload(client, Submission.objects.get().reference, data)
 
-    response = save(operator_client, campaign, global_cap=str(len(data) - 1))
+    response = save(operator_client, campaign, global_cap=str(Decimal(len(data) - 1) / GIB))
     assert response.status_code == 200
     assert "Belegung" in str(response.context["adminform"].form.errors["global_cap"])
     campaign.refresh_from_db()
     assert campaign.global_cap == 400 * GIB
 
-    assert save(operator_client, campaign, global_cap=str(len(data))).status_code == 302
+    assert (
+        save(operator_client, campaign, global_cap=str(Decimal(len(data)) / GIB)).status_code == 302
+    )
+    campaign.refresh_from_db()
+    assert campaign.global_cap == len(data)
+
+
+def test_groessen_in_gib_und_mib(operator_client, campaign):  # noqa: F811
+    form = operator_client.get(url(campaign)).content.decode()
+    assert "Quote je Abgabe (GiB)" in form
+    assert "Gesamtgrenze (GiB)" in form
+    assert "Höchstgröße je Master (MiB)" in form
+
+    response = save(operator_client, campaign, quota="1,5", max_master_size="0.5")
+    assert response.status_code == 302, response.context["adminform"].form.errors
+    campaign.refresh_from_db()
+    assert campaign.quota == 3 * GIB // 2
+    assert campaign.max_master_size == 512 * 1024
+
+
+def test_groessen_nicht_null_oder_negativ(operator_client, campaign):  # noqa: F811
+    response = save(operator_client, campaign, quota="0", global_cap="-1")
+    assert response.status_code == 200
+    errors = response.context["adminform"].form.errors
+    assert "quota" in errors
+    assert "global_cap" in errors
 
 
 def test_aenderung_steht_im_protokoll(operator_client, campaign, operator):  # noqa: F811
     from django.contrib.admin.models import LogEntry
 
-    save(operator_client, campaign, quota=str(3 * GIB))
+    save(operator_client, campaign, quota="3")
     entry = LogEntry.objects.get()
     assert entry.user == operator
     assert entry.object_id == str(campaign.pk)

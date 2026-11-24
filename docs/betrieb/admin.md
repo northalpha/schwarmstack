@@ -28,8 +28,10 @@ Lokal ohne Docker: `uv run python src/manage.py createsuperuser`.
 ## Was der Admin kann
 
 - **Aktion**: Ende, Nachfrist, Quote, Gesamtgrenze und Höchstgröße ändern. Objekt und Beginn sind
-  ab dem Start gesperrt; die Gesamtgrenze darf nicht unter die aktuelle Belegung sinken. Anlegen
-  und Löschen gehen nur per `manage.py campaign` bzw. gar nicht (ADR 0004).
+  ab dem Start gesperrt; die Gesamtgrenze darf nicht unter die aktuelle Belegung sinken. Quote
+  und Gesamtgrenze stehen in GiB, die Höchstgröße je Master in MiB, wie bei `manage.py campaign`
+  (Komma oder Punkt, z. B. `1,5`). Anlegen und Löschen gehen nur per `manage.py campaign` bzw.
+  gar nicht (ADR 0004).
 - **Abgaben**: suchen nach Abgabe-Kennung oder Nennung, Nennung und Setup korrigieren (auch nach
   dem Ende der Aktion), einzelne Master löschen, Abgabe zurückziehen, Widerruf vermerken. Eine
   Nennung gibt es nur mit gültiger Einwilligung zur Veröffentlichung: Anonyme Abgaben zeigen
