@@ -3,7 +3,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
-from . import access
+from . import access, services
 from .forms import SubmissionForm
 from .models import Campaign, Master, Phase, Submission
 from .services import create_submission
@@ -54,9 +54,7 @@ def new_submission(request):
 
 @require_http_methods(["GET"])
 def submission(request, reference):
-    if not access.may_access(request, reference):
-        raise Http404
-    submission = get_object_or_404(Submission, reference=reference)
+    submission = _own_submission(request, reference)
     campaign = Campaign.current()
     release_stale()
     used = usage(submission.masters.all())
@@ -87,15 +85,94 @@ def submission(request, reference):
             "own": _own(request),
             "can_add": can_add,
             "masters": masters.exclude(state=Master.State.ABORTED),
+            "deletable_ids": set(
+                masters.filter(state__in=services.DELETABLE).values_list("pk", flat=True)
+            ),
             "resumable_ids": set(resumable.values_list("pk", flat=True)),
             "phase": phase.name.lower(),
             "show_uploader": show_uploader,
             "may_start": phase is Phase.OPEN,
+            "may_change": services.changeable_by_participant(submission),
             "used": used,
             "quota": quota,
             "used_percent": min(100, used * 100 // quota) if quota else 0,
             "max_master_size": campaign.max_master_size if campaign else 0,
             "channels": Master.Channel.choices,
+        },
+    )
+
+
+@require_http_methods(["GET", "POST"])
+def withdraw(request, reference):
+    submission = _own_submission(request, reference)
+    if not services.changeable_by_participant(submission):
+        return _not_changeable(request, submission)
+    if request.method == "POST":
+        services.withdraw(submission, by=Submission.WithdrawnBy.PARTICIPANT)
+        messages.info(request, "Deine Abgabe wurde zurückgezogen.")
+        return redirect("submission", submission.reference)
+    return _confirm(
+        request,
+        submission,
+        title="Abgabe zurückziehen",
+        question=(
+            "Alle Master, Angaben und Einwilligungen dieser Abgabe werden endgültig gelöscht. "
+            "Es bleibt nur die Abgabe-Kennung. Die Abgabe lässt sich nicht wieder öffnen."
+        ),
+        button="Ja, zurückziehen",
+    )
+
+
+@require_http_methods(["GET", "POST"])
+def delete_master(request, reference, master_id):
+    submission = _own_submission(request, reference)
+    if not services.changeable_by_participant(submission):
+        return _not_changeable(request, submission)
+    master = get_object_or_404(
+        Master, submission=submission, public_id=master_id, state__in=services.DELETABLE
+    )
+    if request.method == "POST":
+        services.delete_master(master)
+        messages.info(request, f"Der Master {master.original_name} wurde gelöscht.")
+        return redirect("submission", submission.reference)
+    return _confirm(
+        request,
+        submission,
+        title="Master löschen",
+        question=(
+            "Dieser Master wird sofort und endgültig gelöscht."
+            + (" Der Upload wird abgebrochen." if master.state == Master.State.UPLOADING else "")
+        ),
+        details=[f"{master.get_channel_display()} · {master.original_name}"],
+        button="Ja, löschen",
+    )
+
+
+def _own_submission(request, reference) -> Submission:
+    if not access.may_access(request, reference):
+        raise Http404
+    return get_object_or_404(Submission, reference=reference)
+
+
+def _not_changeable(request, submission):
+    """Zurück zur Abgabeseite, wenn Teilnehmende nichts mehr ändern dürfen; sie erklärt den
+    Rückzug selbst, das Ende der Aktion sagt die Meldung."""
+    if not submission.is_withdrawn:
+        messages.info(request, "Die Aktion ist beendet. Deine Abgabe kannst du nicht mehr ändern.")
+    return redirect("submission", submission.reference)
+
+
+def _confirm(request, submission, *, title, question, button, details=()):
+    """Rückfrage vor einer Löschung; Abbrechen führt zurück zur Abgabeseite."""
+    return render(
+        request,
+        "submissions/confirm.html",
+        {
+            "submission": submission,
+            "title": title,
+            "question": question,
+            "details": details,
+            "button": button,
         },
     )
 

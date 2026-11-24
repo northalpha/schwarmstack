@@ -4,6 +4,7 @@ import pytest
 from admin_helper import PASSWORD
 from django.test import Client
 from django.utils import timezone
+from uploads_helper import Participant
 
 from submissions.models import Campaign
 
@@ -37,6 +38,16 @@ def valid_form():
         "consent_project_use": "on",
         "consent_publish_credit": "on",
     }
+
+
+@pytest.fixture
+def participant(campaign, valid_form, storage_dir):
+    return Participant(valid_form)
+
+
+@pytest.fixture
+def another(campaign, valid_form, storage_dir):
+    return lambda: Participant(valid_form)
 
 
 @pytest.fixture
