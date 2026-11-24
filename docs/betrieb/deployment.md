@@ -83,7 +83,7 @@ Im Repo unter *Settings → Environments* das Environment `staging` anlegen (fü
 | `UPLOAD_LINK_SECONDS` | `900` (Standard) | nein |
 | `HSTS_SECONDS` | `0` (Standard); in Produktion z. B. `31536000` | nein |
 | `LOG_LEVEL` | `INFO` (Standard) | nein |
-| `LOGIN_ATTEMPTS_MAX`, `LOGIN_ATTEMPTS_WINDOW_SECONDS` | `5`, `900` (Standard) | nein |
+| `LOGIN_ATTEMPTS_MAX`, `LOGIN_ATTEMPTS_WINDOW_SECONDS` | `5`, `900` (Standard); das Zeitfenster höchstens `3600`, weil IP-Hashes nur eine Stunde bleiben (Datenschutzhinweis) | nein |
 | `COMMUNITY_ORIGINS` | Ursprünge der Community-Seite für `/zahlen.json`, kommagetrennt, z. B. `https://community.example`; `*` nur auf Staging zum Testen; leer: kein CORS-Header (Standard) | nein |
 | `COMMUNITY_CACHE_SECONDS` | `10` (Standard); `0` schaltet den Cache von `/zahlen.json` ab | nein |
 | `CONSENT_TEXT_VERSION` | `2026-11` (Standard) | nein |

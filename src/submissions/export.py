@@ -81,11 +81,17 @@ def manifest(campaign: Campaign, *, links: bool = False) -> dict:
     """Das Manifest: Aktion → Abgaben → angenommene Master.
 
     Mit `links` (nur nach dem endgültigen Export) bekommt jeder Master einen Download-Link,
-    der 7 Tage gilt.
+    der 7 Tage gilt, höchstens bis zum Ablauf der Löschfrist.
     """
     if links and not links_available(campaign):
         raise ExportError("Links gibt es nur nach dem endgültigen Export bis zur Löschung.")
     storage = get_storage() if links else None
+    # 7 Tage, aber nie über die Löschung hinaus.
+    seconds = (
+        min(LINK_SECONDS, int((campaign.deletes_at - timezone.now()).total_seconds()))
+        if links
+        else None
+    )
     submissions = Submission.objects.order_by("created_at").prefetch_related(
         Prefetch("consents", queryset=Consent.objects.order_by("kind")),
         Prefetch(
@@ -127,7 +133,7 @@ def manifest(campaign: Campaign, *, links: bool = False) -> dict:
                     }
                     for c in consents
                 ],
-                "masters": [_master(m, storage) for m in submission.masters.all()],
+                "masters": [_master(m, storage, seconds) for m in submission.masters.all()],
             }
         )
     return {
@@ -141,13 +147,13 @@ def manifest(campaign: Campaign, *, links: bool = False) -> dict:
             "deletes_at": _time(campaign.deletes_at),
         },
         "links_valid_until": (
-            _time(timezone.now() + timedelta(seconds=LINK_SECONDS)) if links else None
+            _time(timezone.now() + timedelta(seconds=seconds)) if links else None
         ),
         "submissions": entries,
     }
 
 
-def _master(master: Master, storage) -> dict:
+def _master(master: Master, storage, seconds: int | None) -> dict:
     original = master.duplicate_of
     entry = {
         "master_id": master.public_id.hex,
@@ -163,7 +169,7 @@ def _master(master: Master, storage) -> dict:
         "path": path(master),
     }
     if storage is not None:
-        entry["url"] = storage.download_url(master.key, seconds=LINK_SECONDS)
+        entry["url"] = storage.download_url(master.key, seconds=seconds)
     return entry
 
 
