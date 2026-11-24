@@ -9,7 +9,7 @@
 <p class="reference">{{ submission.reference }}</p>
 <p class="help">Notiere sie dir. Nenne sie, wenn du dich beim Betreiber meldest. Du findest sie hier jederzeit wieder.</p>
 {% if submission.is_withdrawn %}
-<p class="notice">{% if submission.withdrawn_by == "participant" %}Du hast diese Abgabe am {{ submission.withdrawn_at|date:"j. F Y" }} zurückgezogen.{% else %}Diese Abgabe wurde am {{ submission.withdrawn_at|date:"j. F Y" }} durch den Betreiber zurückgezogen.{% endif %} Master und Angaben sind gelöscht.</p>
+<p class="notice">{% if submission.withdrawn_by_participant %}Du hast diese Abgabe am {{ submission.withdrawn_at|date:"j. F Y" }} zurückgezogen.{% else %}Diese Abgabe wurde am {{ submission.withdrawn_at|date:"j. F Y" }} durch den Betreiber zurückgezogen.{% endif %} Master, Angaben und Einwilligungen sind gelöscht.</p>
 {% else %}
 <h2>Angaben</h2>
 <dl>

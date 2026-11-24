@@ -12,7 +12,7 @@ from django.utils import timezone
 from storage import get_storage
 
 from . import references
-from .models import Consent, Master, Submission
+from .models import Campaign, Consent, Master, Phase, Submission
 from .uploads import sidecar
 
 _ATTEMPTS = 5
@@ -103,6 +103,14 @@ def details_corrected(submission: Submission) -> None:
     storage = get_storage()
     for master in submission.masters.filter(state=Master.State.ACCEPTED):
         storage.put_json(master.sidecar_key, sidecar(master))
+
+
+def changeable_by_participant(submission: Submission) -> bool:
+    """Ob Teilnehmende selbst Master löschen oder die Abgabe zurückziehen dürfen: nur bis zum
+    Ende der Aktion und nicht mehr nach einem Rückzug (ADR 0002)."""
+    campaign = Campaign.current()
+    phase = campaign.phase() if campaign else Phase.CLOSED
+    return phase.allows_changes_by_participants and not submission.is_withdrawn
 
 
 def withdraw(submission: Submission, *, by: Submission.WithdrawnBy) -> Submission:

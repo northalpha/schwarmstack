@@ -55,9 +55,7 @@ def new_submission(request):
 
 @require_http_methods(["GET"])
 def submission(request, reference):
-    if not access.may_access(request, reference):
-        raise Http404
-    submission = get_object_or_404(Submission, reference=reference)
+    submission = _own_submission(request, reference)
     campaign = Campaign.current()
     release_stale()
     used = usage(submission.masters.all())
@@ -95,7 +93,7 @@ def submission(request, reference):
             "phase": phase.name.lower(),
             "show_uploader": show_uploader,
             "may_start": phase is Phase.OPEN,
-            "may_change": phase.allows_changes_by_participants,
+            "may_change": services.changeable_by_participant(submission),
             "used": used,
             "quota": quota,
             "used_percent": min(100, used * 100 // quota) if quota else 0,
@@ -155,9 +153,7 @@ def _own_submission(request, reference) -> Submission:
 def _changeable_submission(request, reference) -> Submission:
     """Die eigene Abgabe, solange Teilnehmende sie noch ändern dürfen."""
     submission = _own_submission(request, reference)
-    campaign = Campaign.current()
-    phase = campaign.phase() if campaign else Phase.CLOSED
-    if submission.is_withdrawn or not phase.allows_changes_by_participants:
+    if not services.changeable_by_participant(submission):
         raise PermissionDenied
     return submission
 
