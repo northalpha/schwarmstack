@@ -26,7 +26,7 @@ uv run python src/manage.py s3_bucket_setup --origin https://upload.dzvf.de
 
 Der Befehl ersetzt die ganze CORS-Konfiguration des Buckets. Eine Herkunft mit Umlauten (etwa `https://bücher.example`) setzt er als Punycode (`https://xn--bcher-kva.example`), denn so schickt der Browser sie im `Origin`-Header, und S3 vergleicht zeichengenau. Er setzt:
 
-- **CORS:** Herkunft nur die eigene Domain; Methoden `GET`, `PUT`, `POST`, `DELETE`; alle Header erlaubt; **`ETag` freigegeben**. Ohne freigegebenen `ETag` kann Uppy die Teile nicht abschließen.
+- **CORS:** Herkunft nur die eigene Domain; Methoden `GET`, `PUT`, `POST`, `DELETE`; alle Header erlaubt; **`ETag` freigegeben**. Ohne freigegebenen `ETag` kann Uppy die Teile nicht abschließen. Freigegeben ist auch `x-amz-error-code`, damit Uppy bei einem S3-Fehler den Code anzeigt.
 - **Lifecycle:** Unvollständige Multipart-Uploads werden nach 7 Tagen abgeräumt.
 
 Danach schickt er für jede Herkunft einen CORS-Preflight (`OPTIONS`) wie der Browser an den Bucket. Lässt der Speicher die Herkunft nicht zu, endet der Befehl mit Fehler. Im Browser zeigt sich das sonst erst beim Upload als „Network error during S3 request“.
