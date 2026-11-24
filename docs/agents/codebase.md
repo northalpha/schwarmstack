@@ -20,7 +20,7 @@ src/
 │   ├── admin.py           # Admin: Aktion pflegen, Abgaben korrigieren; ruft services auf
 │   ├── statistics.py      # Zahlen für die Statistik und die Community-Zahlen
 │   └── management/commands/  # campaign.py: die Aktion anlegen/ändern;
-│                             # backfill_exposure.py: Belichtungsangaben für Altbestand nachtragen
+│                             # backfill_exposure.py: Belichtungsangaben für Altbestand lesen
 └── storage/               # Speicher-Modul: Protokoll in __init__.py, Adapter local.py und s3.py;
                            # local_views.py bildet für Uppy S3 nach (nur lokaler Speicher)
 tests/

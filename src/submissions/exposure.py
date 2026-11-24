@@ -64,6 +64,12 @@ _CREATOR_PROPERTY = "XISF:CreatorApplication"
 _XISF_PROPERTIES = {p for p in _FITS_TO_XISF.values() if p} | {_CREATOR_PROPERTY}
 # Diese Schlüssel werden auf Widersprüche zwischen XISF-Property und FITS-Keyword geprüft.
 _CONFLICT_KEYS = ("EXPTIME", "INSTRUME", "TELESCOP")
+# Zu welchen Feldern ein Widerspruch gehört; ist eines davon von Hand gesetzt, ist er erledigt.
+_CONFLICT_FIELDS = {
+    "EXPTIME": (PER_LIGHT, TOTAL),
+    "INSTRUME": (INSTRUMENT,),
+    "TELESCOP": (TELESCOPE,),
+}
 
 _CARD = 80
 _XISF_SIGNATURE = b"XISF0100"
@@ -268,6 +274,10 @@ def interpret(header: HeaderValues) -> FromHeader:
     )
 
 
+def _any_manual(master, names) -> bool:
+    return any(getattr(master, f"{name}_source") == Source.MANUAL for name in names)
+
+
 def apply_header(master, header: HeaderValues, *, keep_manual: bool = False) -> list[str]:
     """Übernimmt die Werte aus dem Header in den Master (ohne zu speichern) und gibt die
     geänderten Modellfelder zurück. Mit `keep_manual` bleiben Werte von Hand unangetastet."""
@@ -280,7 +290,9 @@ def apply_header(master, header: HeaderValues, *, keep_manual: bool = False) -> 
         setattr(master, f"{name}_source", Source.HEADER)
         changed += [name, f"{name}_source"]
     master.creator = found.creator
-    master.header_exptime = found.unknown_exptime
+    # Hat jemand eine der Zeiten von Hand gesetzt, ist die Frage nach EXPTIME beantwortet.
+    if not (keep_manual and _any_manual(master, (PER_LIGHT, TOTAL))):
+        master.header_exptime = found.unknown_exptime
     master.header_conflicts = found.conflicts
     return [*changed, "creator", "header_exptime", "header_conflicts"]
 
@@ -411,7 +423,11 @@ def proposal(master) -> Proposal:
         suggestion=suggestion,
         hints=(hint,) if hint else (),
         exptime_question=question,
-        conflicts=tuple(sorted((master.header_conflicts or {}).items())),
+        conflicts=tuple(
+            (keyword, value)
+            for keyword, value in sorted((master.header_conflicts or {}).items())
+            if not _any_manual(master, _CONFLICT_FIELDS.get(keyword, ()))
+        ),
     )
 
 

@@ -2,8 +2,8 @@
 
 import pytest
 from admin_helper import ADMIN, change_form_data, submission_url
+from files import DWARF_KEYWORDS as DWARF
 from files import fits
-from test_belichtungsangaben import DWARF
 
 pytestmark = pytest.mark.django_db
 
@@ -37,3 +37,15 @@ def test_abgabe_seite_im_admin_verlinkt_die_belichtungsangaben(operator_client, 
 def test_nur_angenommene_master_lassen_sich_aendern(operator_client, participant):
     master = participant.upload(fits(bitpix=16))
     assert operator_client.get(master_change_url(master)).status_code in (302, 403)
+
+
+def test_betreiber_kann_dezimalkomma_eingeben(operator_client, participant):
+    master = participant.upload(fits())
+    form = operator_client.get(master_change_url(master))
+    response = operator_client.post(
+        master_change_url(master), change_form_data(form, exposure_per_light="0,5")
+    )
+    assert response.status_code == 302, response.content
+    master.refresh_from_db()
+    assert str(master.exposure_per_light.normalize()) == "0.5"
+    assert master.exposure_per_light_source == "manuell"

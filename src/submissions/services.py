@@ -162,7 +162,12 @@ def revoke(consent: Consent, *, by: Submission.WithdrawnBy) -> bool:
 def exposure_changeable_by_participant(master: Master) -> bool:
     """Teilnehmende ändern Belichtungsangaben, solange sie Master hochladen dürfen; danach
     nur noch die Betreiber im Admin."""
-    return master.state == Master.State.ACCEPTED and changeable_by_participant(master.submission)
+    return exposure_changeable_by_operator(master) and changeable_by_participant(master.submission)
+
+
+def exposure_changeable_by_operator(master: Master) -> bool:
+    """Betreiber korrigieren Belichtungsangaben angenommener Master, auch nach der Aktion."""
+    return master.state == Master.State.ACCEPTED
 
 
 def change_exposure(master: Master, data: dict) -> None:
@@ -183,7 +188,7 @@ def change_exposure(master: Master, data: dict) -> None:
 
 def backfill_exposure(master: Master) -> None:
     """Liest den Header eines angenommenen Masters erneut per Range Request und trägt die
-    Belichtungsangaben nach. Werte mit der Herkunft `manuell` bleiben unangetastet."""
+    Belichtungsangaben neu. Werte mit der Herkunft `manuell` bleiben unangetastet."""
     head = get_storage().read_head(master.key, validation.HEAD_BYTES)
     suffix = PurePosixPath(master.key).suffix
     changed = exposure.apply_header(master, exposure.read(head, suffix), keep_manual=True)

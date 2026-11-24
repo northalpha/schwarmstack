@@ -544,11 +544,24 @@ class SubmissionAdmin(admin.ModelAdmin):
 
 
 class ExposureForm(forms.ModelForm):
-    """Belichtungsangaben im Admin: dieselben Regeln wie auf der Abgabeseite (ADR 0010)."""
+    """Belichtungsangaben im Admin: dieselben Regeln wie auf der Abgabeseite (ADR 0010).
+
+    Zahlen sind Textfelder, damit `exposure.parse` wie auf der Abgabeseite auch ein
+    Dezimalkomma annimmt.
+    """
+
+    exposure_per_light = forms.CharField(label="Belichtung pro Light (s)", required=False)
+    light_count = forms.CharField(label="Anzahl Lights", required=False)
+    total_exposure = forms.CharField(label="Gesamtbelichtung (s)", required=False)
 
     class Meta:
         model = Master
         fields = list(exposure.FIELDS)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in exposure.NUMBERS:
+            self.initial[name] = exposure.show(getattr(self.instance, name))
 
     def clean(self):
         cleaned = super().clean()
@@ -604,12 +617,12 @@ class MasterAdmin(admin.ModelAdmin):
 
     def has_view_permission(self, request, obj=None):
         return super().has_view_permission(request, obj) and (
-            obj is None or obj.state == Master.State.ACCEPTED
+            obj is None or services.exposure_changeable_by_operator(obj)
         )
 
     def has_change_permission(self, request, obj=None):
         return super().has_change_permission(request, obj) and (
-            obj is None or obj.state == Master.State.ACCEPTED
+            obj is None or services.exposure_changeable_by_operator(obj)
         )
 
     def save_model(self, request, obj, form, change):

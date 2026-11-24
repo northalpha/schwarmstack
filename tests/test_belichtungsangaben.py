@@ -1,17 +1,11 @@
 """Belichtungsangaben je Master: aus dem Header, berechnet oder von Hand (Ticket #50)."""
 
 import pytest
+from files import DWARF_KEYWORDS as DWARF
+from files import UNKNOWN_CREATOR_KEYWORDS as UNBEKANNT
 from files import fits, xisf
 
 pytestmark = pytest.mark.django_db
-
-DWARF = [
-    ("ORIGIN", "DWARFLAB", "Organization or institution"),
-    ("EXPTIME", 5715.0, "[s] Exposure Time"),
-    ("STACKCNT", 381, "Number of stacked frames"),
-    ("INSTRUME", "DWARF3 TELE", ""),
-    ("TELESCOP", "DWARF3", ""),
-]
 
 
 def test_dwarf_master_speichert_werte_aus_dem_header(participant):
@@ -30,40 +24,19 @@ def test_dwarf_master_speichert_werte_aus_dem_header(participant):
     assert master.exposure_per_light_source == ""
 
 
-def page(participant):
-    return participant.client.get(f"/abgabe/{participant.reference}/").content.decode()
-
-
-def save(participant, master, **data):
-    import json
-
-    return participant.client.post(
-        f"/abgabe/{participant.reference}/master/{master.public_id}/belichtung/",
-        json.dumps(data),
-        content_type="application/json",
-    )
-
-
 def test_dwarf_pro_light_wird_vorgeschlagen_und_erst_per_klick_gespeichert(participant):
     master = participant.upload(fits(keywords=DWARF))
 
-    assert "15 s, berechnet aus 5715 s / 381." in page(participant)
+    assert "15 s, berechnet aus 5715 s / 381." in participant.page()
     master.refresh_from_db()
     assert master.exposure_per_light is None
 
-    response = save(participant, master, accept="exposure_per_light")
+    response = participant.save_exposure(master, accept="exposure_per_light")
     assert response.status_code == 200
     master.refresh_from_db()
     assert master.exposure_per_light == 15
     assert master.exposure_per_light_source == "berechnet"
     assert "Übernehmen" not in response.json()["html"]
-
-
-UNBEKANNT = [
-    ("SWCREATE", "Sternenzaehler 2.1", ""),
-    ("EXPTIME", 300.0, ""),
-    ("STACKCNT", 20, ""),
-]
 
 
 def test_unbekannter_erzeuger_nichts_berechnet_formular_fragt_nach_exptime(participant):
@@ -73,11 +46,11 @@ def test_unbekannter_erzeuger_nichts_berechnet_formular_fragt_nach_exptime(parti
     assert master.light_count == 20
     assert master.exposure_per_light is None
     assert master.total_exposure is None
-    html = page(participant)
+    html = participant.page()
     assert "<code>EXPTIME</code> = 300 s ist" in html
     assert "berechnet aus" not in html
 
-    response = save(participant, master, exptime_meaning="exposure_per_light")
+    response = participant.save_exposure(master, exptime_meaning="exposure_per_light")
     assert response.status_code == 200
     master.refresh_from_db()
     assert master.exposure_per_light == 300
@@ -93,7 +66,7 @@ def test_nicht_glatte_division_gibt_hinweis_statt_vorschlag(participant):
     master = participant.upload(fits(keywords=keywords))
 
     assert master.total_exposure == 5700
-    html = page(participant)
+    html = participant.page()
     assert "Gemischte Belichtungszeiten? Bitte von Hand eintragen." in html
     assert "berechnet aus" not in html
 
@@ -102,7 +75,7 @@ def test_unter_einer_sekunde_wird_auf_zehntel_geprueft(participant):
     keywords = [("ORIGIN", "DWARFLAB", ""), ("EXPTIME", 50.0, ""), ("STACKCNT", 100, "")]
     participant.upload(fits(keywords=keywords))
 
-    assert "0,5 s, berechnet aus 50 s / 100." in page(participant)
+    assert "0,5 s, berechnet aus 50 s / 100." in participant.page()
 
 
 def test_standort_und_beobachter_landen_nirgends_in_der_datenbank(participant):
@@ -154,7 +127,7 @@ def test_xisf_property_hat_vorrang_und_widerspruch_wird_angezeigt(participant):
 
     assert master.total_exposure == 300
     assert master.instrument == "ZWO ASI2600MM Pro"
-    html = page(participant)
+    html = participant.page()
     assert "<code>EXPTIME</code>: Header widersprüchlich (FITS: 600.)" in html
     assert "INSTRUME</code>: Header" not in html
 
@@ -165,7 +138,7 @@ def test_erzeuger_aus_xisf_creator_application(participant):
         filename="l.xisf",
     )
     assert master.creator == "PixInsight 1.8.9-2"
-    assert "Erzeuger: PixInsight 1.8.9-2" in page(participant)
+    assert "Erzeuger: PixInsight 1.8.9-2" in participant.page()
 
 
 def test_header_werte_werden_auf_100_zeichen_gekuerzt(participant):
@@ -182,8 +155,7 @@ def test_header_werte_werden_auf_100_zeichen_gekuerzt(participant):
 def test_korrektur_von_hand_wird_manuell(participant):
     master = participant.upload(fits(keywords=DWARF))
 
-    response = save(
-        participant,
+    response = participant.save_exposure(
         master,
         exposure_per_light="",
         light_count="381",
@@ -203,10 +175,10 @@ def test_korrektur_von_hand_wird_manuell(participant):
 def test_zwei_zahlen_von_hand_ergeben_vorschlag_fuer_die_dritte(participant):
     master = participant.upload(fits())
 
-    response = save(participant, master, exposure_per_light="0,5", light_count="120")
+    response = participant.save_exposure(master, exposure_per_light="0,5", light_count="120")
     assert "60 s, berechnet aus 0,5 s × 120." in response.json()["html"]
 
-    save(participant, master, accept="total_exposure")
+    participant.save_exposure(master, accept="total_exposure")
     master.refresh_from_db()
     assert master.total_exposure == 60
     assert master.total_exposure_source == "berechnet"
@@ -215,8 +187,8 @@ def test_zwei_zahlen_von_hand_ergeben_vorschlag_fuer_die_dritte(participant):
 def test_drei_zahlen_die_nicht_passen_werden_gespeichert_mit_hinweis(participant):
     master = participant.upload(fits())
 
-    response = save(
-        participant, master, exposure_per_light="15", light_count="10", total_exposure="200"
+    response = participant.save_exposure(
+        master, exposure_per_light="15", light_count="10", total_exposure="200"
     )
     assert response.status_code == 200
     master.refresh_from_db()
@@ -236,7 +208,7 @@ def test_drei_zahlen_die_nicht_passen_werden_gespeichert_mit_hinweis(participant
 )
 def test_ungueltige_eingabe_wird_abgelehnt(participant, field, value):
     master = participant.upload(fits())
-    response = save(participant, master, **{field: value})
+    response = participant.save_exposure(master, **{field: value})
     assert response.status_code == 400
     assert response.json()["error"]
 
@@ -250,11 +222,11 @@ def test_nach_ende_der_aktion_lehnt_die_api_aenderungen_ab(participant, campaign
     campaign.ends_at = timezone.now() - timedelta(minutes=1)
     campaign.save()
 
-    response = save(participant, master, instrument="anders")
+    response = participant.save_exposure(master, instrument="anders")
     assert response.status_code == 403
     master.refresh_from_db()
     assert master.instrument == "DWARF3 TELE"
-    html = page(participant)
+    html = participant.page()
     assert "DWARF3 TELE" in html
     assert 'name="instrument"' not in html
 
@@ -322,3 +294,17 @@ def test_belichtungsangaben_im_manifest_nicht_in_der_begleitdatei(participant, s
     assert entry["light_count"] == {"value": 381, "source": "header"}
     assert entry["exposure_per_light"] == {"value": None, "source": ""}
     assert entry["creator"] == "DWARFLAB"
+
+
+def test_widerspruch_verschwindet_nach_korrektur_von_hand(participant):
+    master = participant.upload(
+        xisf(
+            fits_keywords=[("TELESCOP", "'RedCat 51'", "")],
+            properties=[("Instrument:Telescope:Name", "String", "RedCat 61")],
+        ),
+        filename="l.xisf",
+    )
+    assert "Header widersprüchlich (FITS: RedCat 51)" in participant.page()
+
+    response = participant.save_exposure(master, telescope="RedCat 51")
+    assert "Header widersprüchlich" not in response.json()["html"]
