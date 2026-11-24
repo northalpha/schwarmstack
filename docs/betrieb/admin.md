@@ -10,7 +10,7 @@ Statistik.
 | `ADMIN_PATH` | in Produktion ja | Pfad des Admin ohne Schrägstriche, z. B. eine zufällige Zeichenfolge. Fehlt er bei `DEBUG=0`, startet die App nicht. Lokal (`DEBUG=1`) ist `betrieb` der Standard. |
 | `TRUST_X_FORWARDED_FOR` | nein | Standard bei `DEBUG=0`: an. Die IP für das Rate-Limit kommt dann aus dem letzten Eintrag von `X-Forwarded-For` (Caddy). Nur abschalten, wenn kein Proxy davor steht. |
 | `LOGIN_ATTEMPTS_MAX` | nein | Fehlversuche je IP im Zeitfenster, danach Sperre (Standard 5). |
-| `LOGIN_ATTEMPTS_WINDOW_SECONDS` | nein | Zeitfenster der Sperre in Sekunden (Standard 900). |
+| `LOGIN_ATTEMPTS_WINDOW_SECONDS` | nein | Zeitfenster der Sperre in Sekunden (Standard 900, höchstens 3600). |
 
 Fehlversuche zählt die Datenbank (SQLite), nicht der Cache: gunicorn läuft mit mehreren Prozessen.
 Die IP steht nur als HMAC-Hash darin (ADR 0002).

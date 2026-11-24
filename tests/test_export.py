@@ -221,3 +221,12 @@ def test_statistik_zeigt_die_restlichen_tage_der_loeschfrist(operator_client, ca
     campaign.save()
     page = operator_client.get(ADMIN).content.decode()
     assert "Löschfrist: noch 2 Tage" in page
+
+
+def test_links_gelten_nicht_ueber_die_loeschung_hinaus(operator_client, participant, campaign):
+    participant.upload(fits())
+    closed(campaign, ago=timedelta(days=40))
+    campaign.exported_at = timezone.now() - timedelta(days=28)
+    campaign.save()
+    data = manifest(operator_client, campaign)
+    assert data["links_valid_until"] <= data["campaign"]["deletes_at"]
