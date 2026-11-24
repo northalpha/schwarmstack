@@ -1,4 +1,4 @@
-"""Die Aktion ist genau ein Datensatz (ADR 0004)."""
+"""Die Aktion ist genau ein Datensatz (Ticket #9, ADR 0004)."""
 
 from datetime import timedelta
 
