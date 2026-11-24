@@ -10,17 +10,17 @@ from django.views.decorators.http import require_GET
 
 from .statistics import community_numbers
 
-CACHE_KEY = "community_numbers"
+COMMUNITY_CACHE_KEY = "community_numbers"
 
 
 def _numbers() -> dict[str, int]:
     seconds = settings.COMMUNITY_CACHE_SECONDS
     if seconds <= 0:
         return community_numbers()
-    numbers = cache.get(CACHE_KEY)
+    numbers = cache.get(COMMUNITY_CACHE_KEY)
     if numbers is None:
         numbers = community_numbers()
-        cache.set(CACHE_KEY, numbers, seconds)
+        cache.set(COMMUNITY_CACHE_KEY, numbers, seconds)
     return numbers
 
 
