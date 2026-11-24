@@ -134,3 +134,22 @@ def test_unveraenderte_angaben_stehen_nicht_im_protokoll(participant):
         {"credit_name": "Ada Sternguck", "setup_description": "RedCat 51, ASI2600MM"},
     )
     assert not LogEntry.objects.exists()
+
+
+def test_betreiber_aendern_angaben_im_admin_protokoll_und_begleitdateien(
+    operator_client, operator, participant, storage_dir
+):
+    """Auch nach dem Ende der Aktion: Das Protokoll nennt den Betreiber, die Begleitdateien
+    werden neu geschrieben."""
+    from admin_helper import change_form_data, submission_url
+
+    master = participant.upload(fits())
+    participant.submission.refresh_from_db()
+    url = submission_url(participant.submission)
+    data = change_form_data(operator_client.get(url), credit_name="Ada S.")
+    response = operator_client.post(url, data)
+    assert response.status_code == 302
+    entry = LogEntry.objects.get()
+    assert entry.user == operator
+    sidecar = json.loads((storage_dir / "objects" / master.sidecar_key).read_text())
+    assert sidecar["credit_name"] == "Ada S."
