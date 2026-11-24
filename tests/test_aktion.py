@@ -3,7 +3,9 @@
 from datetime import timedelta
 
 import pytest
+from django.core.exceptions import ValidationError
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db import IntegrityError
 
 from submissions.models import Campaign
@@ -54,3 +56,23 @@ def test_befehl_legt_aktion_an_und_aendert_sie(db):
     campaign = Campaign.current()
     assert campaign.global_cap == 500 * 1024**3
     assert campaign.grace_period == timedelta(hours=3)
+
+
+def test_ende_muss_nach_dem_beginn_liegen(campaign):
+    campaign.ends_at = campaign.starts_at
+    with pytest.raises(ValidationError) as exc:
+        campaign.full_clean()
+    assert "ends_at" in exc.value.message_dict
+
+
+def test_befehl_lehnt_ende_vor_dem_beginn_ab(db):
+    with pytest.raises(CommandError, match="nach dem Beginn"):
+        call_command(
+            "campaign",
+            "--object", "M 101",
+            "--starts-at", "2027-03-01T00:00+01:00",
+            "--ends-at", "2027-03-01T00:00+01:00",
+            "--quota-gib", "2",
+            "--global-cap-gib", "400",
+        )  # fmt: skip
+    assert Campaign.current() is None

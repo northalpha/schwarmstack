@@ -9,7 +9,9 @@ from django.utils import timezone
 from files import fits
 from uploads_helper import complete, create, finish, send_parts, sign, start, upload
 
-from submissions.models import Master
+from submissions import services
+from submissions.models import Master, Submission
+from submissions.uploads import may_start, shows_uploader
 
 pytestmark = pytest.mark.django_db
 
@@ -177,3 +179,39 @@ def test_abgabeseite_nach_der_nachfrist_nur_ansehen(client, reference, campaign)
 
 def test_waehrend_der_aktion_darf_gestartet_werden(client, reference):
     assert 'data-may-start="1"' in page(client, reference)
+
+
+# -- Uploader auf der Abgabeseite (Ticket #42) --------------------------------
+
+
+def _own():
+    return Submission.objects.get()
+
+
+def test_uploader_waehrend_der_aktion(reference):
+    assert may_start(_own())
+    assert shows_uploader(_own())
+
+
+def test_uploader_in_der_nachfrist_nur_zum_fortsetzen(client, reference, campaign):
+    ended(campaign, timedelta(hours=1))
+    assert not may_start(_own())
+    assert not shows_uploader(_own())
+
+    campaign.ends_at = timezone.now() + timedelta(hours=1)
+    campaign.save()
+    interrupted(client, reference, fits(width=100, height=100))
+    ended(campaign, timedelta(hours=1))
+    assert not may_start(_own())
+    assert shows_uploader(_own())
+
+
+def test_kein_uploader_nach_der_nachfrist_oder_nach_dem_rueckzug(client, reference, campaign):
+    interrupted(client, reference, fits(width=100, height=100))
+    ended(campaign, timedelta(hours=7))
+    assert not shows_uploader(_own())
+
+    campaign.ends_at = timezone.now() + timedelta(hours=1)
+    campaign.save()
+    services.withdraw(_own(), by=Submission.WithdrawnBy.PARTICIPANT)
+    assert not shows_uploader(_own())

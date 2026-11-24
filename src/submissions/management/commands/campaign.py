@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
 
 from submissions.models import Campaign
@@ -32,18 +33,18 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **opts):
-        if opts["ends_at"] <= opts["starts_at"]:
-            raise CommandError("Das Ende der Aktion muss nach dem Beginn liegen.")
-        campaign, created = Campaign.objects.update_or_create(
-            singleton=True,
-            defaults={
-                "object_name": opts["object"],
-                "starts_at": opts["starts_at"],
-                "ends_at": opts["ends_at"],
-                "grace_period": timedelta(hours=opts["grace_hours"]),
-                "quota": int(opts["quota_gib"] * GIB),
-                "global_cap": int(opts["global_cap_gib"] * GIB),
-                "max_master_size": int(opts["max_master_mib"] * 1024**2),
-            },
-        )
+        campaign = Campaign.current() or Campaign()
+        created = campaign.pk is None
+        campaign.object_name = opts["object"]
+        campaign.starts_at = opts["starts_at"]
+        campaign.ends_at = opts["ends_at"]
+        campaign.grace_period = timedelta(hours=opts["grace_hours"])
+        campaign.quota = int(opts["quota_gib"] * GIB)
+        campaign.global_cap = int(opts["global_cap_gib"] * GIB)
+        campaign.max_master_size = int(opts["max_master_mib"] * 1024**2)
+        try:
+            campaign.full_clean()
+        except ValidationError as exc:
+            raise CommandError(" ".join(exc.messages)) from exc
+        campaign.save()
         self.stdout.write(f"Aktion {'angelegt' if created else 'geändert'}: {campaign}")

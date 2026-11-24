@@ -64,6 +64,10 @@ class Campaign(models.Model):
         campaign = cls.current()
         return campaign.phase() if campaign else Phase.CLOSED
 
+    def clean(self):
+        if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
+            raise ValidationError({"ends_at": "Das Ende der Aktion muss nach dem Beginn liegen."})
+
     @property
     def closes_at(self) -> datetime:
         """Ende der Aktion plus Nachfrist: ab hier ist jede Abgabe schreibgeschützt."""
