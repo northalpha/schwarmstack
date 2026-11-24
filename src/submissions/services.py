@@ -1,4 +1,5 @@
-"""Fachverhalten rund um die Submission: anlegen, Master löschen, Löschung, Widerruf.
+"""Fachverhalten rund um die Submission: anlegen, Master löschen, Angaben ändern, Löschung,
+Widerruf.
 
 Admin und Submission-Seite rufen diese Operationen auf; sie selbst kennen keine Anfrage.
 """
@@ -19,6 +20,8 @@ from .models import Campaign, Consent, Master, Submission
 from .uploads import abort_multipart, sidecar
 
 _ATTEMPTS = 5
+# Reservierter, nicht anmeldbarer Benutzer für das Protokoll bei Änderungen durch Teilnehmende.
+PARTICIPANT_USERNAME = "teilnehmende"
 
 
 def create_submission(*, credit_name, setup_description, publish_credit) -> Submission:
@@ -104,17 +107,18 @@ def details_changed(submission: Submission) -> None:
 
 
 def changeable_by_participant(submission: Submission) -> bool:
-    """Ob Teilnehmende selbst Master löschen oder die Submission löschen dürfen: nur bis zum
-    Ende der Aktion und nicht mehr nach einer Löschung (ADR 0002)."""
+    """Ob Teilnehmende selbst Master löschen, die Submission löschen oder ihre Angaben ändern
+    dürfen: nur bis zum Ende der Aktion und nicht mehr nach einer Löschung (ADR 0002)."""
     phase = Campaign.current_phase()
     return phase.allows_changes_by_participants and not submission.is_deleted
 
 
-def change_details(submission: Submission, *, setup_description, credit_name=None) -> list[str]:
-    """Angaben ändern: Setup und Namensnennung, danach die Begleitdateien neu schreiben.
+def change_details(submission: Submission, *, setup_description, credit_name=None) -> bool:
+    """Angaben ändern durch Teilnehmende: Setup und Namensnennung speichern, die Begleitdateien
+    neu schreiben und im Protokoll vermerken.
 
-    Ohne gültige Einwilligung zur Namensnennung bleibt die Namensnennung leer. Gibt die
-    Namen der geänderten Felder zurück; ohne Änderung wird nichts gespeichert.
+    Ohne gültige Einwilligung zur Namensnennung bleibt die Namensnennung leer. Ohne Änderung
+    wird nichts gespeichert und nichts vermerkt; gibt zurück, ob sich etwas geändert hat.
     """
     changed = []
     if setup_description != submission.setup_description:
@@ -126,10 +130,8 @@ def change_details(submission: Submission, *, setup_description, credit_name=Non
     if changed:
         submission.save(update_fields=changed)
         details_changed(submission)
-    return changed
-
-
-PARTICIPANT_USERNAME = "teilnehmende"
+        log_participant_change(submission, "Angaben geändert (durch Teilnehmende)")
+    return bool(changed)
 
 
 def log_participant_change(submission: Submission, message: str) -> None:
