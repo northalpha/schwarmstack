@@ -21,9 +21,9 @@ from .uploads import (
 @require_http_methods(["GET", "POST"])
 def entry(request):
     """Einstieg über den Link der Projektwebsite: zur eigenen Submission oder zum Formular."""
-    existing = access.references(request)
+    existing = _held(request)
     if request.method == "GET" and existing and Campaign.current() is not None:
-        return redirect("submission", existing[0])
+        return redirect("submission", existing[0].reference)
     return new_submission(request)
 
 
@@ -37,7 +37,7 @@ def new_submission(request):
     context = {"campaign": campaign, "before_start": phase is Phase.BEFORE, "own": _own(request)}
     if not phase.accepts_new_submissions:
         return render(request, "submissions/closed.html", context)
-    if not access.has_room(request):
+    if not access.has_room(len(_held(request))):
         context["max_per_browser"] = access.MAX_PER_BROWSER
         return render(request, "submissions/limit.html", context)
 
@@ -68,7 +68,7 @@ def submission(request, reference):
     phase = Campaign.current_phase()
     masters = submission.masters.all()
     abortable = interrupted(masters)
-    can_add = phase.accepts_new_submissions and access.has_room(request)
+    can_add = phase.accepts_new_submissions and access.has_room(len(_held(request)))
     return render(
         request,
         "submissions/submission.html",
@@ -219,6 +219,11 @@ def _own(request) -> list[Submission]:
     refs = access.references(request)
     found = {s.reference: s for s in Submission.objects.filter(reference__in=refs)}
     return [found[r] for r in refs if r in found]
+
+
+def _held(request) -> list[Submission]:
+    """Die Submissions dieses Browsers, die es noch gibt; gelöschte zählen nicht (ADR 0002)."""
+    return [s for s in _own(request) if not s.is_deleted]
 
 
 def legacy_redirect(request, rest):
