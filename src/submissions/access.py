@@ -40,8 +40,10 @@ def grant(response, request, reference: str, campaign) -> None:
     )
 
 
-def has_room(request) -> bool:
-    return len(references(request)) < MAX_PER_BROWSER
+def has_room(held: int) -> bool:
+    """`held` zählt nur bestehende Submissions: Gelöschte bleiben im Cookie, belegen aber
+    keinen Platz."""
+    return held < MAX_PER_BROWSER
 
 
 def may_access(request, reference: str) -> bool:
