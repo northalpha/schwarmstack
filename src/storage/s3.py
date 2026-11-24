@@ -1,11 +1,12 @@
 """Speicher im S3-kompatiblen Bucket (Hetzner in Produktion, Garage in CI).
 
-Der Server spricht S3 nur für Größe, Range Request, Löschen, Begleitdateien und kurz gültige
-Download-Links für Betreiber; die Master selbst
-lädt der Browser mit signierten Links direkt hoch (ADR 0005).
+Der Server spricht S3 nur für Größe, Range Request, Löschen, Auflisten, Begleitdateien und
+Download-Links für Betreiber; die Master selbst lädt der Browser mit signierten Links direkt hoch
+(ADR 0005).
 """
 
 import json
+from collections.abc import Iterator
 
 import boto3
 from botocore.client import Config
@@ -104,7 +105,14 @@ class S3Storage:
     def ensure_reachable(self) -> None:
         self._erreichbarkeit.head_bucket(Bucket=self.bucket)
 
-    def download_url(self, key: str) -> str:
+    def download_url(self, key: str, seconds: int | None = None) -> str:
         return self.client.generate_presigned_url(
-            "get_object", Params={"Bucket": self.bucket, "Key": key}, ExpiresIn=self.link_seconds
+            "get_object",
+            Params={"Bucket": self.bucket, "Key": key},
+            ExpiresIn=self.link_seconds if seconds is None else seconds,
         )
+
+    def keys(self) -> Iterator[str]:
+        for page in self.client.get_paginator("list_objects_v2").paginate(Bucket=self.bucket):
+            for item in page.get("Contents", []):
+                yield item["Key"]

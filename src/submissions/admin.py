@@ -9,7 +9,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from django import forms
 from django.contrib import admin, messages
 from django.db.models import Count, Prefetch, Q
-from django.http import Http404, HttpResponseRedirect
+from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.defaultfilters import filesizeformat, truncatechars
 from django.template.response import TemplateResponse
@@ -22,7 +22,7 @@ from schwarmstack.models import ProtocolEntry
 from schwarmstack.operator_site import site
 from storage import get_storage
 
-from . import services, uploads
+from . import export, services, uploads
 from .models import Campaign, Consent, Master, Phase, Submission
 
 # -- Aktion --------------------------------------------------------------------
@@ -111,6 +111,9 @@ class CampaignAdmin(admin.ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         readonly = ["current_usage"]
+        if obj is not None and obj.is_exported:
+            # Nach dem endgültigen Export ändert niemand mehr etwas (ADR 0008).
+            return self.fields
         if obj is not None and obj.phase() is not Phase.BEFORE:
             # Nach dem Start soll niemand versehentlich die laufende Aktion verbiegen.
             readonly += ["object_name", "starts_at"]
@@ -125,6 +128,119 @@ class CampaignAdmin(admin.ModelAdmin):
         if campaign is None:
             return super().changelist_view(request, extra_context)
         return redirect("operator:submissions_campaign_change", campaign.pk)
+
+    # -- Export (Ticket #34, ADR 0008) -------------------------------------------
+
+    def get_urls(self):
+        view = self.admin_site.admin_view
+        return [
+            path("<int:pk>/export/", view(self.export_view), name="submissions_campaign_export"),
+            path(
+                "<int:pk>/export/manifest.json",
+                view(self.manifest_view),
+                name="submissions_campaign_export_manifest",
+            ),
+            path(
+                "<int:pk>/export/download-liste.txt",
+                view(self.download_list_view),
+                name="submissions_campaign_export_download_list",
+            ),
+            path(
+                "<int:pk>/export/endgueltig/",
+                view(self.finalize_view),
+                name="submissions_campaign_export_finalize",
+            ),
+            *super().get_urls(),
+        ]
+
+    def _campaign(self, request, pk):
+        if not self.has_change_permission(request):
+            raise Http404
+        return get_object_or_404(Campaign, pk=pk)
+
+    def export_view(self, request, pk):
+        campaign = self._campaign(request, pk)
+        return TemplateResponse(
+            request,
+            "admin/submissions/campaign/export.html",
+            {
+                **self.admin_site.each_context(request),
+                "opts": self.opts,
+                "original": campaign,
+                "title": "Export",
+                "refusal": export.may_finalize(campaign),
+                "links_available": export.links_available(campaign),
+                "days_left": export.days_left(campaign),
+                "amended": Submission.objects.filter(amended_at__isnull=False).order_by(
+                    "amended_at"
+                ),
+            },
+        )
+
+    def _links_or_404(self, campaign):
+        if not export.links_available(campaign):
+            raise Http404
+
+    def manifest_view(self, request, pk):
+        campaign = self._campaign(request, pk)
+        if campaign.deleted_at is not None:
+            raise Http404
+        links = campaign.is_exported
+        if links:
+            self._links_or_404(campaign)
+        data = export.manifest(campaign, links=links)
+        if links:
+            self.log_change(request, campaign, "Links für den endgültigen Export ausgestellt")
+        else:
+            self.log_change(request, campaign, "Vorläufiger Export erstellt")
+        response = JsonResponse(data, json_dumps_params={"ensure_ascii": False, "indent": 2})
+        kind = "endgueltig" if links else "vorlaeufig"
+        response["Content-Disposition"] = f'attachment; filename="manifest-{kind}.json"'
+        return response
+
+    def download_list_view(self, request, pk):
+        campaign = self._campaign(request, pk)
+        self._links_or_404(campaign)
+        text = export.download_list(export.manifest(campaign, links=True))
+        self.log_change(
+            request, campaign, "Links für den endgültigen Export ausgestellt (Download-Liste)"
+        )
+        response = HttpResponse(text, content_type="text/plain; charset=utf-8")
+        response["Content-Disposition"] = 'attachment; filename="download-liste.txt"'
+        return response
+
+    @method_decorator(require_http_methods(["GET", "POST"]))
+    def finalize_view(self, request, pk):
+        campaign = self._campaign(request, pk)
+        export_url = reverse("operator:submissions_campaign_export", args=[campaign.pk])
+        refusal = export.may_finalize(campaign)
+        if refusal:
+            self.message_user(request, refusal, messages.ERROR)
+            return HttpResponseRedirect(export_url)
+        if request.method == "POST":
+            try:
+                export.finalize(campaign)
+            except export.ExportError as exc:
+                self.message_user(request, str(exc), messages.ERROR)
+            else:
+                self.log_change(request, campaign, "Endgültiger Export ausgelöst")
+                self.message_user(
+                    request,
+                    "Endgültiger Export ausgelöst. Die Löschfrist läuft 30 Tage.",
+                    messages.SUCCESS,
+                )
+            return HttpResponseRedirect(export_url)
+        return TemplateResponse(
+            request,
+            "admin/submissions/campaign/confirm_export.html",
+            {
+                **self.admin_site.each_context(request),
+                "opts": self.opts,
+                "original": campaign,
+                "title": "Endgültigen Export auslösen",
+                "cancel_url": export_url,
+            },
+        )
 
 
 # -- Abgaben -------------------------------------------------------------------
@@ -178,6 +294,14 @@ class RejectionsFilter(_YesNoFilter):
 
     def condition(self):
         return Q(pk__in=_with_masters(state=Master.State.REJECTED))
+
+
+class AmendedFilter(_YesNoFilter):
+    title = "Nachtrag"
+    parameter_name = "nachtrag"
+
+    def condition(self):
+        return Q(amended_at__isnull=False)
 
 
 class WithdrawnFilter(_YesNoFilter):
@@ -240,7 +364,7 @@ class MasterInline(admin.TabularInline):
         links = []
         if master.state == Master.State.ACCEPTED:
             links.append((_master_url("download", master), "Herunterladen"))
-        if master.state in services.DELETABLE:
+        if master.state in services.DELETABLE and services.correctable_by_operator():
             links.append((_master_url("delete", master), "Löschen …"))
         return format_html_join(" · ", '<a href="{}">{}</a>', links) or "–"
 
@@ -293,7 +417,13 @@ class SubmissionAdmin(admin.ModelAdmin):
         "is_withdrawn",
         "created_at",
     ]
-    list_filter = [ChannelFilter, DuplicatesFilter, RejectionsFilter, WithdrawnFilter]
+    list_filter = [
+        ChannelFilter,
+        DuplicatesFilter,
+        RejectionsFilter,
+        WithdrawnFilter,
+        AmendedFilter,
+    ]
     inlines = [MasterInline, ConsentInline]
     fields = [
         "reference",
@@ -302,6 +432,7 @@ class SubmissionAdmin(admin.ModelAdmin):
         "created_at",
         "withdrawn_at",
         "withdrawn_by",
+        "amended_at",
     ]
 
     def get_queryset(self, request):
@@ -344,8 +475,15 @@ class SubmissionAdmin(admin.ModelAdmin):
         return self.fields
 
     def get_readonly_fields(self, request, obj=None):
-        readonly = ["reference", "credit_display", "created_at", "withdrawn_at", "withdrawn_by"]
-        if obj is not None and obj.is_withdrawn:
+        readonly = [
+            "reference",
+            "credit_display",
+            "created_at",
+            "withdrawn_at",
+            "withdrawn_by",
+            "amended_at",
+        ]
+        if obj is not None and (obj.is_withdrawn or not services.correctable_by_operator()):
             readonly += ["credit_name", "setup_description"]
         return readonly
 
@@ -455,7 +593,7 @@ class SubmissionAdmin(admin.ModelAdmin):
     @method_decorator(require_http_methods(["GET", "POST"]))
     def delete_master_view(self, request, pk, master_id):
         master = self._master(request, pk, master_id)
-        if master.state not in services.DELETABLE:
+        if master.state not in services.DELETABLE or not services.correctable_by_operator():
             raise Http404
         submission = master.submission
         if request.method == "POST":

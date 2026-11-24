@@ -21,9 +21,16 @@ class OperatorSite(admin.AdminSite):
 
     def index(self, request, extra_context=None):
         """Startseite ist die Statistik, frisch berechnet bei jedem Aufruf."""
-        from submissions import statistics
+        from submissions import export, statistics
+        from submissions.models import Campaign
 
-        return super().index(request, {"statistik": statistics.compute(), **(extra_context or {})})
+        campaign = Campaign.current()
+        context = {
+            "statistik": statistics.compute(),
+            "campaign": campaign,
+            "days_left": export.days_left(campaign) if campaign else None,
+        }
+        return super().index(request, {**context, **(extra_context or {})})
 
     @method_decorator(never_cache)
     def login(self, request, extra_context=None):

@@ -71,3 +71,20 @@ def test_hinter_dem_proxy_zaehlt_die_ip_aus_x_forwarded_for(operator, settings):
         via_proxy("falsch", f"10.0.0.{_}, 203.0.113.7")
     assert via_proxy(PASSWORD, "203.0.113.7").status_code == 429
     assert via_proxy(PASSWORD, "198.51.100.9").status_code == 302
+
+
+def test_ip_hashes_bleiben_hoechstens_eine_stunde(operator):
+    """Der Datenschutzhinweis sagt: IP-Hashes fürs Rate-Limit nur stundenweise (Ticket #34)."""
+    from datetime import timedelta
+
+    from django.core.management import call_command
+    from django.utils import timezone
+
+    from schwarmstack.models import LoginAttempt
+
+    login(Client(), "falsch")
+    old = LoginAttempt.objects.create(ip_hash="b" * 64)
+    LoginAttempt.objects.filter(pk=old.pk).update(at=timezone.now() - timedelta(minutes=61))
+    call_command("forget_login_attempts")
+    assert not LoginAttempt.objects.filter(pk=old.pk).exists()
+    assert LoginAttempt.objects.count() == 1  # der frische Fehlversuch bleibt

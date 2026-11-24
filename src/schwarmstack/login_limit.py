@@ -23,6 +23,17 @@ def _hash(request) -> str:
     return hmac.new(key, client_ip(request).encode(), hashlib.sha256).hexdigest()
 
 
+# Länger als eine Stunde bleibt kein IP-Hash stehen (Datenschutzhinweis); `manage.py
+# forget_login_attempts` räumt stündlich auf, auch wenn niemand sich anmeldet.
+KEEP_AT_MOST = timedelta(hours=1)
+
+
+def forget_old() -> int:
+    """Löscht Fehlversuche, die älter als eine Stunde sind; gibt die Anzahl zurück."""
+    deleted, _ = LoginAttempt.objects.filter(at__lt=timezone.now() - KEEP_AT_MOST).delete()
+    return deleted
+
+
 def _recent():
     since = timezone.now() - timedelta(seconds=settings.LOGIN_ATTEMPTS_WINDOW_SECONDS)
     LoginAttempt.objects.filter(at__lt=since).delete()

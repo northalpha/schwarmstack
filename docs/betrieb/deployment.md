@@ -87,8 +87,12 @@ Im Repo unter *Settings → Environments* das Environment `staging` anlegen (fü
 | `COMMUNITY_ORIGINS` | Ursprünge der Community-Seite für `/zahlen.json`, kommagetrennt, z. B. `https://community.example`; `*` nur auf Staging zum Testen; leer: kein CORS-Header (Standard) | nein |
 | `COMMUNITY_CACHE_SECONDS` | `10` (Standard); `0` schaltet den Cache von `/zahlen.json` ab | nein |
 | `CONSENT_TEXT_VERSION` | `2026-11` (Standard) | nein |
+| `PRIVACY_CONTACT` | Kontaktadresse im Datenschutzhinweis für Fragen, Widerruf und Rückzug, z. B. `datenschutz@dzvf.example` | ja |
+| `OPERATOR_EMAILS` | Empfänger der Betriebsmeldungen (ADR 0007), kommagetrennt; leer: Meldungen stehen nur im Log | nein, aber empfohlen |
+| `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_USE_TLS` | SMTP für die Betriebsmeldungen; Standard `localhost`, `587`, leer, `1` | nein |
+| `DEFAULT_FROM_EMAIL` | Absender der Betriebsmeldungen | nein |
 
-`CONSENT_TEXT_VERSION` ist die Fassung des Hinweistextes zu den Einwilligungen (höchstens 32 Zeichen). Jede neue Einwilligung speichert sie, damit sich später zeigen lässt, auf welchen Text sie sich bezieht. Wird der Hinweistext geändert, im selben Deploy auch diesen Wert ändern; ältere Einwilligungen behalten ihre Fassung.
+`CONSENT_TEXT_VERSION` ist die Fassung des Hinweistextes zu den Einwilligungen (höchstens 32 Zeichen). Jede neue Einwilligung speichert sie, damit sich später zeigen lässt, auf welchen Text sie sich bezieht. Wird der Hinweistext geändert, im selben Deploy auch diesen Wert ändern; ältere Einwilligungen behalten ihre Fassung. Zu jeder Fassung gehört ein Datenschutzhinweis unter `src/submissions/templates/submissions/datenschutz/<Fassung>.html` (öffentlich unter `/datenschutz/<Fassung>/`); fehlt er, oder fehlt `PRIVACY_CONTACT`, bricht der Deploy bei der Migration ab und die bisherige Version läuft weiter. Eine Fassung wird nie nachträglich geändert, sondern durch eine neue Datei ersetzt.
 
 **Secrets**
 
@@ -98,6 +102,7 @@ Im Repo unter *Settings → Environments* das Environment `staging` anlegen (fü
 | `SSH_KNOWN_HOSTS` | Zeile aus Schritt 3 | ja |
 | `DJANGO_SECRET_KEY` | zufällig, z. B. `openssl rand -base64 48` | ja |
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | S3-Zugangsdaten aus Schritt 5 | ja |
+| `EMAIL_HOST_PASSWORD` | Passwort für SMTP (Betriebsmeldungen) | nein |
 | `BASIC_AUTH_USER`, `BASIC_AUTH_HASH` | nur Staging: Benutzername und bcrypt-Hash | nein, nur gemeinsam |
 
 Den Hash für Basic Auth erzeugt Caddy (fragt das Passwort ab):
@@ -142,4 +147,6 @@ Actions → CI → *Run workflow*: Umgebung und den früheren Image-Tag (`sha-�
 cd /opt/schwarmstack && docker compose ps && docker compose logs --tail 100 app
 ```
 
-Logs von App und Caddy liegen im Journal des Hosts und werden nach 7 Tagen gelöscht; Caddy protokolliert IP-Adressen gekürzt (IPv4 /24, IPv6 /48, ADR 0007). Die SQLite-Datenbank liegt unter `/opt/schwarmstack/data` (Sicherung nach S3 folgt mit ADR 0006).
+Jeder Deploy schreibt die Crontab des Benutzers `deploy` neu: täglich `manage.py delete_after_export` (Löschung nach Ablauf der Löschfrist, siehe [`admin.md`](admin.md)), stündlich `manage.py forget_login_attempts` (IP-Hashes der Anmeldung nach einer Stunde löschen). Ihre Ausgabe steht im Journal (`journalctl -t schwarmstack-delete_after_export`). Auf älteren Hosts vorher `sudo apt-get install cron`, falls `crontab` fehlt; `host-einrichten.sh` installiert es.
+
+Logs von App und Caddy liegen im Journal des Hosts und werden nach 7 Tagen gelöscht; Caddy protokolliert IP-Adressen gekürzt (IPv4 /24, IPv6 /48, ADR 0007). Die SQLite-Datenbank liegt unter `/opt/schwarmstack/data` (Sicherung nach S3 folgt mit ADR 0006, unter dem Präfix `sicherungen/` im Bucket; die Löschung nach der Löschfrist lässt es stehen).

@@ -101,7 +101,10 @@ STORAGES = {
 # Zugang zur Abgabe nur über ein signiertes Cookie (ADR 0002).
 SUBMISSION_COOKIE_SECURE = env_bool("SUBMISSION_COOKIE_SECURE", not DEBUG)
 # Version des Hinweistextes, auf den sich eine Einwilligung bezieht.
+# Zu jeder Fassung gibt es einen Datenschutzhinweis (submissions/datenschutz/<Fassung>.html).
 CONSENT_TEXT_VERSION = os.environ.get("CONSENT_TEXT_VERSION", "2026-11")
+# Kontaktadresse im Datenschutzhinweis für Fragen, Widerruf und Rückzug; Pflicht in Produktion.
+PRIVACY_CONTACT = os.environ.get("PRIVACY_CONTACT", "")
 
 # Speicher für Master (ADR 0005): "local" (lokale Platte) oder später "s3".
 STORAGE_BACKEND = os.environ.get("STORAGE_BACKEND", "local")
@@ -129,6 +132,9 @@ if not ADMIN_PATH:
 # Anmeldung am Admin: höchstens so viele Fehlversuche je IP im Zeitfenster.
 LOGIN_ATTEMPTS_MAX = int(os.environ.get("LOGIN_ATTEMPTS_MAX", 5))
 LOGIN_ATTEMPTS_WINDOW_SECONDS = int(os.environ.get("LOGIN_ATTEMPTS_WINDOW_SECONDS", 15 * 60))
+# IP-Hashes bleiben höchstens eine Stunde (Datenschutzhinweis); ein längeres Fenster ginge nicht.
+if LOGIN_ATTEMPTS_WINDOW_SECONDS > 3600:
+    raise RuntimeError("LOGIN_ATTEMPTS_WINDOW_SECONDS darf höchstens 3600 sein")
 # Hinter Caddy ist REMOTE_ADDR der Proxy; die IP der Anfrage steht dann als letzter Eintrag in
 # X-Forwarded-For. Nur einschalten, wenn die App ausschließlich hinter dem Proxy erreichbar ist.
 TRUST_X_FORWARDED_FOR = env_bool("TRUST_X_FORWARDED_FOR", not DEBUG)
@@ -137,6 +143,15 @@ TRUST_X_FORWARDED_FOR = env_bool("TRUST_X_FORWARDED_FOR", not DEBUG)
 COMMUNITY_ORIGINS = env_list("COMMUNITY_ORIGINS")
 COMMUNITY_CACHE_SECONDS = int(os.environ.get("COMMUNITY_CACHE_SECONDS", 10))
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+# Betriebsmeldungen per Mail (ADR 0007): Empfänger kommagetrennt, SMTP aus der Umgebung.
+OPERATOR_EMAILS = env_list("OPERATOR_EMAILS")
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "localhost")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 587))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+EMAIL_TIMEOUT = 20
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "schwarmstack@localhost")
 SESSION_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = True
 

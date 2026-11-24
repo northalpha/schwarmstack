@@ -6,11 +6,16 @@ Django-Projekt unter `src/` (`manage.py` dort), Tests unter `tests/` (pytest aus
 src/
 ├── schwarmstack/          # Projekt: Settings (alles aus der Umgebung), URLs, /healthz
 │   ├── operator_site.py   # Admin-Site der Betreiber, Startseite = Statistik
-│   ├── login_limit.py     # gebremste Anmeldung (Fehlversuche je IP-Hash)
+│   ├── login_limit.py     # gebremste Anmeldung (Fehlversuche je IP-Hash, höchstens 1 Stunde)
+│   ├── notices.py         # Betriebsmeldungen per Mail an die Betreiber (ADR 0007)
 │   └── staticfiles.py     # WhiteNoise-Storage
 ├── submissions/           # Fachmodul: Aktion, Abgabe, Master, Einwilligung
 │   ├── models.py
-│   ├── services.py        # Fachverhalten zur Abgabe: anlegen, Master löschen, Rückzug, Widerruf
+│   ├── services.py        # Fachverhalten zur Abgabe: anlegen, Master löschen, Rückzug, Widerruf,
+│   │                      # Nachtrag, Schreibschutz nach dem endgültigen Export
+│   ├── export.py          # Export: Manifest, Download-Liste (aria2c), endgültiger Export
+│   ├── deletion.py        # Löschung nach Ablauf der Löschfrist (manage.py delete_after_export)
+│   ├── privacy.py         # Datenschutzhinweis je Fassung (templates/submissions/datenschutz/)
 │   ├── uploads.py         # Upload-Ablauf: Quote, Gesamtgrenze, Zeitfenster, Dubletten, Begleitdatei
 │   ├── validation.py      # Prüfung der Master (XISF/FITS-Header), Ablehnungskategorien
 │   ├── access.py          # signiertes Cookie: welche Abgaben gehören zu diesem Browser
@@ -18,7 +23,7 @@ src/
 │   ├── public.py          # öffentlich ohne Cookie: /zahlen.json (Community-Zahlen, ADR 0009)
 │   ├── admin.py           # Admin: Aktion pflegen, Abgaben korrigieren; ruft services auf
 │   ├── statistics.py      # Zahlen für die Statistik und die Community-Zahlen
-│   └── management/commands/campaign.py   # die Aktion anlegen/ändern
+│   └── management/commands/   # campaign.py (Aktion anlegen/ändern), delete_after_export.py
 └── storage/               # Speicher-Modul: Protokoll in __init__.py, Adapter local.py und s3.py;
                            # local_views.py bildet für Uppy S3 nach (nur lokaler Speicher)
 tests/
