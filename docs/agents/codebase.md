@@ -13,12 +13,14 @@ src/
 │   ├── services.py        # Fachverhalten zur Abgabe: anlegen, Master löschen, Rückzug, Widerruf
 │   ├── uploads.py         # Upload-Ablauf: Quote, Gesamtgrenze, Zeitfenster, Dubletten, Begleitdatei
 │   ├── validation.py      # Prüfung der Master (XISF/FITS-Header), Ablehnungskategorien
+│   ├── exposure.py        # Belichtungsangaben: Header-Whitelist lesen, Vorschläge, Herkunft (ADR 0010)
 │   ├── access.py          # signiertes Cookie: welche Abgaben gehören zu diesem Browser
 │   ├── views.py, api.py   # Seiten für Teilnehmende / JSON-API für Uppy
 │   ├── public.py          # öffentlich ohne Cookie: /zahlen.json (Community-Zahlen, ADR 0009)
 │   ├── admin.py           # Admin: Aktion pflegen, Abgaben korrigieren; ruft services auf
 │   ├── statistics.py      # Zahlen für die Statistik und die Community-Zahlen
-│   └── management/commands/campaign.py   # die Aktion anlegen/ändern
+│   └── management/commands/  # campaign.py: die Aktion anlegen/ändern;
+│                             # backfill_exposure.py: Belichtungsangaben für Altbestand nachtragen
 └── storage/               # Speicher-Modul: Protokoll in __init__.py, Adapter local.py und s3.py;
                            # local_views.py bildet für Uppy S3 nach (nur lokaler Speicher)
 tests/
