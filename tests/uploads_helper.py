@@ -5,6 +5,10 @@ import json
 import re
 from xml.sax.saxutils import escape
 
+from django.test import Client
+
+from submissions.models import Master, Submission
+
 PART_SIZE = 1024
 
 
@@ -86,3 +90,24 @@ def upload(client, reference, data, *, channel="L", filename="m101_L.fits", part
     parts = send_parts(client, reference, body["masterId"], body["key"], upload_id, data, part_size)
     complete(client, reference, body["masterId"], body["key"], upload_id, parts)
     return finish(client, reference, body["masterId"], hashlib.sha256(data).hexdigest())
+
+
+class Participant:
+    """Eine teilnehmende Person mit eigenem Browser und einer Abgabe."""
+
+    def __init__(self, form):
+        self.client = Client()
+        before = set(Submission.objects.values_list("pk", flat=True))
+        self.client.post("/", form)
+        self.submission = Submission.objects.exclude(pk__in=before).get()
+
+    @property
+    def reference(self):
+        return self.submission.reference
+
+    def upload(self, data, **kwargs):
+        response = upload(self.client, self.reference, data, **kwargs)
+        return Master.objects.get(public_id=response.json()["masterId"])
+
+    def used(self):
+        return self.client.get(f"/abgabe/{self.reference}/").context["used"]

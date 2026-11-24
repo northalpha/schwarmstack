@@ -9,7 +9,7 @@
 <p class="reference">{{ submission.reference }}</p>
 <p class="help">Notiere sie dir. Nenne sie, wenn du dich beim Betreiber meldest. Du findest sie hier jederzeit wieder.</p>
 {% if submission.is_withdrawn %}
-<p class="notice">Diese Abgabe wurde am {{ submission.withdrawn_at|date:"j. F Y" }} zurückgezogen. Master und Angaben sind gelöscht.</p>
+<p class="notice">{% if submission.withdrawn_by == "participant" %}Du hast diese Abgabe am {{ submission.withdrawn_at|date:"j. F Y" }} zurückgezogen.{% else %}Diese Abgabe wurde am {{ submission.withdrawn_at|date:"j. F Y" }} durch den Betreiber zurückgezogen.{% endif %} Master und Angaben sind gelöscht.</p>
 {% else %}
 <h2>Angaben</h2>
 <dl>
@@ -25,10 +25,10 @@
 {% endif %}
 {% if masters %}
 <table class="masters">
-  <thead><tr><th>Datei</th><th>Kanal</th><th>Größe</th><th>Zustand</th></tr></thead>
+  <thead><tr><th>Datei</th><th>Kanal</th><th>Größe</th><th>Zustand</th>{% if may_change %}<th><span class="visually-hidden">Löschen</span></th>{% endif %}</tr></thead>
   <tbody>
   {% for m in masters %}
-    <tr data-state="{{ m.state }}"{% if m.pk in resumable_ids %} class="resumable" data-master-id="{{ m.public_id }}" data-key="{{ m.key }}" data-upload-id="{{ m.upload_id }}" data-name="{{ m.original_name }}" data-size="{{ m.declared_size }}" data-channel="{{ m.channel }}"{% endif %}><td>{{ m.original_name }}</td><td>{{ m.get_channel_display }}</td><td>{{ m.size|default:m.declared_size|filesizeformat }}</td><td>{% if m.pk in resumable_ids %}unterbrochen<br><span class="help">Wähle die Datei erneut aus, um fortzusetzen.</span>{% else %}{{ m.get_state_display }}{% endif %}{% if m.rejection_reason %}<br><span class="reason">{{ m.rejection_reason }}</span>{% endif %}</td></tr>
+    <tr data-state="{{ m.state }}"{% if m.pk in resumable_ids %} class="resumable" data-master-id="{{ m.public_id }}" data-key="{{ m.key }}" data-upload-id="{{ m.upload_id }}" data-name="{{ m.original_name }}" data-size="{{ m.declared_size }}" data-channel="{{ m.channel }}"{% endif %}><td>{{ m.original_name }}</td><td>{{ m.get_channel_display }}</td><td>{{ m.size|default:m.declared_size|filesizeformat }}</td><td>{% if m.pk in resumable_ids %}unterbrochen<br><span class="help">Wähle die Datei erneut aus, um fortzusetzen.</span>{% else %}{{ m.get_state_display }}{% endif %}{% if m.rejection_reason %}<br><span class="reason">{{ m.rejection_reason }}</span>{% endif %}</td>{% if may_change %}<td>{% if m.pk in deletable_ids %}<a href="{% url 'delete_master' submission.reference m.public_id %}" aria-label="{{ m.original_name }} löschen">Löschen</a>{% endif %}</td>{% endif %}</tr>
   {% endfor %}
   </tbody>
 </table>
@@ -55,6 +55,11 @@
 <template id="channel-template"><select><option value="">Kanal …</option>{% for value, label in channels %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></template>
 {% endif %}
 <noscript><p>Zum Hochladen der Master brauchst du JavaScript.</p></noscript>
+{% if may_change %}
+<h2>Abgabe zurückziehen</h2>
+<p class="help">Bis zum Ende der Aktion kannst du deine Abgabe ganz zurückziehen. Master, Angaben und Einwilligungen werden dann gelöscht.</p>
+<p><a href="{% url 'withdraw' submission.reference %}" class="danger">Abgabe zurückziehen …</a></p>
+{% endif %}
 {% endif %}
 
 {% if can_add %}
