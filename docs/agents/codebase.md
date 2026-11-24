@@ -28,7 +28,8 @@ tests/
 ├── files.py               # erzeugt XISF/FITS-Testdateien
 └── e2e/                   # Durchlauf im echten Browser gegen Garage
 deploy/                    # Compose, Caddy, Skripte für Host und Deploy (docs/betrieb/deployment.md)
-scripts/                   # pruefen.sh (alle Prüfungen wie CI), garage.sh, glossar.py, changelog.py
+scripts/                   # pruefen.sh (alle Prüfungen wie CI), garage.sh, glossar.py, changelog.py;
+                           # header_prototyp.py: Wegwerf-Prototyp, zeigt Header roh (Issue #49)
 ```
 
 Prüfen wie in CI: `scripts/pruefen.sh` (braucht Docker für Garage; ohne: `--schnell`).
