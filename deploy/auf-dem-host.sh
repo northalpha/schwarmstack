@@ -60,6 +60,13 @@ fi
 
 echo "Starten"
 docker compose up --detach --remove-orphans
+# Caddy liest das Caddyfile nur beim Start, und `up` erneuert den Container nur bei geänderter
+# Compose-Konfiguration. Außerdem sieht der Container nach dem `mv` oben weiter die alte Datei.
+# Verglichen wird daher mit dem, was Caddy im Container sieht.
+if ! docker compose exec -T caddy cat /etc/caddy/Caddyfile | cmp -s - Caddyfile; then
+  echo "Caddyfile geändert, Caddy neu starten"
+  docker compose up --detach --no-deps --force-recreate caddy
+fi
 
 echo "Auf https://$DOMAIN/healthz warten"
 ende=$((SECONDS + 60))
