@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
@@ -39,6 +40,12 @@ def new_submission(request):
             setup_description=form.cleaned_data["setup_description"],
             publish_credit=form.cleaned_data["consent_publish_credit"],
         )
+        if form.cleaned_data["credit_name"] and not submission.credit_name:
+            messages.info(
+                request,
+                "Deinen Namen haben wir nicht gespeichert: Ohne Häkchen bei der Veröffentlichung "
+                "trägst du anonym bei.",
+            )
         response = redirect("submission", submission.reference)
         access.grant(response, request, submission.reference, campaign)
         return response
