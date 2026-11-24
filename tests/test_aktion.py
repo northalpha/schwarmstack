@@ -8,7 +8,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import IntegrityError
 
-from submissions.models import Campaign
+from submissions.models import Campaign, Master, Submission
 
 pytestmark = pytest.mark.django_db
 
@@ -76,3 +76,21 @@ def test_befehl_lehnt_ende_vor_dem_beginn_ab(db):
             "--global-cap-gib", "400",
         )  # fmt: skip
     assert Campaign.current() is None
+
+
+def test_befehl_lehnt_gesamtgrenze_unter_der_belegung_ab(campaign, reference):
+    """Wie im Admin: uploads.check_global_cap (Ticket #42)."""
+    Master.objects.create(
+        submission=Submission.objects.get(), key="k", declared_size=3 * 1024**2, original_name="a"
+    )
+    with pytest.raises(CommandError, match="Belegung"):
+        call_command(
+            "campaign",
+            "--object", "M 101",
+            "--starts-at", campaign.starts_at.isoformat(),
+            "--ends-at", campaign.ends_at.isoformat(),
+            "--quota-gib", "2",
+            "--global-cap-gib", "0.001",
+        )  # fmt: skip
+    campaign.refresh_from_db()
+    assert campaign.global_cap == 400 * 1024**3

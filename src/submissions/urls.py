@@ -33,6 +33,11 @@ urlpatterns = [
         api.finish,
         name="upload_finish",
     ),
-    # Alte Adressen vor der Umbenamensnennung (Issue #66): dauerhaft auf `submission/` umleiten.
+    path(
+        "submission/<str:reference>/master/<uuid:master_id>/belichtung/",
+        api.change_exposure,
+        name="exposure",
+    ),
+    # Alte Adressen vor der Umbenennung (Issue #66): dauerhaft auf `submission/` umleiten.
     re_path(r"^abgabe/(?P<rest>.+)$", views.legacy_redirect, name="legacy_submission"),
 ]

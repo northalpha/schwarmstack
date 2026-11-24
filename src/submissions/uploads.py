@@ -19,7 +19,7 @@ from django.utils import timezone
 
 from storage import S3Request, get_storage
 
-from . import validation
+from . import exposure, validation
 from .models import Campaign, Master, Phase, Submission
 
 # Endungen der Teilnehmenden -> Endung im Speicher
@@ -291,14 +291,17 @@ def finish(master: Master, *, sha256) -> Master:
     master.size = size
     master.completed_at = timezone.now()
     master.sha256 = sha256.lower()
+    head = b""
+    suffix = PurePosixPath(master.key).suffix
     if size != master.declared_size:
         result = validation.rejected(
             validation.Category.SIZE, "Die Größe weicht von der angemeldeten ab."
         )
     else:
+        head = storage.read_head(master.key, validation.HEAD_BYTES)
         result = validation.check(
-            storage.read_head(master.key, validation.HEAD_BYTES),
-            suffix=PurePosixPath(master.key).suffix,
+            head,
+            suffix=suffix,
             channel=master.channel,
             channel_label=master.get_channel_display(),
             size=size,
@@ -306,8 +309,11 @@ def finish(master: Master, *, sha256) -> Master:
     if result.ok:
         result = _check_duplicates(master)
 
+    exposure_fields = []
     if result.ok:
         master.state = Master.State.ACCEPTED
+        # Belichtungsangaben aus demselben Range Request; sie stehen nicht in der Begleitdatei.
+        exposure_fields = exposure.apply_header(master, exposure.read(head, suffix))
         storage.put_json(master.sidecar_key, sidecar(master))
     else:
         master.state = Master.State.REJECTED
@@ -323,6 +329,7 @@ def finish(master: Master, *, sha256) -> Master:
             "rejection_category",
             "sha256",
             "duplicate_of",
+            *exposure_fields,
         ]
     )
     return master

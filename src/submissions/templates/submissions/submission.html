@@ -41,6 +41,9 @@
       {# Ein Master im Upload wird abgebrochen, nicht gelöscht: Das geht auch in der Nachfrist. #}
       {% if may_change %}<td>{% if m.pk in deletable_ids and m.pk not in abortable_ids %}<a href="{% url 'delete_master' submission.reference m.public_id %}" aria-label="{{ m.original_name }} löschen">Löschen</a>{% endif %}</td>{% endif %}
     </tr>
+    {% if m.state == "accepted" %}
+    <tr class="exposure-row"><td colspan="{% if may_change %}5{% else %}4{% endif %}">{% include "submissions/_exposure.html" with editable=may_change open=False %}</td></tr>
+    {% endif %}
   {% endfor %}
   </tbody>
 </table>
@@ -81,4 +84,5 @@
 {% block scripts %}
 <script src="{% static 'submissions/vendor/uppy/uppy.min.js' %}" defer></script>
 <script src="{% static 'submissions/upload.js' %}" defer></script>
+<script src="{% static 'submissions/belichtung.js' %}" defer></script>
 {% endblock %}
