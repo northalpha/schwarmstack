@@ -1,4 +1,5 @@
-"""Fachverhalten rund um die Submission: anlegen, Master löschen, Löschung, Widerruf.
+"""Fachverhalten rund um die Submission: anlegen, Master löschen, Angaben ändern, Löschung,
+Widerruf.
 
 Admin und Submission-Seite rufen diese Operationen auf; sie selbst kennen keine Anfrage.
 """
@@ -6,6 +7,9 @@ Admin und Submission-Seite rufen diese Operationen auf; sie selbst kennen keine 
 from pathlib import PurePosixPath
 
 from django.conf import settings
+from django.contrib.admin.models import CHANGE, LogEntry
+from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
@@ -16,6 +20,8 @@ from .models import Campaign, Consent, Master, Submission
 from .uploads import abort_multipart, sidecar
 
 _ATTEMPTS = 5
+# Reservierter, nicht anmeldbarer Benutzer für das Protokoll bei Änderungen durch Teilnehmende.
+PARTICIPANT_USERNAME = "teilnehmende"
 
 
 def create_submission(*, credit_name, setup_description, publish_credit) -> Submission:
@@ -101,10 +107,52 @@ def details_changed(submission: Submission) -> None:
 
 
 def changeable_by_participant(submission: Submission) -> bool:
-    """Ob Teilnehmende selbst Master löschen oder die Submission löschen dürfen: nur bis zum
-    Ende der Aktion und nicht mehr nach einer Löschung (ADR 0002)."""
+    """Ob Teilnehmende selbst Master löschen, die Submission löschen oder ihre Angaben ändern
+    dürfen: nur bis zum Ende der Aktion und nicht mehr nach einer Löschung (ADR 0002)."""
     phase = Campaign.current_phase()
     return phase.allows_changes_by_participants and not submission.is_deleted
+
+
+def change_details(submission: Submission, *, setup_description, credit_name=None) -> bool:
+    """Angaben ändern durch Teilnehmende: Setup und Namensnennung speichern, die Begleitdateien
+    neu schreiben und im Protokoll vermerken.
+
+    Ohne gültige Einwilligung zur Namensnennung bleibt die Namensnennung leer. Ohne Änderung
+    wird nichts gespeichert und nichts vermerkt; gibt zurück, ob sich etwas geändert hat.
+    """
+    changed = []
+    if setup_description != submission.setup_description:
+        submission.setup_description = setup_description
+        changed.append("setup_description")
+    if credit_name is not None and credit_name != submission.credit_name:
+        submission.credit_name = credit_name
+        changed.append("credit_name")
+    if changed:
+        submission.save(update_fields=changed)
+        details_changed(submission)
+        log_participant_change(submission, "Angaben geändert (durch Teilnehmende)")
+    return bool(changed)
+
+
+def log_participant_change(submission: Submission, message: str) -> None:
+    """Protokolleintrag für eine Änderung durch Teilnehmende. Das Protokoll (`LogEntry`)
+    verlangt einen Benutzer; Teilnehmende haben kein Konto, deshalb steht ein reservierter,
+    gesperrter Benutzer „teilnehmende“ dafür, ohne Passwort und nicht anmeldbar."""
+    user_model = get_user_model()
+    user, created = user_model.objects.get_or_create(
+        **{user_model.USERNAME_FIELD: PARTICIPANT_USERNAME}, defaults={"is_active": False}
+    )
+    if created:
+        user.set_unusable_password()
+        user.save(update_fields=["password"])
+    LogEntry.objects.create(
+        user=user,
+        content_type=ContentType.objects.get_for_model(Submission),
+        object_id=str(submission.pk),
+        object_repr=str(submission),
+        action_flag=CHANGE,
+        change_message=message,
+    )
 
 
 def delete_submission(submission: Submission, *, by: Submission.DeletedBy) -> Submission:
