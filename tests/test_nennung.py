@@ -11,12 +11,6 @@ from submissions.models import Master, Submission
 pytestmark = pytest.mark.django_db
 
 
-@pytest.fixture
-def storage_dir(settings, tmp_path):
-    settings.STORAGE_LOCAL_DIR = tmp_path / "speicher"
-    return settings.STORAGE_LOCAL_DIR
-
-
 def sidecar(storage_dir, master):
     return json.loads((storage_dir / "objects" / master.sidecar_key).read_bytes())
 
@@ -55,7 +49,7 @@ def test_ohne_haekchen_wird_ein_name_verworfen(client, campaign, anonymous_form)
     content = client.get(location).content.decode()
     assert "Ada Sternguck" not in content
     assert "anonym" in content
-    assert "keinen Namen gespeichert" in content
+    assert "speichern wir keinen Namen" in content
 
 
 def test_formular_sagt_dass_ohne_haekchen_kein_name_gespeichert_wird(client, campaign):
