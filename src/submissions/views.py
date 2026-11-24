@@ -1,5 +1,4 @@
 from django.contrib import messages
-from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
@@ -105,9 +104,12 @@ def submission(request, reference):
 
 @require_http_methods(["GET", "POST"])
 def withdraw(request, reference):
-    submission = _changeable_submission(request, reference)
+    submission = _own_submission(request, reference)
+    if not services.changeable_by_participant(submission):
+        return _not_changeable(request, submission)
     if request.method == "POST":
         services.withdraw(submission, by=Submission.WithdrawnBy.PARTICIPANT)
+        messages.info(request, "Deine Abgabe wurde zurückgezogen.")
         return redirect("submission", submission.reference)
     return _confirm(
         request,
@@ -123,7 +125,9 @@ def withdraw(request, reference):
 
 @require_http_methods(["GET", "POST"])
 def delete_master(request, reference, master_id):
-    submission = _changeable_submission(request, reference)
+    submission = _own_submission(request, reference)
+    if not services.changeable_by_participant(submission):
+        return _not_changeable(request, submission)
     master = get_object_or_404(
         Master, submission=submission, public_id=master_id, state__in=services.DELETABLE
     )
@@ -150,12 +154,12 @@ def _own_submission(request, reference) -> Submission:
     return get_object_or_404(Submission, reference=reference)
 
 
-def _changeable_submission(request, reference) -> Submission:
-    """Die eigene Abgabe, solange Teilnehmende sie noch ändern dürfen."""
-    submission = _own_submission(request, reference)
-    if not services.changeable_by_participant(submission):
-        raise PermissionDenied
-    return submission
+def _not_changeable(request, submission):
+    """Zurück zur Abgabeseite, wenn Teilnehmende nichts mehr ändern dürfen; sie erklärt den
+    Rückzug selbst, das Ende der Aktion sagt die Meldung."""
+    if not submission.is_withdrawn:
+        messages.info(request, "Die Aktion ist beendet. Deine Abgabe kannst du nicht mehr ändern.")
+    return redirect("submission", submission.reference)
 
 
 def _confirm(request, submission, *, title, question, button, details=()):
