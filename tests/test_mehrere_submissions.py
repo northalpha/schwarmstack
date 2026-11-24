@@ -113,3 +113,19 @@ def test_neu_ohne_aktion(client, db):
 
 def test_neu_url_ist_benannt():
     assert reverse("new_submission") == NEW
+
+
+def test_geloeschte_submissions_belegen_keinen_platz(client, campaign, valid_form):
+    locations = [create(client, valid_form)["Location"] for _ in range(3)]
+    assert create(client, valid_form).status_code == 200
+    assert client.post(f"{locations[0]}loeschen/").status_code == 302
+    assert 'name="credit_name"' in client.get(NEW).content.decode()
+    assert create(client, valid_form).status_code == 302
+
+
+def test_einstieg_fuehrt_nicht_zu_einer_geloeschten_submission(client, campaign, valid_form):
+    location = create(client, valid_form)["Location"]
+    client.post(f"{location}loeschen/")
+    response = client.get("/")
+    assert response.status_code == 200
+    assert 'name="credit_name"' in response.content.decode()
