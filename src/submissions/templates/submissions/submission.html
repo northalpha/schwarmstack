@@ -3,6 +3,7 @@
 {% block title %}Abgabe {{ submission.reference }} – Schwarmstack{% endblock %}
 {% block content %}
 {% include "submissions/_own.html" %}
+{% for message in messages %}<p class="notice">{{ message }}</p>{% endfor %}
 <h1>Deine Abgabe{% if campaign %} zu {{ campaign.object_name }}{% endif %}</h1>
 <p>Deine Abgabe-Kennung:</p>
 <p class="reference">{{ submission.reference }}</p>
@@ -12,7 +13,7 @@
 {% else %}
 <h2>Angaben</h2>
 <dl>
-  <dt>Nennung</dt><dd>{{ submission.credit_name }}</dd>
+  <dt>Nennung</dt><dd>{% if submission.credit_name %}{{ submission.credit_name }}{% else %}anonym<br><span class="help">Ohne Einwilligung zur Veröffentlichung speichern wir keinen Namen.</span>{% endif %}</dd>
   {% if submission.setup_description %}<dt>Setup</dt><dd>{{ submission.setup_description|linebreaksbr }}</dd>{% endif %}
 </dl>
 <h2>Master</h2>

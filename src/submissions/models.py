@@ -2,6 +2,7 @@ import enum
 import uuid
 from datetime import datetime, timedelta
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
@@ -73,7 +74,8 @@ class Submission(models.Model):
         OPERATOR = "operator", "Betreiber"
 
     reference = models.CharField("Abgabe-Kennung", max_length=16, unique=True)
-    credit_name = models.CharField("Nennung", max_length=120)
+    # Nennung: nur mit gültiger Einwilligung zur Veröffentlichung, sonst leer (anonym).
+    credit_name = models.CharField("Nennung", max_length=120, blank=True)
     setup_description = models.TextField("Setup", blank=True, max_length=2000)
     created_at = models.DateTimeField("angelegt", auto_now_add=True)
     # Rückzug: Nach ihm bleiben nur Kennung, Zeitpunkt und wer ihn ausgelöst hat.
@@ -93,6 +95,24 @@ class Submission(models.Model):
     @property
     def is_withdrawn(self) -> bool:
         return self.withdrawn_at is not None
+
+    def clean(self):
+        # Mit gültiger Einwilligung zur Veröffentlichung gehört eine Nennung dazu (Ticket #33).
+        if self.pk and not self.credit_name.strip() and self.publishes_credit:
+            raise ValidationError(
+                {
+                    "credit_name": "Mit Einwilligung zur Veröffentlichung braucht die Abgabe "
+                    "eine Nennung. Soll sie anonym werden, den Widerruf der Veröffentlichung "
+                    "vermerken."
+                }
+            )
+
+    @property
+    def publishes_credit(self) -> bool:
+        """Ob eine gültige (nicht widerrufene) Einwilligung zur Veröffentlichung vorliegt."""
+        return self.consents.filter(
+            kind=Consent.Kind.PUBLISH_CREDIT, revoked_at__isnull=True
+        ).exists()
 
 
 class Consent(models.Model):

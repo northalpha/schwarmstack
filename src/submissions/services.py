@@ -20,10 +20,16 @@ log = logging.getLogger(__name__)
 
 
 def create_submission(*, credit_name, setup_description, publish_credit) -> Submission:
-    """Legt eine Abgabe samt Einwilligungen an und vergibt eine freie Abgabe-Kennung."""
+    """Legt eine Abgabe samt Einwilligungen an und vergibt eine freie Abgabe-Kennung.
+
+    Die Nennung gibt es nur mit der Einwilligung zur Veröffentlichung; ohne sie wird ein
+    eingegebener Name verworfen und die Abgabe bleibt anonym.
+    """
     kinds = [Consent.Kind.PROJECT_USE]
     if publish_credit:
         kinds.append(Consent.Kind.PUBLISH_CREDIT)
+    else:
+        credit_name = ""
     for _ in range(_ATTEMPTS):
         reference = references.new_reference(
             lambda r: Submission.objects.filter(reference=r).exists()
@@ -86,7 +92,14 @@ def delete_master(master: Master) -> None:
 
 def details_corrected(submission: Submission) -> None:
     """Nach einer Korrektur von Nennung oder Setup die Begleitdateien neu schreiben,
-    damit die Zuordnung ohne Datenbank stimmt (ADR 0006)."""
+    damit die Zuordnung ohne Datenbank stimmt (ADR 0006).
+
+    Ohne gültige Einwilligung zur Veröffentlichung bleibt die Abgabe anonym: Eine nachträglich
+    eingetragene Nennung wird verworfen.
+    """
+    if submission.credit_name and not submission.publishes_credit:
+        submission.credit_name = ""
+        submission.save(update_fields=["credit_name"])
     storage = get_storage()
     for master in submission.masters.filter(state=Master.State.ACCEPTED):
         storage.put_json(master.sidecar_key, sidecar(master))
@@ -119,7 +132,8 @@ def withdraw(submission: Submission, *, by: Submission.WithdrawnBy) -> Submissio
 def revoke(consent: Consent, *, by: Submission.WithdrawnBy) -> bool:
     """Widerruf einer Einwilligung: Sie bekommt einen Zeitpunkt und bleibt stehen.
 
-    Der Widerruf der Nutzung im Projekt löst den Rückzug der ganzen Abgabe aus. Gibt zurück,
+    Der Widerruf der Nutzung im Projekt löst den Rückzug der ganzen Abgabe aus. Der Widerruf
+    der Veröffentlichung löscht die Nennung und schreibt die Begleitdateien neu. Gibt zurück,
     ob sich etwas geändert hat (ein schon vermerkter Widerruf ändert nichts).
     """
     if consent.revoked_at is not None:
@@ -128,4 +142,7 @@ def revoke(consent: Consent, *, by: Submission.WithdrawnBy) -> bool:
     consent.save(update_fields=["revoked_at"])
     if consent.kind == Consent.Kind.PROJECT_USE:
         withdraw(consent.submission, by=by)
+    elif consent.kind == Consent.Kind.PUBLISH_CREDIT:
+        # Ohne gültige Einwilligung verwirft die Korrektur die Nennung.
+        details_corrected(consent.submission)
     return True
