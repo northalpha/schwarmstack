@@ -1,22 +1,8 @@
-"""Gemeinsames für die Tests des Admin (Ticket #29): angemeldet als Betreiber."""
-
-import pytest
-from django.test import Client
+"""Gemeinsames für die Tests des Admin (Ticket #29); die Fixtures `operator` und
+`operator_client` stehen in conftest.py."""
 
 ADMIN = "/betrieb-test/"
 PASSWORD = "sternenstaub-2026"
-
-
-@pytest.fixture
-def operator(db, django_user_model):
-    return django_user_model.objects.create_superuser("ada", "ada@example.org", PASSWORD)
-
-
-@pytest.fixture
-def operator_client(operator):
-    client = Client()
-    client.force_login(operator)
-    return client
 
 
 def submission_url(submission, suffix="change/"):

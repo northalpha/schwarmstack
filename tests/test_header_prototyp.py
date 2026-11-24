@@ -1,4 +1,4 @@
-"""Rauchtest für den Prototyp scripts/header_prototyp.py (Ticket #49)."""
+"""Smoke Test für den Prototyp scripts/header_prototyp.py (Ticket #49)."""
 
 import importlib.util
 import json

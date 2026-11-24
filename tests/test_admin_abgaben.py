@@ -9,8 +9,6 @@ from admin_helper import (
     change_form_data,
     log_messages,
     master_url,
-    operator,  # noqa: F401
-    operator_client,  # noqa: F401
     submission_url,
 )
 from django.test import Client
@@ -35,7 +33,7 @@ def sidecar(storage_dir, master):
 # -- Master löschen ------------------------------------------------------------
 
 
-def test_master_loeschen_fragt_erst_nach(operator_client, participant, storage_dir):  # noqa: F811
+def test_master_loeschen_fragt_erst_nach(operator_client, participant, storage_dir):
     master = participant.upload(fits())
     response = operator_client.get(master_url(master, "loeschen"))
     assert response.status_code == 200
@@ -44,7 +42,7 @@ def test_master_loeschen_fragt_erst_nach(operator_client, participant, storage_d
 
 
 def test_master_loeschen_entfernt_datei_und_gibt_belegung_frei(
-    operator_client,  # noqa: F811
+    operator_client,
     participant,
     storage_dir,
 ):
@@ -60,7 +58,7 @@ def test_master_loeschen_entfernt_datei_und_gibt_belegung_frei(
 
 
 def test_master_im_upload_wird_beim_loeschen_abgebrochen(
-    operator_client,  # noqa: F811
+    operator_client,
     participant,
     storage_dir,
 ):
@@ -78,14 +76,14 @@ def test_master_im_upload_wird_beim_loeschen_abgebrochen(
     assert participant.used() == 0
 
 
-def test_abgelehnter_master_wird_nicht_geloescht(operator_client, participant):  # noqa: F811
+def test_abgelehnter_master_wird_nicht_geloescht(operator_client, participant):
     master = participant.upload(fits(bitpix=16))
     assert operator_client.post(master_url(master, "loeschen")).status_code == 404
     assert Master.objects.filter(pk=master.pk).exists()
 
 
 def test_frueheste_dublette_wird_zum_original(
-    operator_client,  # noqa: F811
+    operator_client,
     another,
     storage_dir,
 ):
@@ -108,7 +106,7 @@ def test_frueheste_dublette_wird_zum_original(
 # -- Rückzug -------------------------------------------------------------------
 
 
-def test_rueckzug_fragt_erst_nach(operator_client, participant):  # noqa: F811
+def test_rueckzug_fragt_erst_nach(operator_client, participant):
     response = operator_client.get(submission_url(participant.submission, "zurueckziehen/"))
     assert response.status_code == 200
     assert participant.reference in response.content.decode()
@@ -117,7 +115,7 @@ def test_rueckzug_fragt_erst_nach(operator_client, participant):  # noqa: F811
 
 
 def test_rueckzug_loescht_master_und_angaben_und_laesst_die_kennung(
-    operator_client,  # noqa: F811
+    operator_client,
     participant,
     storage_dir,
 ):
@@ -139,7 +137,7 @@ def test_rueckzug_loescht_master_und_angaben_und_laesst_die_kennung(
     assert any("zurückgezogen" in m for m in log_messages(submission))
 
 
-def test_rueckzug_ordnet_dubletten_neu_zu(operator_client, another, storage_dir):  # noqa: F811
+def test_rueckzug_ordnet_dubletten_neu_zu(operator_client, another, storage_dir):
     data = fits()
     owner, other = another(), another()
     original = owner.upload(data)
@@ -152,7 +150,7 @@ def test_rueckzug_ordnet_dubletten_neu_zu(operator_client, another, storage_dir)
 
 
 def test_zurueckgezogene_abgabe_laesst_sich_nicht_wieder_oeffnen(
-    operator_client,  # noqa: F811
+    operator_client,
     participant,
 ):
     operator_client.post(submission_url(participant.submission, "zurueckziehen/"))
@@ -177,7 +175,7 @@ def revoke_url(consent):
     return submission_url(consent.submission, f"einwilligung/{consent.pk}/widerrufen/")
 
 
-def test_widerruf_der_nennung_loescht_sie_und_bleibt_als_vermerk(operator_client, participant):  # noqa: F811
+def test_widerruf_der_nennung_loescht_sie_und_bleibt_als_vermerk(operator_client, participant):
     """Der Widerruf der Veröffentlichung löscht die Nennung (Ticket #33)."""
     consent = participant.submission.consents.get(kind=Consent.Kind.PUBLISH_CREDIT)
     assert operator_client.get(revoke_url(consent)).status_code == 200
@@ -198,7 +196,7 @@ def test_widerruf_der_nennung_loescht_sie_und_bleibt_als_vermerk(operator_client
 
 
 def test_widerruf_der_nennung_schreibt_die_begleitdateien_neu(
-    operator_client,  # noqa: F811
+    operator_client,
     participant,
     storage_dir,
 ):
@@ -213,7 +211,7 @@ def test_widerruf_der_nennung_schreibt_die_begleitdateien_neu(
 
 
 def test_widerruf_der_nutzung_im_projekt_zieht_die_abgabe_zurueck(
-    operator_client,  # noqa: F811
+    operator_client,
     participant,
     storage_dir,
 ):
@@ -230,7 +228,7 @@ def test_widerruf_der_nutzung_im_projekt_zieht_die_abgabe_zurueck(
 
 
 def test_angenommener_master_laesst_sich_herunterladen(
-    operator_client,  # noqa: F811
+    operator_client,
     participant,
 ):
     data = fits(width=8)
@@ -244,7 +242,7 @@ def test_angenommener_master_laesst_sich_herunterladen(
 
 
 def test_nur_angenommene_master_lassen_sich_herunterladen(
-    operator_client,  # noqa: F811
+    operator_client,
     participant,
 ):
     master = participant.upload(fits(bitpix=16))
@@ -269,7 +267,7 @@ def listed(client, query=""):
     return {s.reference for s in response.context["cl"].result_list}
 
 
-def test_liste_zeigt_die_angaben_einer_abgabe(operator_client, participant):  # noqa: F811
+def test_liste_zeigt_die_angaben_einer_abgabe(operator_client, participant):
     participant.upload(fits(), channel="Ha", filename="h.fits")
     participant.upload(xisf(), channel="OIII", filename="o.xisf")
     content = operator_client.get(LIST).content.decode()
@@ -277,7 +275,7 @@ def test_liste_zeigt_die_angaben_einer_abgabe(operator_client, participant):  # 
         assert text in content, text
 
 
-def test_suche_nach_kennung_und_nennung(operator_client, another, valid_form):  # noqa: F811
+def test_suche_nach_kennung_und_nennung(operator_client, another, valid_form):
     ada = another()
     valid_form["credit_name"] = "Bruno Nebel"
     bruno = Participant(valid_form)
@@ -286,7 +284,7 @@ def test_suche_nach_kennung_und_nennung(operator_client, another, valid_form):  
     assert listed(operator_client, "?q=nebel") == {bruno.reference}
 
 
-def test_filter(operator_client, another):  # noqa: F811
+def test_filter(operator_client, another):
     data = fits()
     plain, duplicate, rejected, withdrawn = (another() for _ in range(4))
     plain.upload(data, channel="R")
@@ -302,7 +300,7 @@ def test_filter(operator_client, another):  # noqa: F811
 
 
 def test_nennung_und_setup_auch_nach_dem_ende_korrigieren(
-    operator_client,  # noqa: F811
+    operator_client,
     participant,
     campaign,
 ):
@@ -324,7 +322,7 @@ def test_nennung_und_setup_auch_nach_dem_ende_korrigieren(
 
 
 def test_korrigierte_nennung_steht_in_der_begleitdatei(
-    operator_client,  # noqa: F811
+    operator_client,
     participant,
     storage_dir,
 ):
@@ -334,7 +332,7 @@ def test_korrigierte_nennung_steht_in_der_begleitdatei(
     assert sidecar(storage_dir, master)["credit_name"] == "Ada S."
 
 
-def test_anonyme_abgabe_heisst_im_admin_anonym(operator_client, valid_form, campaign):  # noqa: F811
+def test_anonyme_abgabe_heisst_im_admin_anonym(operator_client, valid_form, campaign):
     """Ticket #33."""
     del valid_form["consent_publish_credit"]
     anonymous = Participant(valid_form)
@@ -348,7 +346,7 @@ def test_anonyme_abgabe_heisst_im_admin_anonym(operator_client, valid_form, camp
 
 
 def test_anonyme_abgabe_bekommt_im_admin_keine_nennung(
-    operator_client,  # noqa: F811
+    operator_client,
     valid_form,
     campaign,
 ):
@@ -364,7 +362,7 @@ def test_anonyme_abgabe_bekommt_im_admin_keine_nennung(
 
 
 def test_mit_einwilligung_ist_die_nennung_auch_im_admin_pflicht(
-    operator_client,  # noqa: F811
+    operator_client,
     participant,
 ):
     """Ticket #33: Wer der Veröffentlichung zugestimmt hat, bleibt nicht namenlos."""
@@ -375,7 +373,7 @@ def test_mit_einwilligung_ist_die_nennung_auch_im_admin_pflicht(
     assert Submission.objects.get(pk=participant.submission.pk).credit_name == "Ada Sternguck"
 
 
-def test_einwilligungen_lassen_sich_nicht_erteilen(operator_client, valid_form, campaign):  # noqa: F811
+def test_einwilligungen_lassen_sich_nicht_erteilen(operator_client, valid_form, campaign):
     del valid_form["consent_publish_credit"]
     anonymous = Participant(valid_form)
     url = submission_url(anonymous.submission)
@@ -389,7 +387,7 @@ def test_einwilligungen_lassen_sich_nicht_erteilen(operator_client, valid_form, 
 
 
 def test_zurueckgezogene_abgabe_ist_nicht_mehr_aenderbar(
-    operator_client,  # noqa: F811
+    operator_client,
     participant,
 ):
     operator_client.post(submission_url(participant.submission, "zurueckziehen/"))
@@ -399,7 +397,7 @@ def test_zurueckgezogene_abgabe_ist_nicht_mehr_aenderbar(
 
 
 def test_abgaben_lassen_sich_weder_anlegen_noch_loeschen(
-    operator_client,  # noqa: F811
+    operator_client,
     participant,
 ):
     assert operator_client.get(f"{LIST}add/").status_code == 403

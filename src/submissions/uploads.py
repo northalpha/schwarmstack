@@ -1,4 +1,4 @@
-"""Upload-Ablauf eines Masters über dem Speicher-Modul (ADR 0005).
+"""Upload-Ablauf eines Masters über dem Speicher-Modul (ADR 0005, ADR 0009).
 
 Der Browser führt die S3-Anfragen selbst aus; hier wird nur entschieden, welche Anfrage für
 welchen Master signiert wird, und nach dem Upload der Master übernommen.
@@ -137,16 +137,25 @@ def abort(master: Master) -> Master:
         return master
     if master.state != Master.State.UPLOADING:
         raise Conflict("Dieser Master ist schon abgeschlossen.")
-    if master.upload_id:
-        try:
-            get_storage().abort_multipart(master.key, master.upload_id)
-        except Exception:  # noqa: BLE001
-            # Schon abgeräumt (z. B. vom Browser) oder nie angelegt; die Lifecycle-Regel
-            # räumt Reste ohnehin ab. Die Reservierung wird trotzdem freigegeben.
-            log.info("Multipart-Upload war schon weg: %s", master.public_id)
+    abort_multipart(master)
     master.state = Master.State.ABORTED
     master.save(update_fields=["state"])
     return master
+
+
+def abort_multipart(master: Master) -> None:
+    """Bricht den Multipart-Upload eines Masters im Speicher ab, wenn er eine Upload-ID hat.
+
+    Scheitert das, wird es nur protokolliert: Aufräumen nach bestem Bemühen.
+    """
+    if not master.upload_id:
+        return
+    try:
+        get_storage().abort_multipart(master.key, master.upload_id)
+    except Exception:  # noqa: BLE001
+        # Schon abgeräumt (vom Browser oder durch Abschluss) oder nie angelegt; die
+        # Lifecycle-Regel räumt Reste ohnehin ab. Der Aufrufer macht trotzdem weiter.
+        log.info("Multipart-Upload war schon weg: %s", master.public_id)
 
 
 def sign(master: Master, *, method, key, upload_id=None, part_number=None) -> str:

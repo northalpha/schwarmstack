@@ -12,7 +12,6 @@ from storage_backends import (
     HttpBrowser,
     garage_available,
     garage_storage,
-    moto_endpoint,  # noqa: F401  (Fixture)
     moto_storage,
 )
 
@@ -161,6 +160,21 @@ def test_abbrechen_durch_den_server(backend):
     assert browser.send("GET", storage.presign(S3Request("GET", k, upload_id))).status >= 400
 
 
+def test_upload_id_gilt_nur_fuer_ihren_schluessel(backend, request):
+    # Der Server übernimmt die Upload-ID vom Browser ungeprüft (ADR 0009). Das ist nur
+    # tragbar, weil der Speicher sie an den Schlüssel bindet, unter dem sie angelegt wurde.
+    name, storage, browser = backend
+    if name == "moto":
+        reason = "moto prüft beim Teil-Upload nicht, ob Upload-ID und Schlüssel passen"
+        request.applymarker(pytest.mark.xfail(reason=reason, strict=True))
+    eigen, fremd = key(), key()
+    upload_id = create(storage, browser, fremd)
+    url = storage.presign(S3Request("PUT", eigen, upload_id, 1))
+    assert browser.send("PUT", url, LAST).status >= 400
+    listing = browser.send("GET", storage.presign(S3Request("GET", fremd, upload_id)))
+    assert re.findall(r"<PartNumber>(\d+)</PartNumber>", listing.text) == []
+
+
 def test_falscher_etag_beim_abschluss(backend):
     _, storage, browser = backend
     k = key()
@@ -236,7 +250,7 @@ def test_link_mit_fremdem_schluessel_wird_abgewiesen(signing_backend):
     assert browser.send("POST", forged).status == 403
 
 
-def test_s3_adapter_verweigert_unbekannte_anfragen(moto_endpoint):  # noqa: F811
+def test_s3_adapter_verweigert_unbekannte_anfragen(moto_endpoint):
     storage = moto_storage(moto_endpoint, f"b{uuid.uuid4().hex[:12]}")
     with pytest.raises(ValueError):
         storage.presign(S3Request("DELETE", key()))  # Objekt löschen: nie für den Browser

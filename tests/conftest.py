@@ -1,6 +1,8 @@
 from datetime import timedelta
 
 import pytest
+from admin_helper import PASSWORD
+from django.test import Client
 from django.utils import timezone
 from uploads_helper import Participant
 
@@ -46,6 +48,32 @@ def participant(campaign, valid_form, storage_dir):
 @pytest.fixture
 def another(campaign, valid_form, storage_dir):
     return lambda: Participant(valid_form)
+
+
+@pytest.fixture
+def operator(db, django_user_model):
+    """Ein Betreiber-Konto für den Admin."""
+    return django_user_model.objects.create_superuser("ada", "ada@example.org", PASSWORD)
+
+
+@pytest.fixture
+def operator_client(operator):
+    """Test-Client, als Betreiber angemeldet."""
+    client = Client()
+    client.force_login(operator)
+    return client
+
+
+@pytest.fixture(scope="session")
+def moto_endpoint():
+    """S3 mit moto als eigener Server, einmal je Testlauf."""
+    from moto.server import ThreadedMotoServer
+
+    server = ThreadedMotoServer(ip_address="127.0.0.1", port=0, verbose=False)
+    server.start()
+    host, port = server.get_host_and_port()
+    yield f"http://{host}:{port}"
+    server.stop()
 
 
 def pytest_collection_modifyitems(config, items):
