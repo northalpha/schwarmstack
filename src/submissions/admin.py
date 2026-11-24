@@ -347,7 +347,7 @@ class SubmissionAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
         if change and form.changed_data:
-            services.details_changed(obj)
+            services.details_corrected(obj)
 
     def has_add_permission(self, request):
         return False
@@ -358,7 +358,7 @@ class SubmissionAdmin(admin.ModelAdmin):
     def get_fields(self, request, obj=None):
         if obj is not None and not obj.publishes_credit:
             # Ohne Einwilligung zur Veröffentlichung keine Nennung, auch nicht nachträglich
-            # (services.details_changed): statt des Feldes nur „anonym“ (Ticket #33).
+            # (services.details_corrected): statt des Feldes nur „anonym“ (Ticket #33).
             return ["credit_display" if f == "credit_name" else f for f in self.fields]
         return self.fields
 
@@ -496,7 +496,14 @@ class SubmissionAdmin(admin.ModelAdmin):
                 )
             ),
             details=[
-                f"{_master_label(master)} · {_master_size(master)} · {master.get_state_display()}"
+                " · ".join(
+                    [
+                        master.get_channel_display(),
+                        master.original_name,
+                        _master_size(master),
+                        master.get_state_display(),
+                    ]
+                )
             ],
             button="Ja, löschen",
         )
