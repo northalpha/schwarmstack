@@ -47,6 +47,7 @@ def browser():
 
 @pytest.fixture
 def campaign(transactional_db):
+    """Wie in conftest.py, aber mit transactional_db: der Live-Server sieht die Daten."""
     now = timezone.now()
     return Campaign.objects.create(
         object_name="M 101",
@@ -94,8 +95,18 @@ def test_master_geht_direkt_in_s3(live_server, campaign, s3_settings, browser, t
     assert "/_lokal/" not in page.content()
 
 
+@pytest.mark.parametrize(
+    ("blocked", "begun"),
+    [
+        # Die Teile kommen nie an; der Multipart-Upload im Speicher ist angelegt.
+        ("partNumber=", lambda: Master.objects.exclude(upload_id="").exists()),
+        # Schon die erste Sign-Anfrage kommt nie an: Master ohne upload_id.
+        ("/signieren/", lambda: Master.objects.exists()),
+    ],
+    ids=["mit-upload-id", "ohne-upload-id"],
+)
 def test_nach_neuladen_unterbrochenen_upload_abbrechen(
-    live_server, campaign, s3_settings, browser, tmp_path
+    live_server, campaign, s3_settings, browser, tmp_path, blocked, begun
 ):
     path = tmp_path / "m101_L.fits"
     path.write_bytes(fits(width=2000, height=1500))
@@ -108,14 +119,13 @@ def test_nach_neuladen_unterbrochenen_upload_abbrechen(
     page.click("button[type=submit]")
     page.wait_for_selector("#uploader", state="visible")
 
-    # Die Teile kommen nie an: Der Upload hängt, bis die Seite neu geladen wird.
-    page.route(lambda url: "partNumber=" in url, lambda route: None)
+    # Der Upload hängt, bis die Seite neu geladen wird.
+    page.route(lambda url: blocked in url, lambda route: None)
     page.set_input_files("#files", str(path))
     page.locator(".queue select").first.select_option("L")
     page.click(".uploader button.start")
-    # Der erste Teil ist signiert, also der Multipart-Upload im Speicher angelegt.
     for _ in range(300):
-        if Master.objects.exclude(upload_id="").exists():
+        if begun():
             break
         page.wait_for_timeout(100)
     else:
