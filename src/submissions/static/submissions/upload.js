@@ -1,5 +1,39 @@
 // Upload der Master direkt in den Speicher (ADR 0005), mit Uppy und dem AWS-S3-Plugin.
 // Der Server signiert jede einzelne S3-Anfrage; die Daten laufen nie über ihn.
+
+// Unterbrochene Uploads in der Master-Liste abbrechen, auch ohne Uploader (z. B. in der
+// Nachfrist, wenn sich nichts fortsetzen lässt). Der Server gibt die Reservierung frei.
+(() => {
+  const table = document.querySelector("table.masters");
+  if (!table) return;
+  for (const button of table.querySelectorAll("button.abort")) {
+    button.hidden = false;
+    button.addEventListener("click", async () => {
+      const row = button.closest("tr");
+      const status = row.querySelector(".status");
+      button.disabled = true;
+      try {
+        const response = await fetch(button.dataset.abortUrl, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "X-CSRFToken": table.dataset.csrf },
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || `Fehler ${response.status}`);
+        button.remove();
+        row.dataset.state = "aborted";
+        status.textContent = "abgebrochen";
+        document.dispatchEvent(
+          new CustomEvent("schwarmstack:aborted", { detail: row.dataset.masterId }),
+        );
+      } catch (error) {
+        button.disabled = false;
+        status.textContent = error.message;
+      }
+    });
+  }
+})();
+
 (() => {
   const root = document.getElementById("uploader");
   if (!root || !window.Uppy) return;
@@ -20,6 +54,12 @@
   for (const row of document.querySelectorAll("tr.resumable")) {
     resumable.set(`${row.dataset.name}|${row.dataset.size}`, { ...row.dataset });
   }
+  // In der Liste abgebrochen: lässt sich nicht mehr fortsetzen.
+  document.addEventListener("schwarmstack:aborted", (event) => {
+    for (const [name, match] of resumable) {
+      if (match.masterId === event.detail) resumable.delete(name);
+    }
+  });
 
   // Prüfsumme im Web Worker, parallel zum Upload; gemeldet wird sie mit der Fertig-Meldung.
   const worker = new Worker(root.dataset.shaWorker);
@@ -180,6 +220,8 @@
       select.value = match.channel;
       select.disabled = true;
       status.textContent = "wird fortgesetzt";
+      // Ab jetzt bricht die Warteschlange ab, nicht mehr die Liste.
+      document.querySelector(`tr[data-master-id="${match.masterId}"] button.abort`)?.remove();
     }
     updateButton();
   });

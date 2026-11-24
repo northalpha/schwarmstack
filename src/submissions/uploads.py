@@ -95,6 +95,16 @@ def _require_phase(*, starting: bool) -> None:
         )
 
 
+def interrupted(masters):
+    """Unterbrochene Uploads, die sich noch fortsetzen oder abbrechen lassen: während der Aktion
+    und in der Nachfrist. Danach ist die Abgabe schreibgeschützt."""
+    campaign = Campaign.current()
+    phase = campaign.phase() if campaign else Phase.CLOSED
+    if phase not in (Phase.OPEN, Phase.GRACE):
+        return masters.none()
+    return masters.filter(state=Master.State.UPLOADING)
+
+
 def start(submission: Submission, *, channel, filename, size) -> tuple[Master, str]:
     """Legt einen Master an und gibt den signierten Link zum Anlegen des Multipart-Uploads."""
     _require_phase(starting=True)
