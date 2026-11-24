@@ -18,6 +18,20 @@ grün ist, wird im Review nicht wiederholt.
   übersetzt (`Storage.check()` neben „Check“ für die Prüfung), ist ebenso ein Treffer.
 - Ein neuer Fachbegriff, der im Glossar fehlt, gehört ins Glossar oder ist ein Hinweis, dass
   das Wort nicht passt.
+- Das Glossar gilt für die Domäne, nicht für Technikvokabular. Begriffe der Softwaretechnik, die
+  ein Team auch im deutschen Gespräch englisch benutzt, bleiben englisch und werden nicht
+  übersetzt. Gibt es ein gebräuchliches deutsches Wort, bleibt es deutsch (Prüfsumme, Endpunkt,
+  Sicherung, signierte Links, Grundgerüst, Begleitdatei). Zu meiden sind Zwangsübersetzungen wie:
+
+  | Begriff         | statt                         |
+  | --------------- | ----------------------------- |
+  | Seam            | Naht                          |
+  | Smoke Test      | Rauchtest                     |
+  | Contract Test   | Vertragstest                  |
+  | E2E-Test        | Browser-Durchlauf             |
+  | Range Request   | Teilabruf                     |
+  | Deploy          | Ausrollen                     |
+  | Rollback        | Zurückrollen                  |
 
 ## Wo Fachverhalten liegt
 
