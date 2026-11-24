@@ -104,6 +104,10 @@ class Submission(models.Model):
     def is_withdrawn(self) -> bool:
         return self.withdrawn_at is not None
 
+    @property
+    def withdrawn_by_participant(self) -> bool:
+        return self.withdrawn_by == self.WithdrawnBy.PARTICIPANT
+
     def clean(self):
         # Mit gültiger Einwilligung zur Veröffentlichung gehört eine Nennung dazu (Ticket #33).
         if self.pk and not self.credit_name.strip() and self.publishes_credit:
