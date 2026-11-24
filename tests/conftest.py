@@ -4,6 +4,7 @@ import pytest
 from admin_helper import PASSWORD
 from django.test import Client
 from django.utils import timezone
+from uploads_helper import Participant
 
 from submissions.models import Campaign, Submission
 
@@ -44,6 +45,16 @@ def reference(client, campaign, valid_form, storage_dir):
     """Eine angelegte Abgabe, deren Kennung im Cookie des Test-Clients steht."""
     client.post("/", valid_form)
     return Submission.objects.get().reference
+
+
+@pytest.fixture
+def participant(campaign, valid_form, storage_dir):
+    return Participant(valid_form)
+
+
+@pytest.fixture
+def another(campaign, valid_form, storage_dir):
+    return lambda: Participant(valid_form)
 
 
 @pytest.fixture
