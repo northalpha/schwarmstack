@@ -7,6 +7,7 @@ einzelne Submissions.
 
 import datetime as dt
 from dataclasses import dataclass, field
+from decimal import ROUND_HALF_UP, Decimal
 from zoneinfo import ZoneInfo
 
 from django.db.models import Count, Q, Sum
@@ -104,12 +105,30 @@ def community_numbers() -> dict[str, int]:
 
     Submissions: alle nicht gelöschten, auch ohne Master. Master und Bytes: nur angenommene,
     Dubletten eingeschlossen; Reservierungen laufender Uploads zählen nicht.
+
+    Lights und Belichtung (ADR 0010): Summe über angenommene Master ohne Dubletten, damit dieselbe
+    Aufnahme nicht doppelt zählt. Master ohne Angaben fehlen in den Summen; `mastersWithExposure`
+    zählt die Master, die mindestens einen der beiden Werte haben. Sekunden ganzzahlig gerundet.
     """
     accepted_bytes, _ = usage_parts(Master.objects.all())
+    exposure = Master.objects.filter(
+        state=Master.State.ACCEPTED, duplicate_of__isnull=True
+    ).aggregate(
+        lights=Sum("light_count"),
+        seconds=Sum("total_exposure"),
+        with_exposure=Count(
+            "pk", filter=Q(light_count__isnull=False) | Q(total_exposure__isnull=False)
+        ),
+    )
     return {
         "submissions": Submission.objects.filter(deleted_at__isnull=True).count(),
         "masters": Master.objects.filter(state=Master.State.ACCEPTED).count(),
         "bytes": accepted_bytes,
+        "lights": exposure["lights"] or 0,
+        "exposureSeconds": int(
+            (exposure["seconds"] or Decimal(0)).to_integral_value(ROUND_HALF_UP)
+        ),
+        "mastersWithExposure": exposure["with_exposure"],
     }
 
 
