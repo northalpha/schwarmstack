@@ -29,6 +29,12 @@ if [[ ${#fehlend[@]} -gt 0 ]]; then
     "(Liste in docs/betrieb/deployment.md). Es wurde nichts ausgerollt." >&2
   exit 1
 fi
+# boto3 nimmt einen Endpunkt ohne Schema nicht an; die App startete dann, aber /healthz schlug fehl.
+if [[ ! $S3_ENDPOINT_URL =~ ^https?:// ]]; then
+  echo "::error::S3_ENDPOINT_URL muss mit https:// beginnen (etwa" \
+    "https://fsn1.your-objectstorage.com), ist aber '$S3_ENDPOINT_URL'. Es wurde nichts ausgerollt." >&2
+  exit 1
+fi
 if [[ -n ${BASIC_AUTH_USER:-} && -z ${BASIC_AUTH_HASH:-} ]] \
   || [[ -z ${BASIC_AUTH_USER:-} && -n ${BASIC_AUTH_HASH:-} ]]; then
   echo "::error::BASIC_AUTH_USER und BASIC_AUTH_HASH nur gemeinsam setzen." >&2
