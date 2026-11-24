@@ -95,7 +95,7 @@ def _erzeuger(eintraege: list[Eintrag]) -> str:
     ):
         for e in eintraege:
             if (e.herkunft, e.schluessel) == (herkunft, schluessel) and e.wert:
-                return e.wert
+                return e.wert.strip("'").strip()  # XISF-FITSKeyword: Wert mit Anführungszeichen
     return ""
 
 
@@ -113,7 +113,10 @@ def _fits(f, eintraege: list[Eintrag]) -> None:
             eintrag = _karte(text, hdu)
             eintraege.append(eintrag)
             werte.setdefault(eintrag.schluessel, eintrag.wert)
-        f.seek(_datenlaenge(werte), 1)
+        ende = f.tell() + _datenlaenge(werte)
+        if ende > f.seek(0, 2):
+            raise _Kaputt(f"Datei endet in den Daten von HDU {hdu} (Header gelesen).")
+        f.seek(ende)
         hdu += 1
 
 
@@ -208,9 +211,13 @@ def _tag(element) -> str:
 
 
 def _xisf_element(element, ort: str, eintraege: list[Eintrag]) -> None:
+    bilder = 0
     for kind in element:
         tag = _tag(kind)
         hier = f"{ort}/{tag}" if ort else tag
+        if tag == "Image":
+            bilder += 1
+            hier += f"[{bilder}]"
         if tag == "Image":
             for name, wert in kind.attrib.items():
                 eintraege.append(Eintrag(IMAGE_ATTRIBUTE, name, wert, ort=hier))
