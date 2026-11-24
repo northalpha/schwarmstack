@@ -245,7 +245,7 @@ class SubmissionAdmin(admin.ModelAdmin):
     search_fields = ["reference", "credit_name"]
     list_display = [
         "reference",
-        "credit",
+        "credit_display",
         "setup_short",
         "master_count",
         "channels",
@@ -303,19 +303,19 @@ class SubmissionAdmin(admin.ModelAdmin):
 
     def get_fields(self, request, obj=None):
         if obj is not None and not obj.publishes_credit:
-            # Ohne Einwilligung zur Veröffentlichung gibt es keine Nennung, auch nicht
-            # nachträglich: statt des Feldes nur der Hinweis „anonym“ (Ticket #33).
-            return ["credit" if f == "credit_name" else f for f in self.fields]
+            # Ohne Einwilligung zur Veröffentlichung keine Nennung, auch nicht nachträglich
+            # (services.details_corrected): statt des Feldes nur „anonym“ (Ticket #33).
+            return ["credit_display" if f == "credit_name" else f for f in self.fields]
         return self.fields
 
     def get_readonly_fields(self, request, obj=None):
-        readonly = ["reference", "credit", "created_at", "withdrawn_at", "withdrawn_by"]
+        readonly = ["reference", "credit_display", "created_at", "withdrawn_at", "withdrawn_by"]
         if obj is not None and obj.is_withdrawn:
             readonly += ["credit_name", "setup_description"]
         return readonly
 
     @admin.display(description="Nennung", ordering="credit_name")
-    def credit(self, submission):
+    def credit_display(self, submission):
         return submission.credit_name or "anonym"
 
     @admin.display(description="Setup")

@@ -21,6 +21,13 @@ def campaign(db):
 
 
 @pytest.fixture
+def storage_dir(settings, tmp_path):
+    """Lokaler Speicher-Adapter in einem eigenen Verzeichnis je Test."""
+    settings.STORAGE_LOCAL_DIR = tmp_path / "speicher"
+    return settings.STORAGE_LOCAL_DIR
+
+
+@pytest.fixture
 def valid_form():
     return {
         "credit_name": "Ada Sternguck",

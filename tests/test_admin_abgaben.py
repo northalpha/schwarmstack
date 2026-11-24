@@ -214,7 +214,7 @@ def revoke_url(consent):
     return submission_url(consent.submission, f"einwilligung/{consent.pk}/widerrufen/")
 
 
-def test_widerruf_der_nennung_bleibt_als_vermerk(operator_client, participant):  # noqa: F811
+def test_widerruf_der_nennung_loescht_sie_und_bleibt_als_vermerk(operator_client, participant):  # noqa: F811
     """Der Widerruf der Veröffentlichung löscht die Nennung (Ticket #33)."""
     consent = participant.submission.consents.get(kind=Consent.Kind.PUBLISH_CREDIT)
     assert operator_client.get(revoke_url(consent)).status_code == 200

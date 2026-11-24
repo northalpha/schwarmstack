@@ -92,7 +92,14 @@ def delete_master(master: Master) -> None:
 
 def details_corrected(submission: Submission) -> None:
     """Nach einer Korrektur von Nennung oder Setup die Begleitdateien neu schreiben,
-    damit die Zuordnung ohne Datenbank stimmt (ADR 0006)."""
+    damit die Zuordnung ohne Datenbank stimmt (ADR 0006).
+
+    Ohne gültige Einwilligung zur Veröffentlichung bleibt die Abgabe anonym: Eine nachträglich
+    eingetragene Nennung wird verworfen.
+    """
+    if submission.credit_name and not submission.publishes_credit:
+        submission.credit_name = ""
+        submission.save(update_fields=["credit_name"])
     storage = get_storage()
     for master in submission.masters.filter(state=Master.State.ACCEPTED):
         storage.put_json(master.sidecar_key, sidecar(master))
@@ -131,15 +138,11 @@ def revoke(consent: Consent, *, by: Submission.WithdrawnBy) -> bool:
     """
     if consent.revoked_at is not None:
         return False
-    submission = consent.submission
-    with transaction.atomic():
-        consent.revoked_at = timezone.now()
-        consent.save(update_fields=["revoked_at"])
-        if consent.kind == Consent.Kind.PUBLISH_CREDIT:
-            submission.credit_name = ""
-            submission.save(update_fields=["credit_name"])
+    consent.revoked_at = timezone.now()
+    consent.save(update_fields=["revoked_at"])
     if consent.kind == Consent.Kind.PROJECT_USE:
-        withdraw(submission, by=by)
-    else:
-        details_corrected(submission)
+        withdraw(consent.submission, by=by)
+    elif consent.kind == Consent.Kind.PUBLISH_CREDIT:
+        # Ohne gültige Einwilligung verwirft die Korrektur die Nennung.
+        details_corrected(consent.submission)
     return True
