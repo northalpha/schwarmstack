@@ -1,6 +1,6 @@
 {% if own|length > 1 %}
-<nav class="own" aria-label="Deine Abgaben">
-  <p>Deine Abgaben in diesem Browser:</p>
+<nav class="own" aria-label="Deine Submissions">
+  <p>Deine Submissions in diesem Browser:</p>
   <ul>
     {% for s in own %}
     <li>{% if s == submission %}<strong>{{ s.reference }}</strong>{% else %}<a href="{% url 'submission' s.reference %}">{{ s.reference }}</a>{% endif %}{% if s.setup_description %} – {{ s.setup_description|truncatechars:40 }}{% endif %}</li>

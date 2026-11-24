@@ -98,7 +98,7 @@ STORAGES = {
     "staticfiles": {"BACKEND": "schwarmstack.staticfiles.StaticFilesStorage"},
 }
 
-# Zugang zur Abgabe nur über ein signiertes Cookie (ADR 0002).
+# Zugang zur Submission nur über ein signiertes Cookie (ADR 0002).
 SUBMISSION_COOKIE_SECURE = env_bool("SUBMISSION_COOKIE_SECURE", not DEBUG)
 # Version des Hinweistextes, auf den sich eine Einwilligung bezieht.
 CONSENT_TEXT_VERSION = os.environ.get("CONSENT_TEXT_VERSION", "2026-11")

@@ -115,9 +115,9 @@ def test_groesse_weicht_von_der_angemeldeten_ab(client, reference, storage_dir):
     assert objects(storage_dir) == []
 
 
-def test_grund_steht_auf_der_abgabeseite(client, reference):
+def test_grund_steht_auf_der_submission_seite(client, reference):
     upload(client, reference, fits(bitpix=16), filename="m101_16bit.fits", part_size=4096)
-    content = client.get(f"/abgabe/{reference}/").content.decode()
+    content = client.get(f"/submission/{reference}/").content.decode()
     assert "m101_16bit.fits" in content
     assert "abgelehnt" in content
     assert "32-Bit-Gleitkomma" in content

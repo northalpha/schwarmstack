@@ -71,7 +71,7 @@ def usage_parts(masters) -> tuple[int, int]:
 
 
 def submission_usage():
-    """Belegung je Abgabe als Ausdruck für `Submission.objects.annotate(used=…)`."""
+    """Belegung je Submission als Ausdruck für `Submission.objects.annotate(used=…)`."""
     accepted, reserved = _usage_sums("masters__")
     return Coalesce(accepted, 0) + Coalesce(reserved, 0)
 
@@ -82,7 +82,7 @@ def usage(masters) -> int:
 
 
 def quota_usage(submission: Submission) -> dict:
-    """Belegung der Abgabe gegen ihre Quote, für die Anzeige."""
+    """Belegung der Submission gegen ihre Quote, für die Anzeige."""
     campaign = Campaign.current()
     used = usage(submission.masters.all())
     quota = campaign.quota if campaign else 0
@@ -113,7 +113,7 @@ def _check_limits(campaign: Campaign, submission: Submission, size: int) -> None
     free = campaign.quota - usage(submission.masters.all())
     if size > free:
         raise UploadError(
-            f"Dieser Master passt nicht mehr in die Quote deiner Abgabe: "
+            f"Dieser Master passt nicht mehr in die Quote deiner Submission: "
             f"noch {filesizeformat(max(free, 0))} frei."
         )
     if size > campaign.global_cap - usage(Master.objects.all()):
@@ -124,12 +124,13 @@ def _check_limits(campaign: Campaign, submission: Submission, size: int) -> None
 
 def _phase_refusal(*, starting: bool) -> str | None:
     """Zeitfenster der Aktion: neue Uploads nur während der Aktion, begonnene auch in der
-    Nachfrist; danach ist jede Abgabe schreibgeschützt. Gibt den Grund einer Ablehnung zurück."""
+    Nachfrist; danach ist jede Submission schreibgeschützt. Gibt den Grund einer Ablehnung
+    zurück."""
     phase = Campaign.current_phase()
     if phase is Phase.BEFORE:
         return "Die Aktion hat noch nicht begonnen."
     if phase is Phase.CLOSED:
-        return "Die Aktion ist vorbei, deine Abgabe ist schreibgeschützt."
+        return "Die Aktion ist vorbei, deine Submission ist schreibgeschützt."
     if starting and phase is not Phase.OPEN:
         return (
             "Die Aktion ist beendet. Neue Uploads sind nicht mehr möglich, "
@@ -144,13 +145,13 @@ def _require_phase(*, starting: bool) -> None:
 
 
 def may_start(submission: Submission) -> bool:
-    """Ob die Abgabe jetzt einen neuen Upload beginnen darf."""
-    return not submission.is_withdrawn and _phase_refusal(starting=True) is None
+    """Ob die Submission jetzt einen neuen Upload beginnen darf."""
+    return not submission.is_deleted and _phase_refusal(starting=True) is None
 
 
 def interrupted(masters):
     """Unterbrochene Uploads, die sich noch fortsetzen oder abbrechen lassen: während der Aktion
-    und in der Nachfrist. Danach ist die Abgabe schreibgeschützt."""
+    und in der Nachfrist. Danach ist die Submission schreibgeschützt."""
     if _phase_refusal(starting=False):
         return masters.none()
     return masters.filter(state=Master.State.UPLOADING)
@@ -163,9 +164,9 @@ def resumable(masters):
 
 
 def shows_uploader(submission: Submission) -> bool:
-    """Ob die Abgabeseite den Uploader zeigt: zum Beginnen neuer Uploads oder, in der
+    """Ob die Submission-Seite den Uploader zeigt: zum Beginnen neuer Uploads oder, in der
     Nachfrist, zum Fortsetzen begonnener."""
-    if submission.is_withdrawn:
+    if submission.is_deleted:
         return False
     return may_start(submission) or resumable(submission.masters.all()).exists()
 
@@ -180,8 +181,8 @@ def recently_active(masters):
 def start(submission: Submission, *, channel, filename, size) -> tuple[Master, str]:
     """Legt einen Master an und gibt den signierten Link zum Anlegen des Multipart-Uploads."""
     _require_phase(starting=True)
-    if submission.is_withdrawn:
-        raise UploadError("Diese Abgabe wurde zurückgezogen.")
+    if submission.is_deleted:
+        raise UploadError("Diese Submission wurde gelöscht.")
     if channel not in Master.Channel.values:
         raise UploadError("Bitte wähle einen gültigen Kanal.")
     if not isinstance(filename, str) or not filename.strip():
@@ -328,13 +329,13 @@ def finish(master: Master, *, sha256) -> Master:
 
 
 def _check_duplicates(master: Master) -> validation.Result:
-    """Dieselbe Datei in derselben Abgabe: ablehnen. In einer anderen: annehmen und markieren."""
+    """Dieselbe Datei in derselben Submission: ablehnen, in einer anderen: annehmen, markieren."""
     accepted = Master.objects.filter(sha256=master.sha256, state=Master.State.ACCEPTED).exclude(
         pk=master.pk
     )
     if accepted.filter(submission=master.submission).exists():
         return validation.rejected(
-            validation.Category.DUPLICATE, "Diese Datei ist in deiner Abgabe schon vorhanden."
+            validation.Category.DUPLICATE, "Diese Datei ist in deiner Submission schon vorhanden."
         )
     master.duplicate_of = accepted.order_by("created_at").first()
     return validation.ACCEPTED
@@ -343,7 +344,7 @@ def _check_duplicates(master: Master) -> validation.Result:
 def sidecar(master: Master) -> dict:
     """Angaben neben dem Master, damit die Zuordnung ohne Datenbank rekonstruierbar ist.
 
-    Die Nennung steht nur bei gültiger Einwilligung zur Veröffentlichung darin.
+    Die Namensnennung steht nur bei gültiger Einwilligung zur Namensnennung darin.
     """
     submission = master.submission
     return {

@@ -13,7 +13,7 @@ PART_SIZE = 1024
 
 
 def new_submission(form):
-    """Legt im Browser eine Abgabe an; gibt den Client (mit Cookie) und die Abgabe zurück."""
+    """Legt im Browser eine Submission an; gibt Client (mit Cookie) und Submission zurück."""
     from django.test import Client
 
     from submissions.models import Submission
@@ -26,7 +26,7 @@ def new_submission(form):
 
 def start(client, reference, *, channel="L", filename="m101_L.fits", size):
     return client.post(
-        f"/abgabe/{reference}/master/",
+        f"/submission/{reference}/master/",
         json.dumps({"channel": channel, "filename": filename, "size": size}),
         content_type="application/json",
     )
@@ -34,7 +34,7 @@ def start(client, reference, *, channel="L", filename="m101_L.fits", size):
 
 def sign(client, reference, master_id, **request):
     return client.post(
-        f"/abgabe/{reference}/master/{master_id}/signieren/",
+        f"/submission/{reference}/master/{master_id}/signieren/",
         json.dumps(request),
         content_type="application/json",
     )
@@ -46,7 +46,7 @@ DUMMY_SHA256 = "0" * 64
 def finish(client, reference, master_id, sha256=DUMMY_SHA256):
     body = {} if sha256 is None else {"sha256": sha256}
     return client.post(
-        f"/abgabe/{reference}/master/{master_id}/fertig/",
+        f"/submission/{reference}/master/{master_id}/fertig/",
         json.dumps(body),
         content_type="application/json",
     )
@@ -105,7 +105,7 @@ def upload(client, reference, data, *, channel="L", filename="m101_L.fits", part
 
 
 class Participant:
-    """Eine teilnehmende Person mit eigenem Browser und einer Abgabe."""
+    """Eine teilnehmende Person mit eigenem Browser und einer Submission."""
 
     def __init__(self, form):
         self.client = Client()
@@ -122,4 +122,4 @@ class Participant:
         return Master.objects.get(public_id=response.json()["masterId"])
 
     def used(self):
-        return self.client.get(f"/abgabe/{self.reference}/").context["used"]
+        return self.client.get(f"/submission/{self.reference}/").context["used"]

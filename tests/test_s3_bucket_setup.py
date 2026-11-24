@@ -76,7 +76,7 @@ def test_herkunft_normalisieren(origin, erwartet):
     assert normalize_origin(origin) == erwartet
 
 
-@pytest.mark.parametrize("origin", ["upload.dzvf.de", "https://upload.dzvf.de/abgabe/"])
+@pytest.mark.parametrize("origin", ["upload.dzvf.de", "https://upload.dzvf.de/submission/"])
 def test_herkunft_ohne_schema_oder_mit_pfad_abgelehnt(origin):
     with pytest.raises(CommandError):
         normalize_origin(origin)

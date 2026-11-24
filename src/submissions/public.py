@@ -1,6 +1,6 @@
 """Öffentliche Endpunkte ohne Cookie und ohne Token: die Community-Zahlen (ADR 0009).
 
-Nicht in `api.py`, denn dort ist alles an die Abgabe aus dem Cookie gebunden.
+Nicht in `api.py`, denn dort ist alles an die Submission aus dem Cookie gebunden.
 """
 
 from django.conf import settings

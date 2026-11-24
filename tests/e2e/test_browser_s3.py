@@ -67,7 +67,7 @@ def test_master_geht_direkt_in_s3(live_server, campaign, s3_settings, browser, t
     errors = []
     page.on("pageerror", lambda exc: errors.append(str(exc)))
     page.goto(live_server.url)
-    # Die Nennung hängt am Häkchen zur Veröffentlichung (Ticket #33).
+    # Der Name hängt am Häkchen zur Namensnennung (Ticket #33).
     assert page.is_disabled("[name=credit_name]")
     page.check("[name=consent_publish_credit]")
     assert page.is_enabled("[name=credit_name]")

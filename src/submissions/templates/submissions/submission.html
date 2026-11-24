@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Abgabe {{ submission.reference }} – Schwarmstack{% endblock %}
+{% block title %}Submission {{ submission.reference }} – Schwarmstack{% endblock %}
 {% block content %}
 {% include "submissions/_own.html" %}
 {% for message in messages %}<p class="notice">{{ message }}</p>{% endfor %}
-<h1>Deine Abgabe{% if campaign %} zu {{ campaign.object_name }}{% endif %}</h1>
-<p>Deine Abgabe-Kennung:</p>
+<h1>Deine Submission{% if campaign %} zu {{ campaign.object_name }}{% endif %}</h1>
+<p>Deine Submission-ID:</p>
 <p class="reference">{{ submission.reference }}</p>
 <p class="help">Notiere sie dir. Nenne sie, wenn du dich beim Betreiber meldest. Du findest sie hier jederzeit wieder.</p>
-{% if submission.is_withdrawn %}
-<p class="notice">{% if submission.withdrawn_by_participant %}Du hast diese Abgabe am {{ submission.withdrawn_at|date:"j. F Y" }} zurückgezogen.{% else %}Diese Abgabe wurde am {{ submission.withdrawn_at|date:"j. F Y" }} durch den Betreiber zurückgezogen.{% endif %} Master, Angaben und Einwilligungen sind gelöscht.</p>
+{% if submission.is_deleted %}
+<p class="notice">{% if submission.deleted_by_participant %}Du hast diese Submission am {{ submission.deleted_at|date:"j. F Y" }} gelöscht.{% else %}Diese Submission wurde am {{ submission.deleted_at|date:"j. F Y" }} durch den Betreiber gelöscht.{% endif %} Master, Angaben und Einwilligungen sind gelöscht.</p>
 {% else %}
 <h2>Angaben</h2>
 <dl>
-  <dt>Nennung</dt><dd>{% if submission.credit_name %}{{ submission.credit_name }}{% else %}anonym<br><span class="help">Ohne Einwilligung zur Veröffentlichung speichern wir keinen Namen.</span>{% endif %}</dd>
+  <dt>Namensnennung</dt><dd>{% if submission.credit_name %}{{ submission.credit_name }}{% else %}anonym<br><span class="help">Ohne Einwilligung zur Namensnennung speichern wir keinen Namen.</span>{% endif %}</dd>
   {% if submission.setup_description %}<dt>Setup</dt><dd>{{ submission.setup_description|linebreaksbr }}</dd>{% endif %}
 </dl>
 <h2>Master</h2>
@@ -51,7 +51,7 @@
 {% if phase == "grace" %}
 <p class="notice">Die Aktion ist beendet. {% if show_uploader %}In der Nachfrist bis {{ campaign.closes_at|date:"j. F Y, H:i" }} Uhr kannst du begonnene Uploads noch abschließen.{% else %}Neue Uploads sind nicht mehr möglich.{% endif %}</p>
 {% elif phase == "closed" %}
-<p class="notice">Die Aktion ist vorbei, deine Abgabe ist schreibgeschützt. Du kannst sie weiter ansehen.</p>
+<p class="notice">Die Aktion ist vorbei, deine Submission ist schreibgeschützt. Du kannst sie weiter ansehen.</p>
 {% elif phase == "before" %}
 <p class="notice">Die Aktion hat noch nicht begonnen.</p>
 {% endif %}
@@ -68,14 +68,14 @@
 {% endif %}
 <noscript><p>Zum Hochladen der Master brauchst du JavaScript.</p></noscript>
 {% if may_change %}
-<h2>Abgabe zurückziehen</h2>
-<p class="help">Bis zum Ende der Aktion kannst du deine Abgabe ganz zurückziehen. Master, Angaben und Einwilligungen werden dann gelöscht.</p>
-<p><a href="{% url 'withdraw' submission.reference %}" class="danger">Abgabe zurückziehen …</a></p>
+<h2>Submission löschen</h2>
+<p class="help">Bis zum Ende der Aktion kannst du deine Submission ganz löschen. Master, Angaben und Einwilligungen werden dann gelöscht. Wenn deine Master nicht im Projekt verwendet werden sollen, lösche die Submission.</p>
+<p><a href="{% url 'delete_submission' submission.reference %}" class="danger">Submission löschen …</a></p>
 {% endif %}
 {% endif %}
 
 {% if can_add %}
-<p><a href="{% url 'new_submission' %}">Weitere Abgabe anlegen</a> – für ein weiteres Setup.</p>
+<p><a href="{% url 'new_submission' %}">Weitere Submission anlegen</a> – für ein weiteres Setup.</p>
 {% endif %}
 {% endblock %}
 {% block scripts %}
