@@ -38,3 +38,30 @@ class SubmissionForm(forms.Form):
                 "oder nimm das Häkchen bei der Namensnennung weg.",
             )
         return cleaned
+
+
+class DetailsForm(forms.Form):
+    """Angaben ändern: Setup und Namensnennung. Die Namensnennung gibt es nur mit gültiger
+    Einwilligung zur Namensnennung und ist dann Pflicht (wie `Submission.clean`)."""
+
+    setup_description = forms.CharField(
+        label="Dein Setup",
+        required=False,
+        max_length=2000,
+        widget=forms.Textarea(attrs={"rows": 3}),
+        help_text="Zum Beispiel Teleskop und Kamera. Freiwillig.",
+    )
+    credit_name = forms.CharField(
+        label="Namensnennung",
+        max_length=120,
+        help_text="Unter diesem Namen wirst du im Projekt genannt.",
+        error_messages={
+            "required": "Pflichtangabe: Mit Einwilligung zur Namensnennung braucht die "
+            "Submission einen Namen."
+        },
+    )
+
+    def __init__(self, *args, submission, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not submission.publishes_credit:
+            del self.fields["credit_name"]

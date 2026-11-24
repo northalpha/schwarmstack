@@ -10,7 +10,7 @@ src/
 │   └── staticfiles.py     # WhiteNoise-Storage
 ├── submissions/           # Fachmodul: Aktion, Submission, Master, Einwilligung
 │   ├── models.py
-│   ├── services.py        # Fachverhalten zur Submission: anlegen, Master löschen, Löschung, Widerruf
+│   ├── services.py        # Fachverhalten zur Submission: anlegen, Master löschen, Angaben ändern, Löschung, Widerruf
 │   ├── uploads.py         # Upload-Ablauf: Quote, Gesamtgrenze, Zeitfenster, Dubletten, Begleitdatei
 │   ├── validation.py      # Prüfung der Master (XISF/FITS-Header), Ablehnungskategorien
 │   ├── exposure.py        # Belichtungsangaben: Header-Whitelist lesen, Vorschläge, Herkunft (ADR 0010)
