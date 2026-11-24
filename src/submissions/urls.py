@@ -1,9 +1,10 @@
 from django.urls import path
 
-from . import api, views
+from . import api, public, views
 
 urlpatterns = [
     path("", views.entry, name="entry"),
+    path("zahlen.json", public.community_numbers_view, name="community_numbers"),
     path("neu/", views.new_submission, name="new_submission"),
     path("abgabe/<str:reference>/", views.submission, name="submission"),
     path("abgabe/<str:reference>/master/", api.start, name="upload_start"),

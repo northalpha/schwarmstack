@@ -8,6 +8,18 @@ from xml.sax.saxutils import escape
 PART_SIZE = 1024
 
 
+def new_submission(form):
+    """Legt im Browser eine Abgabe an; gibt den Client (mit Cookie) und die Abgabe zurück."""
+    from django.test import Client
+
+    from submissions.models import Submission
+
+    client = Client()
+    before = set(Submission.objects.values_list("pk", flat=True))
+    client.post("/", form)
+    return client, Submission.objects.exclude(pk__in=before).get()
+
+
 def start(client, reference, *, channel="L", filename="m101_L.fits", size):
     return client.post(
         f"/abgabe/{reference}/master/",

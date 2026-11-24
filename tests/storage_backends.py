@@ -4,7 +4,6 @@ import os
 from dataclasses import dataclass
 
 import boto3
-import pytest
 import requests
 
 from storage.s3 import S3Storage
@@ -60,17 +59,6 @@ class DjangoBrowser:
         )
         body = b"".join(response.streaming_content) if response.streaming else response.content
         return Reply(response.status_code, dict(response.items()), body)
-
-
-@pytest.fixture(scope="session")
-def moto_endpoint():
-    from moto.server import ThreadedMotoServer
-
-    server = ThreadedMotoServer(ip_address="127.0.0.1", port=0, verbose=False)
-    server.start()
-    host, port = server.get_host_and_port()
-    yield f"http://{host}:{port}"
-    server.stop()
 
 
 def moto_storage(endpoint, bucket="contract", **kwargs) -> S3Storage:
