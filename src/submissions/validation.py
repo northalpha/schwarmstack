@@ -12,7 +12,7 @@ from math import prod
 from defusedxml import DefusedXmlException
 from defusedxml.ElementTree import ParseError, fromstring
 
-# So viele Bytes werden für die Prüfung gelesen (Teilabruf des Headers).
+# So viele Bytes werden für die Prüfung gelesen (Range Request auf den Header).
 HEAD_BYTES = 1024 * 1024
 
 _FITS_BLOCK = 2880

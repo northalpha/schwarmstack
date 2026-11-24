@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Alle Prüfungen wie in CI, in derselben Reihenfolge; CI ruft genau dieses Skript auf.
 #
-#   scripts/pruefen.sh            # alles, mit Garage (S3) und Browser-Durchlauf
+#   scripts/pruefen.sh            # alles, mit Garage (S3) und E2E-Test
 #   scripts/pruefen.sh --schnell  # ohne Garage: S3- und Browser-Tests werden übersprungen
 #   scripts/pruefen.sh -- -k admin   # alles nach "--" geht an pytest
 #
