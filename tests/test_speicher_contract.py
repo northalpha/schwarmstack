@@ -1,4 +1,4 @@
-"""Vertragstests: Jeder Speicher-Adapter verhält sich für Server und Browser gleich (Ticket #12)."""
+"""Contract Tests: Jeder Adapter verhält sich für Server und Browser gleich (Ticket #12)."""
 
 import json
 import re
@@ -95,14 +95,14 @@ def test_multipart_von_anfang_bis_ende(backend):
     assert storage.size(k) == len(FIRST) + len(LAST)
 
 
-def test_teilabruf_liest_den_anfang(backend):
+def test_range_request_liest_den_anfang(backend):
     _, storage, browser = backend
     k = key()
     upload(storage, browser, k)
     assert storage.read_head(k, 100) == FIRST[:100]
 
 
-def test_teilabruf_groesser_als_die_datei(backend):
+def test_range_request_groesser_als_die_datei(backend):
     _, storage, _ = backend
     k = key().replace(".fits", ".json")
     storage.put_json(k, {"a": 1})

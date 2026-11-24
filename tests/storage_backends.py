@@ -1,4 +1,4 @@
-"""Speicher-Adapter für die Vertragstests: lokale Platte, S3 mit moto, Garage (wenn verfügbar)."""
+"""Speicher-Adapter für die Contract Tests: lokale Platte, S3 mit moto, Garage (wenn verfügbar)."""
 
 import os
 from dataclasses import dataclass
@@ -73,7 +73,7 @@ def moto_endpoint():
     server.stop()
 
 
-def moto_storage(endpoint, bucket="vertrag", **kwargs) -> S3Storage:
+def moto_storage(endpoint, bucket="contract", **kwargs) -> S3Storage:
     credentials = {"aws_access_key_id": "test", "aws_secret_access_key": "test"}
     s3 = boto3.client("s3", endpoint_url=endpoint, region_name="us-east-1", **credentials)
     s3.create_bucket(Bucket=bucket)
