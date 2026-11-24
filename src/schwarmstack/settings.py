@@ -132,6 +132,11 @@ LOGIN_ATTEMPTS_WINDOW_SECONDS = int(os.environ.get("LOGIN_ATTEMPTS_WINDOW_SECOND
 # Hinter Caddy ist REMOTE_ADDR der Proxy; die IP der Anfrage steht dann als letzter Eintrag in
 # X-Forwarded-For. Nur einschalten, wenn die App ausschließlich hinter dem Proxy erreichbar ist.
 TRUST_X_FORWARDED_FOR = env_bool("TRUST_X_FORWARDED_FOR", not DEBUG)
+# Community-Zahlen (/zahlen.json, ADR 0009): Ursprünge der Community-Seite für CORS, kommagetrennt;
+# "*" erlaubt alle (nur Staging), leer sendet keinen CORS-Header. Cache je Gunicorn-Worker.
+COMMUNITY_ORIGINS = env_list("COMMUNITY_ORIGINS")
+COMMUNITY_CACHE_SECONDS = int(os.environ.get("COMMUNITY_CACHE_SECONDS", 10))
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 SESSION_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = True
 

@@ -32,6 +32,10 @@ _Avoid_: Verbrauch, Auslastung
 Die externe Website des Projekts, auf der Teilnehmende den Link zum Upload finden. Nicht Teil von Schwarmstack.
 _Avoid_: Landingpage, Einstiegsseite
 
+**Community-Seite**:
+Die externe Seite der Community zum Projekt, die die Community-Zahlen abruft und anzeigt. Wie die Projektwebsite nicht Teil von Schwarmstack.
+_Avoid_: Fanseite, Community-Website
+
 **Abgabe** (`Submission`):
 Alles, was eine teilnehmende Person mit einem Setup zur Aktion beiträgt: ihre Angaben und ihre Master. Bleibt bis zum Ende der Aktion offen und ist nur aus dem Browser erreichbar, in dem sie angelegt wurde. Wer mit einem zweiten Setup beiträgt, legt eine weitere Abgabe an.
 _Avoid_: Upload (als Sammelbegriff), Einreichung, Beitrag
@@ -95,15 +99,19 @@ Die Oberfläche nur für Betreiber, mit eigenem Konto je Betreiber: Statistik, A
 _Avoid_: Backend, Dashboard
 
 **Statistik**:
-Der Stand der Aktion für die Betreiber, Startseite des Admin: Abgaben, Master je Zustand und Kanal, Belegung, Dubletten, Ablehnungen nach Kategorie und der Verlauf je Tag. Zählt Abgaben, nie Personen; nicht öffentlich.
+Der Stand der Aktion für die Betreiber, Startseite des Admin: Abgaben, Master je Zustand und Kanal, Belegung, Dubletten, Ablehnungen nach Kategorie und der Verlauf je Tag. Zählt Abgaben, nie Personen; nicht öffentlich. Öffentlich sind nur die Community-Zahlen.
 _Avoid_: Auswertung (für die Seite), Reporting
+
+**Community-Zahlen**:
+Die wenigen Summen zur Aktion, die Schwarmstack öffentlich als JSON ausgibt, damit die Community-Seite sie anzeigen kann: Abgaben, angenommene Master und ihre Datenmenge. Nur aggregierte Summen, nie Namen, Kennungen oder einzelne Abgaben.
+_Avoid_: öffentliche Statistik, Live-Zahlen
 
 **Export**:
 Die Übergabe aller Master an den Betreiber: ein Manifest und je Master ein zeitlich begrenzter Download-Link. Ein **vorläufiger Export** ist jederzeit möglich, enthält aber nur das Manifest ohne Links. Den **endgültigen Export** gibt es genau einmal, frühestens nach Ende der Aktion plus Nachfrist; er friert alle Abgaben ein, auch für Betreiber, und startet die Löschfrist.
 _Avoid_: Download (für den Gesamtvorgang), Archiv, Paket
 
 **Manifest**:
-Die Liste aller Abgaben und ihrer Master mit Angaben, Einwilligungen und Prüfsummen, die zum Export gehört. Einzige Quelle für die öffentliche Nennung, denn Schwarmstack selbst zeigt nichts öffentlich an; nach Ablauf der Löschfrist auch der einzige Nachweis der Einwilligungen.
+Die Liste aller Abgaben und ihrer Master mit Angaben, Einwilligungen und Prüfsummen, die zum Export gehört. Einzige Quelle für die öffentliche Nennung, denn Schwarmstack selbst zeigt nichts öffentlich an außer den Community-Zahlen, reinen Summen ohne Namen, Kennungen oder einzelne Abgaben; nach Ablauf der Löschfrist auch der einzige Nachweis der Einwilligungen.
 _Avoid_: Index, Übersicht
 
 **Löschfrist**:

@@ -84,6 +84,8 @@ Im Repo unter *Settings → Environments* das Environment `staging` anlegen (fü
 | `HSTS_SECONDS` | `0` (Standard); in Produktion z. B. `31536000` | nein |
 | `LOG_LEVEL` | `INFO` (Standard) | nein |
 | `LOGIN_ATTEMPTS_MAX`, `LOGIN_ATTEMPTS_WINDOW_SECONDS` | `5`, `900` (Standard) | nein |
+| `COMMUNITY_ORIGINS` | Ursprünge der Community-Seite für `/zahlen.json`, kommagetrennt, z. B. `https://community.example`; `*` nur auf Staging zum Testen; leer: kein CORS-Header (Standard) | nein |
+| `COMMUNITY_CACHE_SECONDS` | `10` (Standard); `0` schaltet den Cache von `/zahlen.json` ab | nein |
 
 **Secrets**
 
@@ -101,7 +103,7 @@ Den Hash für Basic Auth erzeugt Caddy (fragt das Passwort ab):
 docker run --rm -it caddy:2.10.2 caddy hash-password
 ```
 
-Sind beide gesetzt, verlangt Caddy für alle Seiten außer `/healthz` Benutzername und Passwort. Die Uploads gehen direkt zum S3-Speicher und sind davon nicht betroffen. Kein Wert darf `'` oder einen Zeilenumbruch enthalten.
+Sind beide gesetzt, verlangt Caddy für alle Seiten außer `/healthz` und `/zahlen.json` (Community-Zahlen, ADR 0009) Benutzername und Passwort. Die Uploads gehen direkt zum S3-Speicher und sind davon nicht betroffen. Kein Wert darf `'` oder einen Zeilenumbruch enthalten.
 
 ## 7. Erster Deploy
 
