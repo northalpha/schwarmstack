@@ -4,6 +4,8 @@ Rückzug, Widerruf und Master löschen sind Fachverhalten (`services`); der Admi
 löst sie aus und schreibt jeden Eingriff ins Protokoll (Djangos `LogEntry`).
 """
 
+from decimal import ROUND_HALF_UP, ROUND_UP, Decimal
+
 from django import forms
 from django.contrib import admin, messages
 from django.db.models import Count, Prefetch, Q, Sum
@@ -28,7 +30,46 @@ from .uploads import release_stale, usage
 # -- Aktion --------------------------------------------------------------------
 
 
+GIB = 1024**3
+MIB = 1024**2
+
+
+class SizeField(forms.DecimalField):
+    """Größe in GiB oder MiB im Formular, in Bytes im Modell (wie `manage.py campaign`)."""
+
+    def __init__(self, *, unit: int, **kwargs):
+        self.unit = unit
+        kwargs.setdefault("localize", True)
+        super().__init__(**kwargs)
+
+    def prepare_value(self, value):
+        if isinstance(value, int):
+            # Ganze Zahlen ohne Nachkommastellen zeigen, sonst so genau wie nötig.
+            value = (Decimal(value) / self.unit).normalize()
+            return value.quantize(Decimal(1)) if value == value.to_integral() else value
+        return value
+
+    def to_python(self, value):
+        value = super().to_python(value)
+        if value is None:
+            return None
+        return int((value * self.unit).to_integral_value(rounding=ROUND_HALF_UP))
+
+    def validate(self, value):
+        forms.Field.validate(self, value)
+        if value is not None and value <= 0:
+            raise forms.ValidationError("Die Größe muss größer als 0 sein.", code="min_value")
+
+    def run_validators(self, value):
+        # Die Validatoren der DecimalField prüfen Stellen einer Dezimalzahl, hier steht Bytes.
+        pass
+
+
 class CampaignForm(forms.ModelForm):
+    quota = SizeField(unit=GIB, label="Quote je Abgabe (GiB)")
+    global_cap = SizeField(unit=GIB, label="Gesamtgrenze (GiB)")
+    max_master_size = SizeField(unit=MIB, label="Höchstgröße je Master (MiB)")
+
     class Meta:
         model = Campaign
         fields = [
@@ -55,7 +96,8 @@ class CampaignForm(forms.ModelForm):
                 self.add_error(
                     "global_cap",
                     f"Die Gesamtgrenze darf nicht unter der aktuellen Belegung liegen "
-                    f"({filesizeformat(used)}, {used} Bytes).",
+                    f"({filesizeformat(used)}, aufgerundet "
+                    f"{(Decimal(used) / GIB).quantize(Decimal('0.000001'), ROUND_UP)} GiB).",
                 )
         return cleaned
 
