@@ -7,6 +7,7 @@ urlpatterns = [
     path("zahlen.json", public.community_numbers_view, name="community_numbers"),
     path("neu/", views.new_submission, name="new_submission"),
     path("submission/<str:reference>/", views.submission, name="submission"),
+    path("submission/<str:reference>/aendern/", views.change_details, name="change_details"),
     path(
         "submission/<str:reference>/loeschen/",
         views.delete_submission,

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Angaben ändern – Schwarmstack{% endblock %}
+{% block content %}
+<h1>Angaben ändern</h1>
+<p>Submission <strong>{{ submission.reference }}</strong></p>
+<form method="post">{% csrf_token %}
+  {% for field in form %}{% include "submissions/_field.html" %}{% endfor %}
+  {% if not form.credit_name %}<p class="help">Ohne Einwilligung zur Namensnennung speichern wir keinen Namen.</p>{% endif %}
+  <button type="submit">Speichern</button>
+  <a href="{% url 'submission' submission.reference %}" class="cancel">Abbrechen</a>
+</form>
+{% endblock %}
