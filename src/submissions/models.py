@@ -2,6 +2,7 @@ import enum
 import uuid
 from datetime import datetime, timedelta
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
@@ -94,6 +95,17 @@ class Submission(models.Model):
     @property
     def is_withdrawn(self) -> bool:
         return self.withdrawn_at is not None
+
+    def clean(self):
+        # Mit gültiger Einwilligung zur Veröffentlichung gehört eine Nennung dazu (Ticket #33).
+        if self.pk and not self.credit_name.strip() and self.publishes_credit:
+            raise ValidationError(
+                {
+                    "credit_name": "Mit Einwilligung zur Veröffentlichung braucht die Abgabe "
+                    "eine Nennung. Soll sie anonym werden, den Widerruf der Veröffentlichung "
+                    "vermerken."
+                }
+            )
 
     @property
     def publishes_credit(self) -> bool:

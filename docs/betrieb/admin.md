@@ -33,8 +33,9 @@ Lokal ohne Docker: `uv run python src/manage.py createsuperuser`.
 - **Abgaben**: suchen nach Abgabe-Kennung oder Nennung, Nennung und Setup korrigieren (auch nach
   dem Ende der Aktion), einzelne Master löschen, Abgabe zurückziehen, Widerruf vermerken. Eine
   Nennung gibt es nur mit gültiger Einwilligung zur Veröffentlichung: Anonyme Abgaben zeigen
-  „anonym“ und bekommen auch nachträglich keinen Namen; der Widerruf der Veröffentlichung löscht
-  die Nennung samt Eintrag in den Begleitdateien.
+  „anonym“ und bekommen auch nachträglich keinen Namen. Mit Einwilligung lässt sich die Nennung
+  nicht leeren; soll die Abgabe anonym werden, den Widerruf der Veröffentlichung vermerken. Er
+  löscht die Nennung samt Eintrag in den Begleitdateien.
 - **Download zur Kontrolle**: einzelne angenommene Master über einen Link, der
   `UPLOAD_LINK_SECONDS` (Standard 15 Minuten) gilt.
 - **Protokoll**: jede Änderung, Löschung, jeder Rückzug, Widerruf und Download mit Betreiber und

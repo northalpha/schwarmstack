@@ -400,6 +400,18 @@ def test_anonyme_abgabe_bekommt_im_admin_keine_nennung(
     assert submission.setup_description == "Neu"
 
 
+def test_mit_einwilligung_ist_die_nennung_auch_im_admin_pflicht(
+    operator_client,  # noqa: F811
+    participant,
+):
+    """Ticket #33: Wer der Veröffentlichung zugestimmt hat, bleibt nicht namenlos."""
+    url = submission_url(participant.submission)
+    response = operator_client.post(url, change_form_data(operator_client.get(url), credit_name=""))
+    assert response.status_code == 200
+    assert "Widerruf" in response.context["adminform"].form.errors["credit_name"][0]
+    assert Submission.objects.get(pk=participant.submission.pk).credit_name == "Ada Sternguck"
+
+
 def test_einwilligungen_lassen_sich_nicht_erteilen(operator_client, valid_form, campaign):  # noqa: F811
     del valid_form["consent_publish_credit"]
     anonymous = Participant(valid_form)

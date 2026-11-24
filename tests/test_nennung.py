@@ -52,6 +52,24 @@ def test_ohne_haekchen_wird_ein_name_verworfen(client, campaign, anonymous_form)
     assert "speichern wir keinen Namen" in content
 
 
+def test_ohne_haekchen_erfaehrt_man_dass_der_eingetragene_name_verworfen_wurde(
+    client, campaign, anonymous_form
+):
+    content = client.post("/", anonymous_form, follow=True).content.decode()
+    assert "Deinen Namen haben wir nicht gespeichert" in content
+    # Nur einmal, nicht bei jedem Besuch der Abgabeseite.
+    location = f"/abgabe/{Submission.objects.get().reference}/"
+    assert "Deinen Namen haben wir nicht gespeichert" not in client.get(location).content.decode()
+
+
+def test_ohne_haekchen_und_ohne_name_kein_hinweis_auf_verworfenen_namen(
+    client, campaign, anonymous_form
+):
+    del anonymous_form["credit_name"]
+    content = client.post("/", anonymous_form, follow=True).content.decode()
+    assert "Deinen Namen haben wir nicht gespeichert" not in content
+
+
 def test_formular_sagt_dass_ohne_haekchen_kein_name_gespeichert_wird(client, campaign):
     assert "ohne Häkchen speichern wir keinen Namen" in client.get("/").content.decode()
 
