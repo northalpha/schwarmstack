@@ -43,4 +43,4 @@ testpaths = ["tests"]
 # Ein hängender Test (z. B. ein Speicher, der nie antwortet) bricht mit Traceback ab statt die
 # ganze Suite anzuhalten. Einzelne Tests dürfen mit @pytest.mark.timeout(n) länger.
 timeout = 60
-markers = ["e2e: Durchlauf im echten Browser gegen Garage (braucht scripts/garage.sh start)"]
+markers = ["e2e: E2E-Test im echten Browser gegen Garage (braucht scripts/garage.sh start)"]

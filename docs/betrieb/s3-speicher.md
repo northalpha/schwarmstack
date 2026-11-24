@@ -43,7 +43,7 @@ aws s3api get-bucket-lifecycle-configuration --bucket schwarmstack-prod --endpoi
 
 ## Lokal und in CI: Garage
 
-`scripts/garage.sh start` startet Garage als S3-kompatiblen Container mit festen Testschlüsseln, legt den Bucket `schwarmstack-test` an, setzt CORS und gibt die Umgebungsvariablen aus. Damit laufen die Vertragstests und der Browser-Durchlauf auch gegen echtes S3:
+`scripts/garage.sh start` startet Garage als S3-kompatiblen Container mit festen Testschlüsseln, legt den Bucket `schwarmstack-test` an, setzt CORS und gibt die Umgebungsvariablen aus. Damit laufen die Contract Tests und der E2E-Test auch gegen echtes S3:
 
 ```bash
 set -a; eval "$(scripts/garage.sh start)"; set +a
@@ -53,4 +53,4 @@ set -a; eval "$(scripts/garage.sh start)"; set +a
 uv run pytest
 ```
 
-Ohne gestartetes Garage werden diese Tests übersprungen; die Vertragstests laufen dann gegen die lokale Platte und `moto`.
+Ohne gestartetes Garage werden diese Tests übersprungen; die Contract Tests laufen dann gegen die lokale Platte und `moto`.

@@ -1,4 +1,4 @@
-"""Abgabe anlegen über die HTTP-Naht (Ticket #9)."""
+"""Abgabe anlegen über den HTTP-Seam (Ticket #9)."""
 
 import re
 

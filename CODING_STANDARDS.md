@@ -18,6 +18,20 @@ grün ist, wird im Review nicht wiederholt.
   übersetzt (`Storage.check()` neben „Check“ für die Prüfung), ist ebenso ein Treffer.
 - Ein neuer Fachbegriff, der im Glossar fehlt, gehört ins Glossar oder ist ein Hinweis, dass
   das Wort nicht passt.
+- Das Glossar gilt für die Domäne, nicht für Technikvokabular. Begriffe der Softwaretechnik, die
+  ein Team auch im deutschen Gespräch englisch benutzt, bleiben englisch und werden nicht
+  übersetzt. Gibt es ein gebräuchliches deutsches Wort, bleibt es deutsch (Prüfsumme, Endpunkt,
+  Sicherung, signierte Links, Grundgerüst, Begleitdatei). Zu meiden sind Zwangsübersetzungen wie:
+
+  | Begriff         | statt                         |
+  | --------------- | ----------------------------- |
+  | Seam            | Naht                          |
+  | Smoke Test      | Rauchtest                     |
+  | Contract Test   | Vertragstest                  |
+  | E2E-Test        | Browser-Durchlauf             |
+  | Range Request   | Teilabruf                     |
+  | Deploy          | Ausrollen                     |
+  | Rollback        | Zurückrollen                  |
 
 ## Wo Fachverhalten liegt
 
@@ -28,7 +42,7 @@ grün ist, wird im Review nicht wiederholt.
   Befund.
 - Zugriff auf Dateien nur über `storage.get_storage()` und das `Storage`-Protokoll in
   `src/storage/__init__.py`. Eine neue Methode bekommt jeder Adapter (`local.py`, `s3.py`) und
-  einen Fall in `tests/test_speicher_vertrag.py`, der für alle Adapter läuft.
+  einen Fall in `tests/test_speicher_contract.py`, der für alle Adapter läuft.
 - Breites `except Exception` nur beim Aufräumen am Speicher, mit einem Kommentar, warum der
   Fehler egal ist, und einem Log-Eintrag.
 
@@ -39,7 +53,7 @@ grün ist, wird im Review nicht wiederholt.
 - Jede Änderung mit Wirkung für Teilnehmende oder Betreiber hat einen Eintrag in `changelog.d/`
   mit dem *Warum* (siehe [`changelog.d/README.md`](changelog.d/README.md)).
 - Neue Einstellungen aus der Umgebung stehen in `docs/betrieb/deployment.md` und, wenn der
-  Deploy sie braucht, in `deploy/ausrollen.sh` und `.github/workflows/ausrollen.yml`.
+  Deploy sie braucht, in `deploy/deploy.sh` und `.github/workflows/deploy.yml`.
 
 ## Tests
 
