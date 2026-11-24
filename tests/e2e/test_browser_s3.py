@@ -1,4 +1,4 @@
-"""E2E-Test im echten Browser: Uppy lädt direkt in S3 (Garage), Ticket #12.
+"""E2E-Test im echten Browser: Uppy lädt direkt in S3 (Garage), Tickets #12 und #39.
 
 Prüft nur den Weg Browser -> S3 -> Abschluss; fachliche Regeln testen die HTTP-Tests.
 Läuft nur, wenn Garage gestartet ist (scripts/garage.sh start).
@@ -45,15 +45,20 @@ def browser():
         instance.close()
 
 
-def test_master_geht_direkt_in_s3(live_server, transactional_db, s3_settings, browser, tmp_path):
+@pytest.fixture
+def campaign(transactional_db):
+    """Wie in conftest.py, aber mit transactional_db: der Live-Server sieht die Daten."""
     now = timezone.now()
-    Campaign.objects.create(
+    return Campaign.objects.create(
         object_name="M 101",
         starts_at=now - timedelta(days=1),
         ends_at=now + timedelta(days=1),
         quota=2 * 1024**3,
         global_cap=10 * 1024**3,
     )
+
+
+def test_master_geht_direkt_in_s3(live_server, campaign, s3_settings, browser, tmp_path):
     data = fits(width=2000, height=1500)  # 12 MB, also zwei Teile à 8 MB
     path = tmp_path / "m101_L.fits"
     path.write_bytes(data)
@@ -88,3 +93,56 @@ def test_master_geht_direkt_in_s3(live_server, transactional_db, s3_settings, br
 
     # Die Master-Daten liefen nicht über den App-Server.
     assert "/_lokal/" not in page.content()
+
+
+@pytest.mark.parametrize(
+    ("blocked", "begun"),
+    [
+        # Die Teile kommen nie an; der Multipart-Upload im Speicher ist angelegt.
+        ("partNumber=", lambda: Master.objects.exclude(upload_id="").exists()),
+        # Schon die erste Sign-Anfrage kommt nie an: Master ohne upload_id.
+        ("/signieren/", lambda: Master.objects.exists()),
+    ],
+    ids=["mit-upload-id", "ohne-upload-id"],
+)
+def test_nach_neuladen_unterbrochenen_upload_abbrechen(
+    live_server, campaign, s3_settings, browser, tmp_path, blocked, begun
+):
+    path = tmp_path / "m101_L.fits"
+    path.write_bytes(fits(width=2000, height=1500))
+
+    page = browser.new_page()
+    errors = []
+    page.on("pageerror", lambda exc: errors.append(str(exc)))
+    page.goto(live_server.url)
+    page.check("[name=consent_project_use]")
+    page.click("button[type=submit]")
+    page.wait_for_selector("#uploader", state="visible")
+
+    # Der Upload hängt, bis die Seite neu geladen wird.
+    page.route(lambda url: blocked in url, lambda route: None)
+    page.set_input_files("#files", str(path))
+    page.locator(".queue select").first.select_option("L")
+    page.click(".uploader button.start")
+    for _ in range(300):
+        if begun():
+            break
+        page.wait_for_timeout(100)
+    else:
+        pytest.fail("Upload hat nicht begonnen")
+    page.unroute_all(behavior="ignoreErrors")
+    page.reload()
+
+    # Eben noch aktiv: Abbrechen fragt nach, ob er nicht in einem anderen Fenster läuft.
+    dialogs = []
+    page.on("dialog", lambda dialog: (dialogs.append(dialog.message), dialog.accept()))
+    row = page.locator("table.masters tr[data-master-id]")
+    row.locator("button.abort").click()
+    row.locator("td:has-text('abgebrochen')").wait_for()
+    assert "anderen Fenster" in dialogs[0]
+    assert Master.objects.get().state == Master.State.ABORTED
+    assert page.text_content("label[for=usage]").startswith("Belegt: 0\xa0Bytes")
+
+    page.reload()
+    assert page.locator("table.masters").count() == 0  # Reservierung frei, Master weg
+    assert errors == []

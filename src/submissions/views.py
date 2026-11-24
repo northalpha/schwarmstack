@@ -7,7 +7,7 @@ from . import access, services
 from .forms import SubmissionForm
 from .models import Campaign, Master, Phase, Submission
 from .services import create_submission
-from .uploads import release_stale, usage
+from .uploads import interrupted, quota_usage, recently_active, release_stale
 
 
 @require_http_methods(["GET", "POST"])
@@ -57,17 +57,12 @@ def submission(request, reference):
     submission = _own_submission(request, reference)
     campaign = Campaign.current()
     release_stale()
-    used = usage(submission.masters.all())
-    quota = campaign.quota if campaign else 0
-    phase = campaign.phase() if campaign else Phase.CLOSED
+    phase = Campaign.current_phase()
     masters = submission.masters.all()
-    # Unterbrochene Uploads: im Speicher angelegt, aber nie fertig gemeldet. Fortsetzen geht,
-    # solange die Abgabe nicht schreibgeschützt ist.
-    resumable = (
-        masters.filter(state=Master.State.UPLOADING).exclude(upload_id="")
-        if phase in (Phase.OPEN, Phase.GRACE)
-        else masters.none()
-    )
+    # Unterbrochene Uploads: nie fertig gemeldet. Abbrechen lässt sich jeder; fortsetzen nur,
+    # wenn der Multipart-Upload im Speicher schon angelegt ist.
+    abortable = interrupted(masters)
+    resumable = abortable.exclude(upload_id="")
     show_uploader = not submission.is_withdrawn and (
         phase is Phase.OPEN or (phase is Phase.GRACE and resumable.exists())
     )
@@ -85,17 +80,17 @@ def submission(request, reference):
             "own": _own(request),
             "can_add": can_add,
             "masters": masters.exclude(state=Master.State.ABORTED),
+            "abortable_ids": set(abortable.values_list("pk", flat=True)),
             "deletable_ids": set(
                 masters.filter(state__in=services.DELETABLE).values_list("pk", flat=True)
             ),
             "resumable_ids": set(resumable.values_list("pk", flat=True)),
+            "active_ids": set(recently_active(abortable).values_list("pk", flat=True)),
             "phase": phase.name.lower(),
             "show_uploader": show_uploader,
             "may_start": phase is Phase.OPEN,
             "may_change": services.changeable_by_participant(submission),
-            "used": used,
-            "quota": quota,
-            "used_percent": min(100, used * 100 // quota) if quota else 0,
+            **quota_usage(submission),
             "max_master_size": campaign.max_master_size if campaign else 0,
             "channels": Master.Channel.choices,
         },

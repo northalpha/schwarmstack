@@ -21,12 +21,6 @@ def storage_dir(settings, tmp_path):
     return settings.STORAGE_LOCAL_DIR
 
 
-@pytest.fixture
-def reference(client, campaign, valid_form, storage_dir):
-    client.post("/", valid_form)
-    return Submission.objects.get().reference
-
-
 def stored(storage_dir, key):
     return (storage_dir / "objects" / key).read_bytes()
 
@@ -253,7 +247,7 @@ def test_abgabeseite_listet_master(client, reference):
     assert "OIII" in content
     assert "angenommen" in content
     assert "m101_sii.fits" in content
-    assert "im Upload" in content
+    assert "unterbrochen" in content  # nie fertig gemeldet (Ticket #39)
 
 
 def test_abgabeseite_bindet_uppy_ohne_externe_quellen(client, reference):
