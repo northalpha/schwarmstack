@@ -90,3 +90,11 @@ def test_upload_ohne_aktivitaet_seit_minuten_ist_unterbrochen(client, reference)
     assert "läuft gerade" not in content
     assert "unterbrochen" in content
     assert "data-confirm=" not in content
+
+
+def test_master_im_upload_wird_abgebrochen_nicht_geloescht(client, reference):
+    # Abbrechen geht auch in der Nachfrist, Löschen nicht (Ticket #30); eins genügt.
+    master_id = start(client, reference, size=10).json()["masterId"]
+    content = page(client, reference)
+    assert f'data-abort-url="{abort_url(reference, master_id)}"' in content
+    assert f"/master/{master_id}/loeschen/" not in content

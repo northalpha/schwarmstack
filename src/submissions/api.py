@@ -1,5 +1,6 @@
 """JSON-Endpunkte für den Upload im Browser. Alle an die Abgabe aus dem Cookie gebunden."""
 
+import functools
 import json
 
 from django.contrib import messages
@@ -18,10 +19,19 @@ def _submission(request, reference) -> Submission:
     return get_object_or_404(Submission, reference=reference)
 
 
-def _master(request, reference, master_id) -> Master:
-    return get_object_or_404(
-        Master, public_id=master_id, submission=_submission(request, reference)
-    )
+def _with_master(view):
+    """Übergibt den Master der eigenen Abgabe. Fehlt er, wurde er gelöscht, etwa in einem
+    anderen Tab, während dieser noch hochlädt; das soll der Uploader verständlich anzeigen."""
+
+    @functools.wraps(view)
+    def wrapper(request, reference, master_id):
+        submission = _submission(request, reference)
+        master = Master.objects.filter(public_id=master_id, submission=submission).first()
+        if master is None:
+            return JsonResponse({"error": "Dieser Master wurde gelöscht."}, status=404)
+        return view(request, master)
+
+    return wrapper
 
 
 def _json(request) -> dict:
@@ -69,8 +79,8 @@ def start(request, reference):
 
 
 @require_POST
-def sign(request, reference, master_id):
-    master = _master(request, reference, master_id)
+@_with_master
+def sign(request, master):
     try:
         data = _json(request)
         url = uploads.sign(
@@ -86,8 +96,8 @@ def sign(request, reference, master_id):
 
 
 @require_POST
-def abort(request, reference, master_id):
-    master = _master(request, reference, master_id)
+@_with_master
+def abort(request, master):
     # Ohne JavaScript schickt der Browser das Formular; dann zurück zur Abgabeseite.
     from_form = request.content_type == "application/x-www-form-urlencoded"
     try:
@@ -95,11 +105,11 @@ def abort(request, reference, master_id):
     except (uploads.UploadError, uploads.Conflict) as exc:
         if from_form:
             messages.error(request, str(exc))
-            return redirect("submission", reference)
+            return redirect("submission", master.submission.reference)
         return _error(exc, 409 if isinstance(exc, uploads.Conflict) else 400)
     if from_form:
         messages.info(request, f"Upload von {master.original_name} abgebrochen.")
-        return redirect("submission", reference)
+        return redirect("submission", master.submission.reference)
     return JsonResponse({**master_json(master), "usage": _usage_json(master.submission)})
 
 
@@ -111,8 +121,8 @@ def _usage_json(submission: Submission) -> dict:
 
 
 @require_POST
-def finish(request, reference, master_id):
-    master = _master(request, reference, master_id)
+@_with_master
+def finish(request, master):
     try:
         master = uploads.finish(master, sha256=_json(request).get("sha256"))
     except uploads.UploadError as exc:
