@@ -234,7 +234,7 @@ def test_nach_ende_der_aktion_lehnt_die_api_aenderungen_ab(participant, campaign
 def test_ohne_javascript_speichert_das_formular_und_fuehrt_zurueck(participant):
     master = participant.upload(fits())
     response = participant.client.post(
-        f"/abgabe/{participant.reference}/master/{master.public_id}/belichtung/",
+        f"/submission/{participant.reference}/master/{master.public_id}/belichtung/",
         {"telescope": "RedCat 51"},
     )
     assert response.status_code == 302
@@ -243,22 +243,22 @@ def test_ohne_javascript_speichert_das_formular_und_fuehrt_zurueck(participant):
     assert master.telescope == "RedCat 51"
 
 
-def test_fremde_abgabe_kann_nichts_aendern(participant, another):
+def test_fremde_submission_kann_nichts_aendern(participant, another):
     master = participant.upload(fits())
     other = another()
     response = other.client.post(
-        f"/abgabe/{participant.reference}/master/{master.public_id}/belichtung/",
+        f"/submission/{participant.reference}/master/{master.public_id}/belichtung/",
         '{"telescope": "x"}',
         content_type="application/json",
     )
     assert response.status_code == 404
 
 
-def test_nach_rueckzug_sind_alle_werte_leer(participant):
+def test_nach_loeschung_sind_alle_werte_leer(participant):
     from submissions.models import Master
 
     participant.upload(fits(keywords=DWARF))
-    participant.client.post(f"/abgabe/{participant.reference}/zurueckziehen/")
+    participant.client.post(f"/submission/{participant.reference}/loeschen/")
 
     assert not Master.objects.filter(submission=participant.submission).exists()
     assert not Master.objects.exclude(creator="").exists()
@@ -268,7 +268,7 @@ def test_dublette_liest_ihre_werte_selbst(participant, another):
     data = fits(keywords=DWARF)
     original = participant.upload(data)
     participant.client.post(
-        f"/abgabe/{participant.reference}/master/{original.public_id}/belichtung/",
+        f"/submission/{participant.reference}/master/{original.public_id}/belichtung/",
         '{"telescope": "von Hand"}',
         content_type="application/json",
     )

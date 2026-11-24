@@ -9,7 +9,7 @@ from files import fits
 from uploads_helper import new_submission, start, upload
 
 from submissions.models import Submission
-from submissions.services import withdraw
+from submissions.services import delete_submission
 
 pytestmark = pytest.mark.django_db
 
@@ -37,7 +37,7 @@ def test_ohne_aktion_nullen():
 @pytest.fixture
 def bestand(campaign, valid_form, storage_dir):
     """A: L angenommen, R abgelehnt. B: Dublette von L aus A, ein Upload läuft.
-    C: ohne Master. D: angenommen, dann zurückgezogen."""
+    C: ohne Master. D: angenommen, dann gelöscht."""
     a_client, a = new_submission(valid_form)
     upload(a_client, a.reference, L_DATA, channel="L")
     upload(a_client, a.reference, fits(bitpix=16), channel="R", filename="r.fits")
@@ -50,11 +50,11 @@ def bestand(campaign, valid_form, storage_dir):
 
     d_client, d = new_submission(valid_form)
     upload(d_client, d.reference, fits(width=9), channel="B", filename="b.fits")
-    withdraw(d, by=Submission.WithdrawnBy.PARTICIPANT)
+    delete_submission(d, by=Submission.DeletedBy.PARTICIPANT)
 
 
 def test_zaehlregeln(bestand):
-    # A, B und C; D ist zurückgezogen. Master: L aus A und die Dublette aus B.
+    # A, B und C; D ist gelöscht. Master: L aus A und die Dublette aus B.
     assert zahlen().json() == {"submissions": 3, "masters": 2, "bytes": 2 * len(L_DATA)}
 
 

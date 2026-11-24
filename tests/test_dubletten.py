@@ -78,11 +78,11 @@ def test_ungueltige_pruefsumme(client, reference, value):
 
 def test_ohne_json_ungueltig(client, reference):
     master_id = uploaded_until_finish(client, reference, fits())
-    response = client.post(f"/abgabe/{reference}/master/{master_id}/fertig/")
+    response = client.post(f"/submission/{reference}/master/{master_id}/fertig/")
     assert response.status_code == 400
 
 
-def test_dieselbe_datei_in_derselben_abgabe_wird_abgelehnt(client, reference, storage_dir):
+def test_dieselbe_datei_in_derselben_submission_wird_abgelehnt(client, reference, storage_dir):
     data = fits()
     upload(client, reference, data, filename="erste.fits")
     response = upload(client, reference, data, filename="zweite.fits")
@@ -93,7 +93,7 @@ def test_dieselbe_datei_in_derselben_abgabe_wird_abgelehnt(client, reference, st
     first, second = Master.objects.order_by("created_at")
     assert first.state == Master.State.ACCEPTED
     assert second.state == Master.State.REJECTED
-    assert second.get_rejection_category_display() == "Dublette in derselben Abgabe"
+    assert second.get_rejection_category_display() == "Dublette in derselben Submission"
     assert (storage_dir / "objects" / first.key).exists()
     assert not (storage_dir / "objects" / second.key).exists()
 
@@ -104,7 +104,7 @@ def test_abgelehnte_datei_zaehlt_nicht_als_vorhanden(client, reference):
     assert upload(client, reference, bad).json()["reason"].startswith("Kein 32-Bit")
 
 
-def test_dieselbe_datei_in_anderer_abgabe_ist_eine_dublette(
+def test_dieselbe_datei_in_anderer_submission_ist_eine_dublette(
     client, reference, valid_form, storage_dir
 ):
     data = xisf()
@@ -133,7 +133,7 @@ def test_dublette_wird_teilnehmenden_nicht_angezeigt(client, reference, valid_fo
     other_ref = Submission.objects.exclude(reference=reference).get().reference
     response = upload(other, other_ref, data)
     assert reference not in json.dumps(response.json())
-    assert reference not in other.get(f"/abgabe/{other_ref}/").content.decode()
+    assert reference not in other.get(f"/submission/{other_ref}/").content.decode()
 
 
 def test_dublette_verweist_auf_den_ersten_master(client, campaign, valid_form, storage_dir):
@@ -151,6 +151,6 @@ def test_dublette_verweist_auf_den_ersten_master(client, campaign, valid_form, s
 
 
 def test_uploader_nutzt_web_worker(client, reference):
-    content = client.get(f"/abgabe/{reference}/").content.decode()
+    content = client.get(f"/submission/{reference}/").content.decode()
     assert "data-sha-worker=" in content
     assert "sha256-worker.js" in content

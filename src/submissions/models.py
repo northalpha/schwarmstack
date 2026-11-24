@@ -26,7 +26,7 @@ class Phase(enum.Enum):
 
     @property
     def allows_changes_by_participants(self) -> bool:
-        """Master löschen und Rückzug durch Teilnehmende nur bis zum Ende der Aktion (ADR 0002).
+        """Master löschen und Löschung durch Teilnehmende nur bis zum Ende der Aktion (ADR 0002).
 
         In der Nachfrist dürfen nur begonnene Uploads noch abschließen.
         """
@@ -41,7 +41,7 @@ class Campaign(models.Model):
     starts_at = models.DateTimeField("Beginn")
     ends_at = models.DateTimeField("Ende der Aktion")
     grace_period = models.DurationField("Nachfrist", default=timedelta(hours=6))
-    quota = models.PositiveBigIntegerField("Quote je Abgabe (Bytes)")
+    quota = models.PositiveBigIntegerField("Quote je Submission (Bytes)")
     global_cap = models.PositiveBigIntegerField("Gesamtgrenze (Bytes)")
     max_master_size = models.PositiveBigIntegerField(
         "Höchstgröße je Master (Bytes)", default=500 * 1024**2
@@ -73,7 +73,7 @@ class Campaign(models.Model):
 
     @property
     def closes_at(self) -> datetime:
-        """Ende der Aktion plus Nachfrist: ab hier ist jede Abgabe schreibgeschützt."""
+        """Ende der Aktion plus Nachfrist: ab hier ist jede Submission schreibgeschützt."""
         return self.ends_at + self.grace_period
 
     def phase(self, now: datetime | None = None) -> Phase:
@@ -88,53 +88,53 @@ class Campaign(models.Model):
 
 
 class Submission(models.Model):
-    """Abgabe: Beitrag einer teilnehmenden Person mit einem Setup."""
+    """Submission: was eine teilnehmende Person mit einem Setup zur Aktion beiträgt."""
 
-    class WithdrawnBy(models.TextChoices):
+    class DeletedBy(models.TextChoices):
         PARTICIPANT = "participant", "Teilnehmende"
         OPERATOR = "operator", "Betreiber"
 
-    reference = models.CharField("Abgabe-Kennung", max_length=16, unique=True)
-    # Nennung: nur mit gültiger Einwilligung zur Veröffentlichung, sonst leer (anonym).
-    credit_name = models.CharField("Nennung", max_length=120, blank=True)
+    reference = models.CharField("Submission-ID", max_length=16, unique=True)
+    # Namensnennung: nur mit gültiger Einwilligung zur Namensnennung, sonst leer (anonym).
+    credit_name = models.CharField("Namensnennung", max_length=120, blank=True)
     setup_description = models.TextField("Setup", blank=True, max_length=2000)
     created_at = models.DateTimeField("angelegt", auto_now_add=True)
-    # Rückzug: Nach ihm bleiben nur Kennung, Zeitpunkt und wer ihn ausgelöst hat.
-    withdrawn_at = models.DateTimeField("zurückgezogen am", null=True, blank=True)
-    withdrawn_by = models.CharField(
-        "zurückgezogen durch", max_length=16, choices=WithdrawnBy.choices, blank=True
+    # Löschung: Danach bleiben nur Submission-ID, Zeitpunkt und wer gelöscht hat.
+    deleted_at = models.DateTimeField("gelöscht am", null=True, blank=True)
+    deleted_by = models.CharField(
+        "gelöscht durch", max_length=16, choices=DeletedBy.choices, blank=True
     )
 
     class Meta:
-        verbose_name = "Abgabe"
-        verbose_name_plural = "Abgaben"
+        verbose_name = "Submission"
+        verbose_name_plural = "Submissions"
         ordering = ["created_at"]
 
     def __str__(self):
         return self.reference
 
     @property
-    def is_withdrawn(self) -> bool:
-        return self.withdrawn_at is not None
+    def is_deleted(self) -> bool:
+        return self.deleted_at is not None
 
     @property
-    def withdrawn_by_participant(self) -> bool:
-        return self.withdrawn_by == self.WithdrawnBy.PARTICIPANT
+    def deleted_by_participant(self) -> bool:
+        return self.deleted_by == self.DeletedBy.PARTICIPANT
 
     def clean(self):
-        # Mit gültiger Einwilligung zur Veröffentlichung gehört eine Nennung dazu (Ticket #33).
+        # Mit gültiger Einwilligung zur Namensnennung gehört ein Name dazu (Ticket #33).
         if self.pk and not self.credit_name.strip() and self.publishes_credit:
             raise ValidationError(
                 {
-                    "credit_name": "Mit Einwilligung zur Veröffentlichung braucht die Abgabe "
-                    "eine Nennung. Soll sie anonym werden, den Widerruf der Veröffentlichung "
-                    "vermerken."
+                    "credit_name": "Mit Einwilligung zur Namensnennung braucht die Submission "
+                    "eine Namensnennung. Soll sie anonym werden, den Widerruf der "
+                    "Namensnennung vermerken."
                 }
             )
 
     @property
     def publishes_credit(self) -> bool:
-        """Ob eine gültige (nicht widerrufene) Einwilligung zur Veröffentlichung vorliegt."""
+        """Ob eine gültige (nicht widerrufene) Einwilligung zur Namensnennung vorliegt."""
         return self.consents.filter(
             kind=Consent.Kind.PUBLISH_CREDIT, revoked_at__isnull=True
         ).exists()
@@ -145,7 +145,7 @@ class Consent(models.Model):
 
     class Kind(models.TextChoices):
         PROJECT_USE = "project_use", "Nutzung im Projekt"
-        PUBLISH_CREDIT = "publish_credit", "Veröffentlichung der Nennung"
+        PUBLISH_CREDIT = "publish_credit", "Namensnennung"
 
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name="consents")
     kind = models.CharField("Art", max_length=32, choices=Kind.choices)

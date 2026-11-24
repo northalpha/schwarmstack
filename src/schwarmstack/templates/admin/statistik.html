@@ -12,10 +12,10 @@
 {% with s=statistik %}
 <div class="statistik">
   <section>
-    <h2>Abgaben</h2>
+    <h2>Submissions</h2>
     <table>
       <tr><th>aktiv</th><td class="zahl">{{ s.submissions_active }}</td></tr>
-      <tr><th>zurückgezogen</th><td class="zahl">{{ s.submissions_withdrawn }}</td></tr>
+      <tr><th>gelöscht</th><td class="zahl">{{ s.submissions_deleted }}</td></tr>
       <tr><th>Dubletten (Master)</th><td class="zahl">{{ s.duplicates }}</td></tr>
     </table>
   </section>
@@ -70,13 +70,13 @@
     <h2>Verlauf je Tag</h2>
     {% if s.days %}
     <table>
-      <thead><tr><th>Tag</th><th class="zahl">neue Abgaben</th><th class="zahl">angenommen</th><th class="zahl">Rückzüge</th></tr></thead>
+      <thead><tr><th>Tag</th><th class="zahl">neue Submissions</th><th class="zahl">angenommen</th><th class="zahl">Löschungen</th></tr></thead>
       {% for d in s.days %}
-      <tr><td>{{ d.day|date:"D, j. N Y" }}</td><td class="zahl">{{ d.new_submissions }}</td><td class="zahl">{{ d.accepted|filesizeformat }}</td><td class="zahl">{{ d.withdrawals }}</td></tr>
+      <tr><td>{{ d.day|date:"D, j. N Y" }}</td><td class="zahl">{{ d.new_submissions }}</td><td class="zahl">{{ d.accepted|filesizeformat }}</td><td class="zahl">{{ d.deletions }}</td></tr>
       {% endfor %}
     </table>
-    <p class="help">Nach heutigem Stand: Zurückgezogene Abgaben und gelöschte Master sind nicht enthalten.</p>
-    {% else %}<p>Noch keine Abgaben.</p>{% endif %}
+    <p class="help">Nach heutigem Stand: Gelöschte Submissions und gelöschte Master sind nicht enthalten.</p>
+    {% else %}<p>Noch keine Submissions.</p>{% endif %}
   </section>
 </div>
 {% endwith %}

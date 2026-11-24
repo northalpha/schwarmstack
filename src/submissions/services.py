@@ -1,6 +1,6 @@
-"""Fachverhalten rund um die Abgabe: anlegen, Master löschen, Rückzug, Widerruf.
+"""Fachverhalten rund um die Submission: anlegen, Master löschen, Löschung, Widerruf.
 
-Admin und Abgabeseite rufen diese Operationen auf; sie selbst kennen keine Anfrage.
+Admin und Submission-Seite rufen diese Operationen auf; sie selbst kennen keine Anfrage.
 """
 
 from pathlib import PurePosixPath
@@ -19,10 +19,10 @@ _ATTEMPTS = 5
 
 
 def create_submission(*, credit_name, setup_description, publish_credit) -> Submission:
-    """Legt eine Abgabe samt Einwilligungen an und vergibt eine freie Abgabe-Kennung.
+    """Legt eine Submission samt Einwilligungen an und vergibt eine freie Submission-ID.
 
-    Die Nennung gibt es nur mit der Einwilligung zur Veröffentlichung; ohne sie wird ein
-    eingegebener Name verworfen und die Abgabe bleibt anonym.
+    Die Namensnennung gibt es nur mit der Einwilligung zur Namensnennung; ohne sie wird ein
+    eingegebener Name verworfen und die Submission bleibt anonym.
     """
     kinds = [Consent.Kind.PROJECT_USE]
     if publish_credit:
@@ -49,9 +49,9 @@ def create_submission(*, credit_name, setup_description, publish_credit) -> Subm
                     for kind in kinds
                 )
             return submission
-        except IntegrityError:  # gleichzeitig dieselbe Kennung gezogen
+        except IntegrityError:  # gleichzeitig dieselbe Submission-ID gezogen
             continue
-    raise RuntimeError("Abgabe konnte nicht angelegt werden")
+    raise RuntimeError("Submission konnte nicht angelegt werden")
 
 
 # Nur diese Master lassen sich löschen; abgelehnte und abgebrochene haben keine Datei mehr.
@@ -85,12 +85,12 @@ def delete_master(master: Master) -> None:
             storage.put_json(duplicate.sidecar_key, sidecar(duplicate))
 
 
-def details_corrected(submission: Submission) -> None:
-    """Nach einer Änderung von Nennung oder Setup (im Admin oder durch einen Widerruf) die
+def details_changed(submission: Submission) -> None:
+    """Nach einer Änderung von Namensnennung oder Setup (im Admin oder durch einen Widerruf) die
     Begleitdateien neu schreiben, damit die Zuordnung ohne Datenbank stimmt (ADR 0006).
 
-    Ohne gültige Einwilligung zur Veröffentlichung bleibt die Abgabe anonym: Eine nachträglich
-    eingetragene Nennung wird verworfen.
+    Ohne gültige Einwilligung zur Namensnennung bleibt die Submission anonym: Eine nachträglich
+    eingetragene Namensnennung wird verworfen.
     """
     if submission.credit_name and not submission.publishes_credit:
         submission.credit_name = ""
@@ -101,25 +101,26 @@ def details_corrected(submission: Submission) -> None:
 
 
 def changeable_by_participant(submission: Submission) -> bool:
-    """Ob Teilnehmende selbst Master löschen oder die Abgabe zurückziehen dürfen: nur bis zum
-    Ende der Aktion und nicht mehr nach einem Rückzug (ADR 0002)."""
+    """Ob Teilnehmende selbst Master löschen oder die Submission löschen dürfen: nur bis zum
+    Ende der Aktion und nicht mehr nach einer Löschung (ADR 0002)."""
     phase = Campaign.current_phase()
-    return phase.allows_changes_by_participants and not submission.is_withdrawn
+    return phase.allows_changes_by_participants and not submission.is_deleted
 
 
-def withdraw(submission: Submission, *, by: Submission.WithdrawnBy) -> Submission:
-    """Rückzug: löscht alle Master, Angaben und Einwilligungen samt Widerruf.
+def delete_submission(submission: Submission, *, by: Submission.DeletedBy) -> Submission:
+    """Löschung: löscht alle Master, Angaben und Einwilligungen samt Widerruf.
 
-    Es bleiben die Abgabe-Kennung, der Zeitpunkt und wer den Rückzug ausgelöst hat. Eine
-    zurückgezogene Abgabe zählt nicht mehr auf Quote oder Gesamtgrenze und öffnet nicht wieder.
+    Es bleiben die Submission-ID, der Zeitpunkt und wer gelöscht hat. Eine gelöschte
+    Submission zählt nicht mehr auf Quote oder Gesamtgrenze und öffnet nicht wieder. Wer die
+    Nutzung im Projekt nicht mehr will, löscht die Submission; die Löschung ist der Nachweis.
     """
     with transaction.atomic():
         submission = Submission.objects.select_for_update().get(pk=submission.pk)
-        if submission.is_withdrawn:
+        if submission.is_deleted:
             return submission
-        # Zuerst als zurückgezogen markieren: Ab hier startet kein neuer Upload mehr.
-        submission.withdrawn_at = timezone.now()
-        submission.withdrawn_by = by
+        # Zuerst als gelöscht markieren: Ab hier startet kein neuer Upload mehr.
+        submission.deleted_at = timezone.now()
+        submission.deleted_by = by
         submission.credit_name = ""
         submission.setup_description = ""
         submission.save()
@@ -131,28 +132,29 @@ def withdraw(submission: Submission, *, by: Submission.WithdrawnBy) -> Submissio
     return submission
 
 
-def revocation_withdraws(consent: Consent) -> bool:
-    """Ob der Widerruf dieser Einwilligung die ganze Abgabe zurückzieht: nur bei der Nutzung
-    im Projekt, ohne sie kann die Abgabe nicht bleiben."""
-    return consent.kind == Consent.Kind.PROJECT_USE
+# Widerrufen lässt sich nur die Einwilligung zur Namensnennung. Wer die Nutzung im Projekt
+# nicht mehr will, löscht die Submission.
+REVOCABLE = (Consent.Kind.PUBLISH_CREDIT,)
 
 
-def revoke(consent: Consent, *, by: Submission.WithdrawnBy) -> bool:
-    """Widerruf einer Einwilligung: Sie bekommt einen Zeitpunkt und bleibt stehen.
+def revoke(consent: Consent) -> bool:
+    """Widerruf der Einwilligung zur Namensnennung: Sie bekommt einen Zeitpunkt und bleibt
+    stehen; die Namensnennung wird gelöscht und die Begleitdateien neu geschrieben.
 
-    Der Widerruf der Nutzung im Projekt löst den Rückzug der ganzen Abgabe aus. Der Widerruf
-    der Veröffentlichung löscht die Nennung und schreibt die Begleitdateien neu. Gibt zurück,
-    ob sich etwas geändert hat (ein schon vermerkter Widerruf ändert nichts).
+    Gibt zurück, ob sich etwas geändert hat (ein schon vermerkter Widerruf ändert nichts).
+    Andere Einwilligungen lassen sich nicht widerrufen (`ValueError`).
     """
+    if consent.kind not in REVOCABLE:
+        raise ValueError(
+            f"Die Einwilligung „{consent.get_kind_display()}“ lässt sich nicht widerrufen; "
+            "dafür die Submission löschen."
+        )
     if consent.revoked_at is not None:
         return False
     consent.revoked_at = timezone.now()
     consent.save(update_fields=["revoked_at"])
-    if revocation_withdraws(consent):
-        withdraw(consent.submission, by=by)
-    elif consent.kind == Consent.Kind.PUBLISH_CREDIT:
-        # Ohne gültige Einwilligung wird die Nennung dabei verworfen.
-        details_corrected(consent.submission)
+    # Ohne gültige Einwilligung wird die Namensnennung dabei verworfen.
+    details_changed(consent.submission)
     return True
 
 
@@ -166,7 +168,7 @@ def exposure_changeable_by_participant(master: Master) -> bool:
 
 
 def exposure_changeable_by_operator(master: Master) -> bool:
-    """Betreiber korrigieren Belichtungsangaben angenommener Master, auch nach der Aktion."""
+    """Betreiber ändern Belichtungsangaben angenommener Master, auch nach der Aktion."""
     return master.state == Master.State.ACCEPTED
 
 

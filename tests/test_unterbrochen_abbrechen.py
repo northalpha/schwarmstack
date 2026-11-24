@@ -1,4 +1,4 @@
-"""Unterbrochene Uploads auf der Abgabeseite abbrechen (Ticket #39)."""
+"""Unterbrochene Uploads auf der Submission-Seite abbrechen (Ticket #39)."""
 
 from datetime import timedelta
 from unittest import mock
@@ -12,11 +12,11 @@ pytestmark = pytest.mark.django_db
 
 
 def page(client, reference):
-    return client.get(f"/abgabe/{reference}/").content.decode()
+    return client.get(f"/submission/{reference}/").content.decode()
 
 
 def abort_url(reference, master_id):
-    return f"/abgabe/{reference}/master/{master_id}/abbrechen/"
+    return f"/submission/{reference}/master/{master_id}/abbrechen/"
 
 
 def test_unterbrochener_upload_ohne_upload_id_hat_bedienelement_zum_abbrechen(client, reference):
@@ -52,10 +52,10 @@ def abort_form(client, reference, master_id):
     )
 
 
-def test_abbrechen_ohne_javascript_fuehrt_zurueck_zur_abgabeseite(client, reference):
+def test_abbrechen_ohne_javascript_fuehrt_zurueck_zur_submission_seite(client, reference):
     master_id = start(client, reference, size=10).json()["masterId"]
     response = abort_form(client, reference, master_id)
-    assert response.redirect_chain == [(f"/abgabe/{reference}/", 302)]
+    assert response.redirect_chain == [(f"/submission/{reference}/", 302)]
     content = response.content.decode()
     assert "Upload von m101_L.fits abgebrochen" in content
     assert "unterbrochen" not in content
@@ -71,7 +71,7 @@ def test_abbrechen_ohne_javascript_zeigt_den_grund_einer_ablehnung(client, refer
     # Seite veraltet: Der Master ist inzwischen fertig.
     master_id = upload(client, reference, fits()).json()["masterId"]
     response = abort_form(client, reference, master_id)
-    assert response.redirect_chain == [(f"/abgabe/{reference}/", 302)]
+    assert response.redirect_chain == [(f"/submission/{reference}/", 302)]
     assert "Dieser Master ist schon abgeschlossen." in response.content.decode()
 
 

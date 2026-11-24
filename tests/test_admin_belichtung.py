@@ -1,4 +1,4 @@
-"""Belichtungsangaben im Admin korrigieren, auch nach Ende der Aktion (Ticket #50)."""
+"""Belichtungsangaben im Admin ändern, auch nach Ende der Aktion (Ticket #50)."""
 
 import pytest
 from admin_helper import ADMIN, change_form_data, submission_url
@@ -12,7 +12,7 @@ def master_change_url(master):
     return f"{ADMIN}submissions/master/{master.pk}/change/"
 
 
-def test_betreiber_korrigiert_wert_der_wird_manuell(operator_client, participant):
+def test_betreiber_aendert_wert_der_wird_manuell(operator_client, participant):
     master = participant.upload(fits(keywords=DWARF))
     form = operator_client.get(master_change_url(master))
     assert form.status_code == 200
@@ -28,7 +28,7 @@ def test_betreiber_korrigiert_wert_der_wird_manuell(operator_client, participant
     assert master.channel == "L"
 
 
-def test_abgabe_seite_im_admin_verlinkt_die_belichtungsangaben(operator_client, participant):
+def test_submission_seite_im_admin_verlinkt_die_belichtungsangaben(operator_client, participant):
     master = participant.upload(fits(keywords=DWARF))
     html = operator_client.get(submission_url(participant.submission)).content.decode()
     assert master_change_url(master) in html
