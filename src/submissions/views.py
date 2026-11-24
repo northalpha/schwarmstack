@@ -7,7 +7,15 @@ from . import access, services
 from .forms import SubmissionForm
 from .models import Campaign, Master, Phase, Submission
 from .services import create_submission
-from .uploads import interrupted, quota_usage, recently_active, release_stale
+from .uploads import (
+    interrupted,
+    may_start,
+    quota_usage,
+    recently_active,
+    release_stale,
+    resumable,
+    shows_uploader,
+)
 
 
 @require_http_methods(["GET", "POST"])
@@ -59,18 +67,8 @@ def submission(request, reference):
     release_stale()
     phase = Campaign.current_phase()
     masters = submission.masters.all()
-    # Unterbrochene Uploads: nie fertig gemeldet. Abbrechen lässt sich jeder; fortsetzen nur,
-    # wenn der Multipart-Upload im Speicher schon angelegt ist.
     abortable = interrupted(masters)
-    resumable = abortable.exclude(upload_id="")
-    show_uploader = not submission.is_withdrawn and (
-        phase is Phase.OPEN or (phase is Phase.GRACE and resumable.exists())
-    )
-    can_add = (
-        campaign is not None
-        and campaign.phase().accepts_new_submissions
-        and access.has_room(request)
-    )
+    can_add = phase.accepts_new_submissions and access.has_room(request)
     return render(
         request,
         "submissions/submission.html",
@@ -84,11 +82,11 @@ def submission(request, reference):
             "deletable_ids": set(
                 masters.filter(state__in=services.DELETABLE).values_list("pk", flat=True)
             ),
-            "resumable_ids": set(resumable.values_list("pk", flat=True)),
+            "resumable_ids": set(resumable(masters).values_list("pk", flat=True)),
             "active_ids": set(recently_active(abortable).values_list("pk", flat=True)),
             "phase": phase.name.lower(),
-            "show_uploader": show_uploader,
-            "may_start": phase is Phase.OPEN,
+            "show_uploader": shows_uploader(submission),
+            "may_start": may_start(submission),
             "may_change": services.changeable_by_participant(submission),
             **quota_usage(submission),
             "max_master_size": campaign.max_master_size if campaign else 0,

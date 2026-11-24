@@ -3,12 +3,14 @@
 from datetime import timedelta
 
 import pytest
+from django.core.exceptions import ValidationError
 from django.test import Client
 from django.utils import timezone
 from files import fits
 from uploads_helper import create, finish, send_parts, sign, start, upload
 
 from submissions.models import Master, Submission
+from submissions.uploads import STALE_AFTER, check_global_cap, submission_usage, usage
 
 pytestmark = pytest.mark.django_db
 
@@ -194,3 +196,30 @@ def test_abgebrochene_master_stehen_nicht_in_der_liste(client, reference):
     body = start(client, reference, size=10, filename="weg.fits").json()
     abort(client, reference, body["masterId"])
     assert "weg.fits" not in client.get(f"/abgabe/{reference}/").content.decode()
+
+
+# -- Gesamtgrenze ändern und Belegung je Abgabe (Ticket #42) ------------------
+
+
+def test_gesamtgrenze_nicht_unter_der_belegung(reference, campaign):
+    Master.objects.create(
+        submission=Submission.objects.get(), key="k", declared_size=3 * MIB, original_name="a"
+    )
+    with pytest.raises(ValidationError, match="Belegung"):
+        check_global_cap(3 * MIB - 1)
+    check_global_cap(3 * MIB)
+
+
+def test_aufgegebene_uploads_zaehlen_beim_aendern_der_gesamtgrenze_nicht(reference, campaign):
+    master = Master.objects.create(
+        submission=Submission.objects.get(), key="k", declared_size=3 * MIB, original_name="a"
+    )
+    Master.objects.filter(pk=master.pk).update(created_at=timezone.now() - STALE_AFTER * 2)
+    check_global_cap(0)
+
+
+def test_belegung_je_abgabe_wie_fuer_die_quote(client, reference, campaign, storage_dir):
+    upload(client, reference, fits())
+    start(client, reference, size=5 * MIB)
+    submission = Submission.objects.annotate(used=submission_usage()).get()
+    assert submission.used == usage(submission.masters.all()) > 5 * MIB

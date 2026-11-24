@@ -4,12 +4,11 @@ Rückzug, Widerruf und Master löschen sind Fachverhalten (`services`); der Admi
 löst sie aus und schreibt jeden Eingriff ins Protokoll (Djangos `LogEntry`).
 """
 
-from decimal import ROUND_HALF_UP, ROUND_UP, Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from django import forms
 from django.contrib import admin, messages
-from django.db.models import Count, Prefetch, Q, Sum
-from django.db.models.functions import Coalesce
+from django.db.models import Count, Prefetch, Q
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect
 from django.template.defaultfilters import filesizeformat, truncatechars
@@ -23,9 +22,8 @@ from schwarmstack.models import ProtocolEntry
 from schwarmstack.operator_site import site
 from storage import get_storage
 
-from . import services
+from . import services, uploads
 from .models import Campaign, Consent, Master, Phase, Submission
-from .uploads import release_stale, usage
 
 # -- Aktion --------------------------------------------------------------------
 
@@ -82,24 +80,11 @@ class CampaignForm(forms.ModelForm):
             "max_master_size",
         ]
 
-    def clean(self):
-        cleaned = super().clean()
-        starts_at = cleaned.get("starts_at", self.instance.starts_at)
-        ends_at = cleaned.get("ends_at")
-        if starts_at and ends_at and ends_at <= starts_at:
-            self.add_error("ends_at", "Das Ende der Aktion muss nach dem Beginn liegen.")
-        global_cap = cleaned.get("global_cap")
-        if global_cap is not None:
-            release_stale()
-            used = usage(Master.objects.all())
-            if global_cap < used:
-                self.add_error(
-                    "global_cap",
-                    f"Die Gesamtgrenze darf nicht unter der aktuellen Belegung liegen "
-                    f"({filesizeformat(used)}, aufgerundet "
-                    f"{(Decimal(used) / GIB).quantize(Decimal('0.000001'), ROUND_UP)} GiB).",
-                )
-        return cleaned
+    # Ende nach Beginn prüft `Campaign.clean()`, das die ModelForm selbst aufruft.
+    def clean_global_cap(self):
+        global_cap = self.cleaned_data["global_cap"]
+        uploads.check_global_cap(global_cap)
+        return global_cap
 
 
 @admin.register(Campaign, site=site)
@@ -133,7 +118,7 @@ class CampaignAdmin(admin.ModelAdmin):
 
     @admin.display(description="Belegung")
     def current_usage(self, obj):
-        return filesizeformat(usage(Master.objects.all()))
+        return filesizeformat(uploads.usage(Master.objects.all()))
 
     def changelist_view(self, request, extra_context=None):
         campaign = Campaign.current()
@@ -329,11 +314,7 @@ class SubmissionAdmin(admin.ModelAdmin):
                 n_duplicates=Count(
                     "masters", filter=accepted & Q(masters__duplicate_of__isnull=False)
                 ),
-                used=Coalesce(Sum("masters__size", filter=accepted), 0)
-                + Coalesce(
-                    Sum("masters__declared_size", filter=Q(masters__state=Master.State.UPLOADING)),
-                    0,
-                ),
+                used=uploads.submission_usage(),
             )
             .prefetch_related(
                 Prefetch(
@@ -524,7 +505,7 @@ class SubmissionAdmin(admin.ModelAdmin):
     def revoke_view(self, request, pk, consent_id):
         submission = self._submission(request, pk)
         consent = get_object_or_404(Consent, pk=consent_id, submission=submission)
-        withdraws = consent.kind == Consent.Kind.PROJECT_USE
+        withdraws = services.revocation_withdraws(consent)
         if request.method == "POST":
             label = consent.get_kind_display()
             if services.revoke(consent, by=Submission.WithdrawnBy.OPERATOR):
