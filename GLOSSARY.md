@@ -52,6 +52,10 @@ _Avoid_: Deadline, Schluss
 Die Zeitspanne nach dem Ende der Aktion (6 Stunden), in der bereits begonnene Uploads noch abgeschlossen werden dürfen.
 _Avoid_: Kulanzzeit, Verlängerung
 
+**Unterbrochener Upload** (`interrupted`):
+Ein Upload, der begonnen, aber nie fertig gemeldet wurde, etwa weil der Browser geschlossen wurde. Er belegt seine angemeldete Größe, bis er fortgesetzt, abgebrochen oder nach 7 Tagen freigegeben wird. Abbrechen geht bis zum Ende der Nachfrist; fortsetzen nur, wenn der Multipart-Upload im Speicher schon angelegt ist. Gab es in den letzten Minuten noch Anfragen, läuft er vielleicht in einem anderen Fenster weiter.
+_Avoid_: hängender Upload, abgebrochener Upload (das ist der Zustand danach)
+
 **Master** (`Master`):
 Eine hochgeladene, lineare und unbearbeitete integrierte Bilddatei (XISF oder FITS, 32 Bit) für genau einen Kanal: ein Filterkanal bei Mono-Kameras, ein debayertes RGB-Bild bei Farbkameras.
 _Avoid_: Stack, Frame, Rohbild, Upload (für die Datei)

@@ -133,10 +133,15 @@ def test_nach_neuladen_unterbrochenen_upload_abbrechen(
     page.unroute_all(behavior="ignoreErrors")
     page.reload()
 
+    # Eben noch aktiv: Abbrechen fragt nach, ob er nicht in einem anderen Fenster läuft.
+    dialogs = []
+    page.on("dialog", lambda dialog: (dialogs.append(dialog.message), dialog.accept()))
     row = page.locator("table.masters tr[data-master-id]")
     row.locator("button.abort").click()
     row.locator("td:has-text('abgebrochen')").wait_for()
+    assert "anderen Fenster" in dialogs[0]
     assert Master.objects.get().state == Master.State.ABORTED
+    assert page.text_content("label[for=usage]").startswith("Belegt: 0\xa0Bytes")
 
     page.reload()
     assert page.locator("table.masters").count() == 0  # Reservierung frei, Master weg
