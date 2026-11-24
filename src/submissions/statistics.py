@@ -98,17 +98,18 @@ def compute() -> Statistics:
 
 
 def community_numbers() -> dict[str, int]:
-    """Community-Zahlen: dieselben Abfragen wie `compute()`, aber rein lesend (kein
+    """Community-Zahlen: dieselben Regeln wie `compute()`, aber rein lesend (kein
     `release_stale()`), denn sie laufen im öffentlichen Pfad.
 
     Abgaben: alle nicht zurückgezogenen, auch ohne Master. Master und Bytes: nur angenommene,
     Dubletten eingeschlossen; Reservierungen laufender Uploads zählen nicht.
     """
-    submissions = Submission.objects.filter(withdrawn_at__isnull=True).count()
-    accepted = Master.objects.filter(state=Master.State.ACCEPTED).aggregate(
-        n=Count("pk"), size=Sum("size")
-    )
-    return {"submissions": submissions, "masters": accepted["n"], "bytes": accepted["size"] or 0}
+    accepted_bytes, _ = usage_parts(Master.objects.all())
+    return {
+        "submissions": Submission.objects.filter(withdrawn_at__isnull=True).count(),
+        "masters": Master.objects.filter(state=Master.State.ACCEPTED).count(),
+        "bytes": accepted_bytes,
+    }
 
 
 def _channels(accepted) -> list[ChannelRow]:

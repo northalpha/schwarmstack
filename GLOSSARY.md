@@ -32,6 +32,10 @@ _Avoid_: Verbrauch, Auslastung
 Die externe Website des Projekts, auf der Teilnehmende den Link zum Upload finden. Nicht Teil von Schwarmstack.
 _Avoid_: Landingpage, Einstiegsseite
 
+**Community-Seite**:
+Die externe Seite der Community zum Projekt, die die Community-Zahlen abruft und anzeigt. Wie die Projektwebsite nicht Teil von Schwarmstack.
+_Avoid_: Fanseite, Community-Website
+
 **Abgabe** (`Submission`):
 Alles, was eine teilnehmende Person mit einem Setup zur Aktion beiträgt: ihre Angaben und ihre Master. Bleibt bis zum Ende der Aktion offen und ist nur aus dem Browser erreichbar, in dem sie angelegt wurde. Wer mit einem zweiten Setup beiträgt, legt eine weitere Abgabe an.
 _Avoid_: Upload (als Sammelbegriff), Einreichung, Beitrag

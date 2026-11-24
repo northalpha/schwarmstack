@@ -3,13 +3,13 @@
 from datetime import timedelta
 
 import pytest
-from admin_helper import operator, operator_client, submission_url  # noqa: F401
 from django.test import Client
 from django.utils import timezone
 from files import fits
-from uploads_helper import start, upload
+from uploads_helper import new_submission, start, upload
 
 from submissions.models import Submission
+from submissions.services import withdraw
 
 pytestmark = pytest.mark.django_db
 
@@ -34,15 +34,8 @@ def test_ohne_aktion_nullen():
     assert zahlen().json() == {"submissions": 0, "masters": 0, "bytes": 0}
 
 
-def new_submission(form):
-    client = Client()
-    before = set(Submission.objects.values_list("pk", flat=True))
-    client.post("/", form)
-    return client, Submission.objects.exclude(pk__in=before).get()
-
-
 @pytest.fixture
-def bestand(campaign, valid_form, storage_dir, operator_client):  # noqa: F811
+def bestand(campaign, valid_form, storage_dir):
     """A: L angenommen, R abgelehnt. B: Dublette von L aus A, ein Upload läuft.
     C: ohne Master. D: angenommen, dann zurückgezogen."""
     a_client, a = new_submission(valid_form)
@@ -57,7 +50,7 @@ def bestand(campaign, valid_form, storage_dir, operator_client):  # noqa: F811
 
     d_client, d = new_submission(valid_form)
     upload(d_client, d.reference, fits(width=9), channel="B", filename="b.fits")
-    operator_client.post(submission_url(d, "zurueckziehen/"))
+    withdraw(d, by=Submission.WithdrawnBy.PARTICIPANT)
 
 
 def test_zaehlregeln(bestand):
@@ -65,14 +58,17 @@ def test_zaehlregeln(bestand):
     assert zahlen().json() == {"submissions": 3, "masters": 2, "bytes": 2 * len(L_DATA)}
 
 
-def test_vor_beginn_und_nach_ende_200(campaign):
+def test_vor_beginn_200(campaign):
     campaign.starts_at = timezone.now() + timedelta(days=1)
     campaign.save()
-    assert zahlen().json()["submissions"] == 0
+    assert zahlen().json() == {"submissions": 0, "masters": 0, "bytes": 0}
+
+
+def test_nach_ende_bleiben_die_zahlen(bestand, campaign):
     campaign.starts_at = timezone.now() - timedelta(days=60)
     campaign.ends_at = timezone.now() - timedelta(days=30)
     campaign.save()
-    assert zahlen().json()["submissions"] == 0
+    assert zahlen().json() == {"submissions": 3, "masters": 2, "bytes": 2 * len(L_DATA)}
 
 
 def test_ohne_cookie_mit_cache_control(settings):
@@ -116,6 +112,6 @@ def test_cache_aus_mit_null(settings, campaign, valid_form, django_assert_num_qu
     assert zahlen().json()["submissions"] == 0
     new_submission(valid_form)
     assert zahlen().json()["submissions"] == 1
-    with django_assert_num_queries(2):
+    with django_assert_num_queries(3):
         zahlen()
     assert zahlen()["Cache-Control"] == "public, max-age=0"
