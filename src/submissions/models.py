@@ -21,6 +21,14 @@ class Phase(enum.Enum):
     def accepts_new_submissions(self) -> bool:
         return self is Phase.OPEN
 
+    @property
+    def allows_changes_by_participants(self) -> bool:
+        """Master löschen und Rückzug durch Teilnehmende nur bis zum Ende der Aktion (ADR 0002).
+
+        In der Nachfrist dürfen nur begonnene Uploads noch abschließen.
+        """
+        return self is Phase.OPEN
+
 
 class Campaign(models.Model):
     """Die Aktion: genau ein Datensatz je Installation (ADR 0004)."""

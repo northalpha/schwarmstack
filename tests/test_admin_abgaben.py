@@ -17,48 +17,11 @@ from django.test import Client
 from django.utils import timezone
 from files import fits, xisf
 from storage_backends import DjangoBrowser
-from uploads_helper import create, start, upload
+from uploads_helper import Participant, create, start
 
 from submissions.models import Consent, Master, Submission
 
 pytestmark = pytest.mark.django_db
-
-
-@pytest.fixture
-def storage_dir(settings, tmp_path):
-    settings.STORAGE_LOCAL_DIR = tmp_path / "speicher"
-    return settings.STORAGE_LOCAL_DIR
-
-
-class Participant:
-    """Eine teilnehmende Person mit eigenem Browser und einer Abgabe."""
-
-    def __init__(self, form):
-        self.client = Client()
-        before = set(Submission.objects.values_list("pk", flat=True))
-        self.client.post("/", form)
-        self.submission = Submission.objects.exclude(pk__in=before).get()
-
-    @property
-    def reference(self):
-        return self.submission.reference
-
-    def upload(self, data, **kwargs):
-        response = upload(self.client, self.reference, data, **kwargs)
-        return Master.objects.get(public_id=response.json()["masterId"])
-
-    def used(self):
-        return self.client.get(f"/abgabe/{self.reference}/").context["used"]
-
-
-@pytest.fixture
-def participant(campaign, valid_form, storage_dir):
-    return Participant(valid_form)
-
-
-@pytest.fixture
-def another(campaign, valid_form, storage_dir):
-    return lambda: Participant(valid_form)
 
 
 def stored(storage_dir, key):
