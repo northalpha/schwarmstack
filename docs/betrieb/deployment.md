@@ -84,6 +84,9 @@ Im Repo unter *Settings → Environments* das Environment `staging` anlegen (fü
 | `HSTS_SECONDS` | `0` (Standard); in Produktion z. B. `31536000` | nein |
 | `LOG_LEVEL` | `INFO` (Standard) | nein |
 | `LOGIN_ATTEMPTS_MAX`, `LOGIN_ATTEMPTS_WINDOW_SECONDS` | `5`, `900` (Standard) | nein |
+| `CONSENT_TEXT_VERSION` | `2026-11` (Standard) | nein |
+
+`CONSENT_TEXT_VERSION` ist die Fassung des Hinweistextes zu den Einwilligungen (höchstens 32 Zeichen). Jede neue Einwilligung speichert sie, damit sich später zeigen lässt, auf welchen Text sie sich bezieht. Wird der Hinweistext geändert, im selben Deploy auch diesen Wert ändern; ältere Einwilligungen behalten ihre Fassung.
 
 **Secrets**
 

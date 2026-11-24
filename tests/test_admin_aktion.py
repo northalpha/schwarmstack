@@ -4,7 +4,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 import pytest
-from admin_helper import ADMIN, change_form_data, operator, operator_client  # noqa: F401
+from admin_helper import ADMIN, change_form_data
 from django.utils import timezone
 from files import fits
 from uploads_helper import upload
@@ -25,20 +25,20 @@ def save(client, campaign, **changes):
     return client.post(url(campaign), change_form_data(form, **changes))
 
 
-def test_aktion_weder_anlegen_noch_loeschen(operator_client, campaign):  # noqa: F811
+def test_aktion_weder_anlegen_noch_loeschen(operator_client, campaign):
     assert operator_client.get(f"{ADMIN}submissions/campaign/add/").status_code == 403
     assert (
         operator_client.get(f"{ADMIN}submissions/campaign/{campaign.pk}/delete/").status_code == 403
     )
 
 
-def test_liste_fuehrt_zur_einen_aktion(operator_client, campaign):  # noqa: F811
+def test_liste_fuehrt_zur_einen_aktion(operator_client, campaign):
     response = operator_client.get(f"{ADMIN}submissions/campaign/")
     assert response.status_code == 302
     assert response["Location"] == url(campaign)
 
 
-def test_grenzen_und_zeiten_lassen_sich_aendern(operator_client, campaign):  # noqa: F811
+def test_grenzen_und_zeiten_lassen_sich_aendern(operator_client, campaign):
     new_end = (campaign.ends_at + timedelta(days=7)).replace(microsecond=0)
     response = save(
         operator_client,
@@ -59,7 +59,7 @@ def test_grenzen_und_zeiten_lassen_sich_aendern(operator_client, campaign):  # n
     assert campaign.max_master_size == 800 * 1024**2
 
 
-def test_objekt_und_beginn_nach_dem_start_gesperrt(operator_client, campaign):  # noqa: F811
+def test_objekt_und_beginn_nach_dem_start_gesperrt(operator_client, campaign):
     starts_at = campaign.starts_at
     save(operator_client, campaign, object_name="M 31", starts_at_0="01.01.2020")
     campaign.refresh_from_db()
@@ -67,7 +67,7 @@ def test_objekt_und_beginn_nach_dem_start_gesperrt(operator_client, campaign):  
     assert campaign.starts_at == starts_at
 
 
-def test_objekt_vor_dem_start_aenderbar(operator_client, campaign):  # noqa: F811
+def test_objekt_vor_dem_start_aenderbar(operator_client, campaign):
     campaign.starts_at = timezone.now() + timedelta(days=1)
     campaign.save()
     response = save(operator_client, campaign, object_name="M 31")
@@ -77,7 +77,7 @@ def test_objekt_vor_dem_start_aenderbar(operator_client, campaign):  # noqa: F81
 
 
 def test_gesamtgrenze_nicht_unter_der_belegung(
-    operator_client,  # noqa: F811
+    operator_client,
     campaign,
     client,
     valid_form,
@@ -102,7 +102,7 @@ def test_gesamtgrenze_nicht_unter_der_belegung(
     assert campaign.global_cap == len(data)
 
 
-def test_groessen_in_gib_und_mib(operator_client, campaign):  # noqa: F811
+def test_groessen_in_gib_und_mib(operator_client, campaign):
     form = operator_client.get(url(campaign)).content.decode()
     assert "Quote je Abgabe (GiB)" in form
     assert "Gesamtgrenze (GiB)" in form
@@ -115,7 +115,7 @@ def test_groessen_in_gib_und_mib(operator_client, campaign):  # noqa: F811
     assert campaign.max_master_size == 512 * 1024
 
 
-def test_groessen_nicht_null_oder_negativ(operator_client, campaign):  # noqa: F811
+def test_groessen_nicht_null_oder_negativ(operator_client, campaign):
     response = save(operator_client, campaign, quota="0", global_cap="-1")
     assert response.status_code == 200
     errors = response.context["adminform"].form.errors
@@ -123,7 +123,7 @@ def test_groessen_nicht_null_oder_negativ(operator_client, campaign):  # noqa: F
     assert "global_cap" in errors
 
 
-def test_aenderung_steht_im_protokoll(operator_client, campaign, operator):  # noqa: F811
+def test_aenderung_steht_im_protokoll(operator_client, campaign, operator):
     from django.contrib.admin.models import LogEntry
 
     save(operator_client, campaign, quota="3")

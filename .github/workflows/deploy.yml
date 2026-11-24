@@ -46,6 +46,7 @@ jobs:
           LOG_LEVEL: ${{ vars.LOG_LEVEL }}
           LOGIN_ATTEMPTS_MAX: ${{ vars.LOGIN_ATTEMPTS_MAX }}
           LOGIN_ATTEMPTS_WINDOW_SECONDS: ${{ vars.LOGIN_ATTEMPTS_WINDOW_SECONDS }}
+          CONSENT_TEXT_VERSION: ${{ vars.CONSENT_TEXT_VERSION }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}

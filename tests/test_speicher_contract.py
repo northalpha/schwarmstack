@@ -12,7 +12,6 @@ from storage_backends import (
     HttpBrowser,
     garage_available,
     garage_storage,
-    moto_endpoint,  # noqa: F401  (Fixture)
     moto_storage,
 )
 
@@ -236,7 +235,7 @@ def test_link_mit_fremdem_schluessel_wird_abgewiesen(signing_backend):
     assert browser.send("POST", forged).status == 403
 
 
-def test_s3_adapter_verweigert_unbekannte_anfragen(moto_endpoint):  # noqa: F811
+def test_s3_adapter_verweigert_unbekannte_anfragen(moto_endpoint):
     storage = moto_storage(moto_endpoint, f"b{uuid.uuid4().hex[:12]}")
     with pytest.raises(ValueError):
         storage.presign(S3Request("DELETE", key()))  # Objekt löschen: nie für den Browser
