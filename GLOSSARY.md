@@ -73,7 +73,7 @@ Der Name, unter dem Teilnehmende im Projekt genannt werden wollen. Gibt es nur z
 _Avoid_: Anzeigename, Credit, Pseudonym
 
 **Einwilligung** (`Consent`):
-Eine einzelne, ausdrücklich erteilte Zustimmung der Teilnehmenden, z. B. zur Nutzung im Projekt oder zur Veröffentlichung der Nennung.
+Eine einzelne, ausdrücklich erteilte Erlaubnis der Teilnehmenden, z. B. zur Nutzung im Projekt oder zur Veröffentlichung der Nennung.
 _Avoid_: Zustimmung, Opt-in
 
 **Widerruf** (`revoked_at`):
