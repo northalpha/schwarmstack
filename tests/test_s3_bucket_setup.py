@@ -6,6 +6,9 @@ import pytest
 from django.core.management import CommandError, call_command
 from storage_backends import moto_endpoint, moto_storage  # noqa: F401
 
+from storage.management.commands import s3_bucket_setup
+from storage.management.commands.s3_bucket_setup import normalize_origin
+
 
 @pytest.fixture
 def s3(settings, moto_endpoint):  # noqa: F811
@@ -39,4 +42,51 @@ def test_nur_https(s3):
 def test_nur_mit_s3(settings):
     settings.STORAGE_BACKEND = "local"
     with pytest.raises(CommandError):
+        call_command("s3_bucket_setup", "--origin", "https://upload.dzvf.de")
+
+
+def test_umlautdomain_als_punycode(s3):
+    call_command("s3_bucket_setup", "--origin", "https://Upload.Klöpping.de/")
+    cors = s3.client.get_bucket_cors(Bucket=s3.bucket)["CORSRules"][0]
+    assert cors["AllowedOrigins"] == ["https://upload.xn--klpping-b1a.de"]
+
+
+def test_gleiche_herkunft_nur_einmal(s3):
+    call_command(
+        "s3_bucket_setup",
+        "--origin",
+        "https://upload.klöpping.de",
+        "--origin",
+        "https://upload.xn--klpping-b1a.de",
+    )
+    cors = s3.client.get_bucket_cors(Bucket=s3.bucket)["CORSRules"][0]
+    assert cors["AllowedOrigins"] == ["https://upload.xn--klpping-b1a.de"]
+
+
+@pytest.mark.parametrize(
+    "origin, erwartet",
+    [
+        ("https://upload.dzvf.de", "https://upload.dzvf.de"),
+        ("HTTPS://upload.dzvf.de/", "https://upload.dzvf.de"),
+        ("http://localhost:8000", "http://localhost:8000"),
+        ("https://bücher.example", "https://xn--bcher-kva.example"),
+    ],
+)
+def test_herkunft_normalisieren(origin, erwartet):
+    assert normalize_origin(origin) == erwartet
+
+
+@pytest.mark.parametrize("origin", ["upload.dzvf.de", "https://upload.dzvf.de/abgabe/"])
+def test_herkunft_ohne_schema_oder_mit_pfad_abgelehnt(origin):
+    with pytest.raises(CommandError):
+        normalize_origin(origin)
+
+
+def test_preflight_scheitert_wenn_freigabe_nicht_greift(s3, monkeypatch):
+    # Der Speicher nimmt die Regel an, gibt aber eine andere Herkunft frei.
+    original = s3_bucket_setup.cors_rules
+    monkeypatch.setattr(
+        s3_bucket_setup, "cors_rules", lambda origins: original(["https://anders.example"])
+    )
+    with pytest.raises(CommandError, match="CORS-Freigabe greift nicht"):
         call_command("s3_bucket_setup", "--origin", "https://upload.dzvf.de")

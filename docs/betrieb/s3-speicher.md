@@ -18,16 +18,18 @@ Staging bekommt einen eigenen Bucket und eigene Schlüssel.
 
 ## Bucket einrichten
 
-Einmal je Bucket, mit denselben Umgebungsvariablen wie die App:
+Das übernimmt jeder Deploy (`deploy/auf-dem-host.sh`) mit der Domain der Umgebung. Von Hand, mit denselben Umgebungsvariablen wie die App:
 
 ```bash
 uv run python src/manage.py s3_bucket_setup --origin https://upload.dzvf.de
 ```
 
-Für Staging entsprechend `--origin https://upload.northalpha.de`. Der Befehl setzt:
+Der Befehl ersetzt die ganze CORS-Konfiguration des Buckets. Eine Herkunft mit Umlauten (`https://upload.klöpping.de`) setzt er als Punycode (`https://upload.xn--klpping-b1a.de`), denn so schickt der Browser sie im `Origin`-Header, und S3 vergleicht zeichengenau. Er setzt:
 
 - **CORS:** Herkunft nur die eigene Domain; Methoden `GET`, `PUT`, `POST`, `DELETE`; alle Header erlaubt; **`ETag` freigegeben**. Ohne freigegebenen `ETag` kann Uppy die Teile nicht abschließen.
 - **Lifecycle:** Unvollständige Multipart-Uploads werden nach 7 Tagen abgeräumt.
+
+Danach schickt er für jede Herkunft einen CORS-Preflight (`OPTIONS`) wie der Browser an den Bucket. Lässt der Speicher die Herkunft nicht zu, endet der Befehl mit Fehler. Im Browser zeigt sich das sonst erst beim Upload als „Network error during S3 request“.
 
 Prüfen, ob beides gesetzt ist (der Anbieter sollte beides kennen; falls die Lifecycle-Regel abgelehnt wird, meldet der Befehl einen Fehler):
 
