@@ -88,7 +88,7 @@ class Campaign(models.Model):
 
 
 class Submission(models.Model):
-    """Submission: Beitrag einer teilnehmenden Person mit einem Setup."""
+    """Submission: was eine teilnehmende Person mit einem Setup zur Aktion beiträgt."""
 
     class DeletedBy(models.TextChoices):
         PARTICIPANT = "participant", "Teilnehmende"
