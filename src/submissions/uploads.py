@@ -144,7 +144,10 @@ def abort(master: Master) -> Master:
 
 
 def abort_multipart(master: Master) -> None:
-    """Bricht den Multipart-Upload eines Masters im Speicher ab, falls er noch läuft."""
+    """Bricht den Multipart-Upload eines Masters im Speicher ab, wenn er eine Upload-ID hat.
+
+    Scheitert das, wird es nur protokolliert: Aufräumen nach bestem Bemühen.
+    """
     if not master.upload_id:
         return
     try:

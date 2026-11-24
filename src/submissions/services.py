@@ -83,7 +83,7 @@ def delete_master(master: Master) -> None:
             storage.put_json(duplicate.sidecar_key, sidecar(duplicate))
 
 
-def details_changed(submission: Submission) -> None:
+def details_corrected(submission: Submission) -> None:
     """Nach einer Änderung von Nennung oder Setup (im Admin oder durch einen Widerruf) die
     Begleitdateien neu schreiben, damit die Zuordnung ohne Datenbank stimmt (ADR 0006).
 
@@ -137,5 +137,5 @@ def revoke(consent: Consent, *, by: Submission.WithdrawnBy) -> bool:
         withdraw(consent.submission, by=by)
     elif consent.kind == Consent.Kind.PUBLISH_CREDIT:
         # Ohne gültige Einwilligung wird die Nennung dabei verworfen.
-        details_changed(consent.submission)
+        details_corrected(consent.submission)
     return True

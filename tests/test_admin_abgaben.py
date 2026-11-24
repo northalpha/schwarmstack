@@ -293,7 +293,7 @@ def test_ohne_anmeldung_kein_download(participant):
     assert response["Location"].startswith(f"{ADMIN}login/")
 
 
-# -- Liste, Suche, Filter, Änderungen --------------------------------------------
+# -- Liste, Suche, Filter, Korrektur ---------------------------------------------
 
 LIST = f"{ADMIN}submissions/submission/"
 
