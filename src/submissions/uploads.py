@@ -27,6 +27,9 @@ MAX_PARTS = 10_000
 _SHA256 = re.compile(r"^[0-9a-fA-F]{64}$")
 # Nach dieser Zeit gilt ein nie abgeschlossener Upload als aufgegeben (wie die Lifecycle-Regel).
 STALE_AFTER = timedelta(days=7)
+# So lange nach der letzten Anfrage läuft ein Upload vielleicht noch (Teile sind mindestens
+# 5 MiB groß, über eine langsame Leitung dauert einer ein paar Minuten).
+ACTIVE_WITHIN = timedelta(minutes=5)
 
 
 class UploadError(Exception):
@@ -62,6 +65,14 @@ def usage(masters) -> int:
     return sum(usage_parts(masters))
 
 
+def quota_usage(submission: Submission) -> dict:
+    """Belegung der Abgabe gegen ihre Quote, für die Anzeige."""
+    campaign = Campaign.current()
+    used = usage(submission.masters.all())
+    quota = campaign.quota if campaign else 0
+    return {"used": used, "quota": quota, "percent": min(100, used * 100 // quota) if quota else 0}
+
+
 def _check_limits(campaign: Campaign, submission: Submission, size: int) -> None:
     if size > campaign.max_master_size:
         raise UploadError(
@@ -82,8 +93,7 @@ def _check_limits(campaign: Campaign, submission: Submission, size: int) -> None
 def _require_phase(*, starting: bool) -> None:
     """Zeitfenster der Aktion: neue Uploads nur während der Aktion, begonnene auch in der
     Nachfrist; danach ist jede Abgabe schreibgeschützt."""
-    campaign = Campaign.current()
-    phase = campaign.phase() if campaign else Phase.CLOSED
+    phase = Campaign.current_phase()
     if phase is Phase.BEFORE:
         raise UploadError("Die Aktion hat noch nicht begonnen.")
     if phase is Phase.CLOSED:
@@ -93,6 +103,22 @@ def _require_phase(*, starting: bool) -> None:
             "Die Aktion ist beendet. Neue Uploads sind nicht mehr möglich, "
             "begonnene kannst du in der Nachfrist noch abschließen."
         )
+
+
+def interrupted(masters):
+    """Unterbrochene Uploads, die sich noch fortsetzen oder abbrechen lassen: während der Aktion
+    und in der Nachfrist. Danach ist die Abgabe schreibgeschützt."""
+    phase = Campaign.current_phase()
+    if phase not in (Phase.OPEN, Phase.GRACE):
+        return masters.none()
+    return masters.filter(state=Master.State.UPLOADING)
+
+
+def recently_active(masters):
+    """Uploads, die vielleicht gerade noch laufen, etwa in einem anderen Fenster."""
+    return masters.filter(
+        state=Master.State.UPLOADING, last_activity_at__gte=timezone.now() - ACTIVE_WITHIN
+    )
 
 
 def start(submission: Submission, *, channel, filename, size) -> tuple[Master, str]:
@@ -124,6 +150,7 @@ def start(submission: Submission, *, channel, filename, size) -> tuple[Master, s
             channel=channel,
             original_name=filename.strip()[:255],
             declared_size=size,
+            last_activity_at=timezone.now(),
         )
         master.key = f"{submission.reference}/{master.public_id.hex}{suffix}"
         master.save()
@@ -182,9 +209,9 @@ def sign(master: Master, *, method, key, upload_id=None, part_number=None) -> st
     else:
         raise UploadError("Anfrage wird nicht signiert.")
 
-    if not master.upload_id:
-        master.upload_id = upload_id
-        master.save(update_fields=["upload_id"])
+    master.upload_id = upload_id
+    master.last_activity_at = timezone.now()
+    master.save(update_fields=["upload_id", "last_activity_at"])
     return get_storage().presign(S3Request(method, key, upload_id, part_number))
 
 

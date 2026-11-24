@@ -19,12 +19,6 @@ def storage_dir(settings, tmp_path):
     return settings.STORAGE_LOCAL_DIR
 
 
-@pytest.fixture
-def reference(client, campaign, valid_form, storage_dir):
-    client.post("/", valid_form)
-    return Submission.objects.get().reference
-
-
 def sha(data):
     return hashlib.sha256(data).hexdigest()
 

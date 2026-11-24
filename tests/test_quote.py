@@ -21,12 +21,6 @@ def storage_dir(settings, tmp_path):
     return settings.STORAGE_LOCAL_DIR
 
 
-@pytest.fixture
-def reference(client, campaign, valid_form, storage_dir):
-    client.post("/", valid_form)
-    return Submission.objects.get().reference
-
-
 def abort(client, reference, master_id):
     return client.post(f"/abgabe/{reference}/master/{master_id}/abbrechen/")
 
