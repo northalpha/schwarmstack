@@ -158,6 +158,19 @@ def revoke(consent: Consent) -> bool:
     return True
 
 
+def revocable_by_participant(submission: Submission) -> Consent | None:
+    """Die Einwilligung zur Namensnennung, die Teilnehmende selbst widerrufen dürfen.
+
+    Der Widerruf geht jederzeit, auch in der Nachfrist und nach dem Ende der Aktion
+    (DSGVO Art. 7 Abs. 3); nach einer Löschung gibt es nichts mehr zu widerrufen.
+    """
+    if submission.is_deleted:
+        return None
+    return submission.consents.filter(
+        kind=Consent.Kind.PUBLISH_CREDIT, revoked_at__isnull=True
+    ).first()
+
+
 # -- Belichtungsangaben (ADR 0010) ---------------------------------------------
 
 
