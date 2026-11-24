@@ -46,21 +46,21 @@ def test_nur_mit_s3(settings):
 
 
 def test_umlautdomain_als_punycode(s3):
-    call_command("s3_bucket_setup", "--origin", "https://Upload.Klöpping.de/")
+    call_command("s3_bucket_setup", "--origin", "https://Upload.Bücher.example/")
     cors = s3.client.get_bucket_cors(Bucket=s3.bucket)["CORSRules"][0]
-    assert cors["AllowedOrigins"] == ["https://upload.xn--klpping-b1a.de"]
+    assert cors["AllowedOrigins"] == ["https://upload.xn--bcher-kva.example"]
 
 
 def test_gleiche_herkunft_nur_einmal(s3):
     call_command(
         "s3_bucket_setup",
         "--origin",
-        "https://upload.klöpping.de",
+        "https://upload.bücher.example",
         "--origin",
-        "https://upload.xn--klpping-b1a.de",
+        "https://upload.xn--bcher-kva.example",
     )
     cors = s3.client.get_bucket_cors(Bucket=s3.bucket)["CORSRules"][0]
-    assert cors["AllowedOrigins"] == ["https://upload.xn--klpping-b1a.de"]
+    assert cors["AllowedOrigins"] == ["https://upload.xn--bcher-kva.example"]
 
 
 @pytest.mark.parametrize(

@@ -24,8 +24,8 @@ BROWSER_METHODS = ("POST", "PUT", "GET", "DELETE")
 def normalize_origin(origin: str) -> str:
     """Herkunft so, wie der Browser sie im `Origin`-Header schickt: Punycode, ohne Pfad.
 
-    S3 vergleicht die Herkunft zeichengenau; `https://upload.klöpping.de` passt nie, weil der
-    Browser `https://upload.xn--klpping-b1a.de` schickt.
+    S3 vergleicht die Herkunft zeichengenau; `https://bücher.example` passt nie, weil der
+    Browser `https://xn--bcher-kva.example` schickt.
     """
     parts = urlsplit(origin.strip())
     if not parts.scheme or not parts.hostname:

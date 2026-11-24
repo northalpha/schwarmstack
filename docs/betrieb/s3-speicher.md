@@ -18,13 +18,13 @@ Staging bekommt einen eigenen Bucket und eigene Schlüssel.
 
 ## Bucket einrichten
 
-Das übernimmt jeder Deploy (`deploy/auf-dem-host.sh`) mit der Domain der Umgebung. Von Hand, mit denselben Umgebungsvariablen wie die App:
+Das übernimmt jeder Deploy (`deploy/auf-dem-host.sh`) mit `--origin https://$DOMAIN` aus dem GitHub-Environment. Von Hand, mit denselben Umgebungsvariablen wie die App:
 
 ```bash
 uv run python src/manage.py s3_bucket_setup --origin https://upload.dzvf.de
 ```
 
-Der Befehl ersetzt die ganze CORS-Konfiguration des Buckets. Eine Herkunft mit Umlauten (`https://upload.klöpping.de`) setzt er als Punycode (`https://upload.xn--klpping-b1a.de`), denn so schickt der Browser sie im `Origin`-Header, und S3 vergleicht zeichengenau. Er setzt:
+Der Befehl ersetzt die ganze CORS-Konfiguration des Buckets. Eine Herkunft mit Umlauten (etwa `https://bücher.example`) setzt er als Punycode (`https://xn--bcher-kva.example`), denn so schickt der Browser sie im `Origin`-Header, und S3 vergleicht zeichengenau. Er setzt:
 
 - **CORS:** Herkunft nur die eigene Domain; Methoden `GET`, `PUT`, `POST`, `DELETE`; alle Header erlaubt; **`ETag` freigegeben**. Ohne freigegebenen `ETag` kann Uppy die Teile nicht abschließen.
 - **Lifecycle:** Unvollständige Multipart-Uploads werden nach 7 Tagen abgeräumt.
