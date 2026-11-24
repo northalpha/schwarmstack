@@ -29,7 +29,7 @@ def ended(campaign, ago):
 
 
 def page(client, reference):
-    return client.get(f"/abgabe/{reference}/").content.decode()
+    return client.get(f"/submission/{reference}/").content.decode()
 
 
 def interrupted(client, reference, data, parts_sent=1, part_size=1024):
@@ -46,7 +46,7 @@ def interrupted(client, reference, data, parts_sent=1, part_size=1024):
 # -- Fortsetzen --------------------------------------------------------------
 
 
-def test_abgabeseite_liefert_daten_zum_fortsetzen(client, reference):
+def test_submission_seite_liefert_daten_zum_fortsetzen(client, reference):
     body, upload_id = interrupted(client, reference, fits(width=100, height=100))
     content = page(client, reference)
     assert f'data-master-id="{body["masterId"]}"' in content
@@ -137,7 +137,7 @@ def test_nach_der_nachfrist_ist_alles_gesperrt(client, reference, campaign):
 def test_abbrechen_nach_der_nachfrist_gesperrt(client, reference, campaign):
     body, _ = interrupted(client, reference, fits(width=100, height=100))
     ended(campaign, timedelta(days=1))
-    response = client.post(f"/abgabe/{reference}/master/{body['masterId']}/abbrechen/")
+    response = client.post(f"/submission/{reference}/master/{body['masterId']}/abbrechen/")
     assert response.status_code == 400
     assert Master.objects.get().state == Master.State.UPLOADING
 
@@ -145,11 +145,11 @@ def test_abbrechen_nach_der_nachfrist_gesperrt(client, reference, campaign):
 def test_abbrechen_in_der_nachfrist_erlaubt(client, reference, campaign):
     body, _ = interrupted(client, reference, fits(width=100, height=100))
     ended(campaign, timedelta(hours=1))
-    response = client.post(f"/abgabe/{reference}/master/{body['masterId']}/abbrechen/")
+    response = client.post(f"/submission/{reference}/master/{body['masterId']}/abbrechen/")
     assert response.json()["state"] == "aborted"
 
 
-def test_abgabeseite_in_der_nachfrist(client, reference, campaign):
+def test_submission_seite_in_der_nachfrist(client, reference, campaign):
     interrupted(client, reference, fits(width=100, height=100))
     ended(campaign, timedelta(hours=1))
     content = page(client, reference)
@@ -158,7 +158,7 @@ def test_abgabeseite_in_der_nachfrist(client, reference, campaign):
     assert 'data-may-start="0"' in content
 
 
-def test_abgabeseite_in_der_nachfrist_ohne_unterbrochene_uploads(client, reference, campaign):
+def test_submission_seite_in_der_nachfrist_ohne_unterbrochene_uploads(client, reference, campaign):
     upload(client, reference, fits())
     ended(campaign, timedelta(hours=1))
     content = page(client, reference)
@@ -166,7 +166,7 @@ def test_abgabeseite_in_der_nachfrist_ohne_unterbrochene_uploads(client, referen
     assert "beendet" in content
 
 
-def test_abgabeseite_nach_der_nachfrist_nur_ansehen(client, reference, campaign):
+def test_submission_seite_nach_der_nachfrist_nur_ansehen(client, reference, campaign):
     upload(client, reference, fits(), filename="fertig.fits")
     interrupted(client, reference, fits(width=100, height=100))
     ended(campaign, timedelta(days=1))
@@ -181,7 +181,7 @@ def test_waehrend_der_aktion_darf_gestartet_werden(client, reference):
     assert 'data-may-start="1"' in page(client, reference)
 
 
-# -- Uploader auf der Abgabeseite (Ticket #42) --------------------------------
+# -- Uploader auf der Submission-Seite (Ticket #42) --------------------------------
 
 
 def _own():
@@ -206,12 +206,12 @@ def test_uploader_in_der_nachfrist_nur_zum_fortsetzen(client, reference, campaig
     assert shows_uploader(_own())
 
 
-def test_kein_uploader_nach_der_nachfrist_oder_nach_dem_rueckzug(client, reference, campaign):
+def test_kein_uploader_nach_der_nachfrist_oder_nach_der_loeschung(client, reference, campaign):
     interrupted(client, reference, fits(width=100, height=100))
     ended(campaign, timedelta(hours=7))
     assert not shows_uploader(_own())
 
     campaign.ends_at = timezone.now() + timedelta(hours=1)
     campaign.save()
-    services.withdraw(_own(), by=Submission.WithdrawnBy.PARTICIPANT)
+    services.delete_submission(_own(), by=Submission.DeletedBy.PARTICIPANT)
     assert not shows_uploader(_own())

@@ -1,6 +1,6 @@
-"""Admin der Betreiber: Aktion pflegen, Abgaben und Master ansehen und korrigieren (Ticket #29).
+"""Admin der Betreiber: Aktion pflegen, Submissions und Master ansehen und ändern (Ticket #29).
 
-Rückzug, Widerruf und Master löschen sind Fachverhalten (`services`); der Admin fragt nach,
+Löschung, Widerruf und Master löschen sind Fachverhalten (`services`); der Admin fragt nach,
 löst sie aus und schreibt jeden Eingriff ins Protokoll (Djangos `LogEntry`).
 """
 
@@ -64,7 +64,7 @@ class SizeField(forms.DecimalField):
 
 
 class CampaignForm(forms.ModelForm):
-    quota = SizeField(unit=GIB, label="Quote je Abgabe (GiB)")
+    quota = SizeField(unit=GIB, label="Quote je Submission (GiB)")
     global_cap = SizeField(unit=GIB, label="Gesamtgrenze (GiB)")
     max_master_size = SizeField(unit=MIB, label="Höchstgröße je Master (MiB)")
 
@@ -127,7 +127,7 @@ class CampaignAdmin(admin.ModelAdmin):
         return redirect("operator:submissions_campaign_change", campaign.pk)
 
 
-# -- Abgaben -------------------------------------------------------------------
+# -- Submissions ---------------------------------------------------------------
 
 
 def _with_masters(**condition):
@@ -180,12 +180,12 @@ class RejectionsFilter(_YesNoFilter):
         return Q(pk__in=_with_masters(state=Master.State.REJECTED))
 
 
-class WithdrawnFilter(_YesNoFilter):
-    title = "zurückgezogen"
-    parameter_name = "zurueckgezogen"
+class DeletedFilter(_YesNoFilter):
+    title = "gelöscht"
+    parameter_name = "geloescht"
 
     def condition(self):
-        return Q(withdrawn_at__isnull=False)
+        return Q(deleted_at__isnull=False)
 
 
 def _change_url(submission_id):
@@ -252,7 +252,9 @@ class MasterInline(admin.TabularInline):
 
 
 class ConsentInline(admin.TabularInline):
-    """Einwilligungen sind nicht änderbar. Betreiber erteilen keine, sie vermerken nur Widerrufe."""
+    """Einwilligungen sind nicht änderbar. Betreiber erteilen keine, sie vermerken nur den
+    Widerruf der Namensnennung; wer die Nutzung im Projekt nicht mehr will, löscht die
+    Submission."""
 
     model = Consent
     extra = 0
@@ -268,7 +270,7 @@ class ConsentInline(admin.TabularInline):
 
     @admin.display(description="")
     def revoke_link(self, consent):
-        if consent.revoked_at is not None:
+        if consent.revoked_at is not None or consent.kind not in services.REVOCABLE:
             return "–"
         url = reverse(
             "operator:submissions_submission_consent_revoke",
@@ -296,18 +298,18 @@ class SubmissionAdmin(admin.ModelAdmin):
         "channels",
         "used_display",
         "has_duplicates",
-        "is_withdrawn",
+        "is_deleted",
         "created_at",
     ]
-    list_filter = [ChannelFilter, DuplicatesFilter, RejectionsFilter, WithdrawnFilter]
+    list_filter = [ChannelFilter, DuplicatesFilter, RejectionsFilter, DeletedFilter]
     inlines = [MasterInline, ConsentInline]
     fields = [
         "reference",
         "credit_name",
         "setup_description",
         "created_at",
-        "withdrawn_at",
-        "withdrawn_by",
+        "deleted_at",
+        "deleted_by",
     ]
 
     def get_queryset(self, request):
@@ -334,28 +336,28 @@ class SubmissionAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
         if change and form.changed_data:
-            services.details_corrected(obj)
+            services.details_changed(obj)
 
     def has_add_permission(self, request):
         return False
 
     def has_delete_permission(self, request, obj=None):
-        return False  # Löschen heißt Rückzug, und der hat seine eigene Seite.
+        return False  # Die Löschung hat ihre eigene Seite (services.delete_submission).
 
     def get_fields(self, request, obj=None):
         if obj is not None and not obj.publishes_credit:
-            # Ohne Einwilligung zur Veröffentlichung keine Nennung, auch nicht nachträglich
-            # (services.details_corrected): statt des Feldes nur „anonym“ (Ticket #33).
+            # Ohne Einwilligung zur Namensnennung kein Name, auch nicht nachträglich
+            # (services.details_changed): statt des Feldes nur „anonym“ (Ticket #33).
             return ["credit_display" if f == "credit_name" else f for f in self.fields]
         return self.fields
 
     def get_readonly_fields(self, request, obj=None):
-        readonly = ["reference", "credit_display", "created_at", "withdrawn_at", "withdrawn_by"]
-        if obj is not None and obj.is_withdrawn:
+        readonly = ["reference", "credit_display", "created_at", "deleted_at", "deleted_by"]
+        if obj is not None and obj.is_deleted:
             readonly += ["credit_name", "setup_description"]
         return readonly
 
-    @admin.display(description="Nennung", ordering="credit_name")
+    @admin.display(description="Namensnennung", ordering="credit_name")
     def credit_display(self, submission):
         return submission.credit_name or "anonym"
 
@@ -380,9 +382,9 @@ class SubmissionAdmin(admin.ModelAdmin):
     def has_duplicates(self, submission):
         return submission.n_duplicates > 0
 
-    @admin.display(description="zurückgezogen", boolean=True, ordering="withdrawn_at")
-    def is_withdrawn(self, submission):
-        return submission.is_withdrawn
+    @admin.display(description="gelöscht", boolean=True, ordering="deleted_at")
+    def is_deleted(self, submission):
+        return submission.is_deleted
 
     # -- Eingriffe im Auftrag der Teilnehmenden ---------------------------------
 
@@ -390,9 +392,9 @@ class SubmissionAdmin(admin.ModelAdmin):
         view = self.admin_site.admin_view
         return [
             path(
-                "<int:pk>/zurueckziehen/",
-                view(self.withdraw_view),
-                name="submissions_submission_withdraw",
+                "<int:pk>/loeschen/",
+                view(self.delete_submission_view),
+                name="submissions_submission_delete_submission",
             ),
             path(
                 "<int:pk>/master/<uuid:master_id>/loeschen/",
@@ -434,24 +436,25 @@ class SubmissionAdmin(admin.ModelAdmin):
         return get_object_or_404(Submission, pk=pk)
 
     @method_decorator(require_http_methods(["GET", "POST"]))
-    def withdraw_view(self, request, pk):
+    def delete_submission_view(self, request, pk):
         submission = self._submission(request, pk)
         if request.method == "POST":
-            if not submission.is_withdrawn:
-                services.withdraw(submission, by=Submission.WithdrawnBy.OPERATOR)
-                self.log_change(request, submission, "Abgabe zurückgezogen")
-                self.message_user(request, f"Abgabe {submission} wurde zurückgezogen.")
+            if not submission.is_deleted:
+                services.delete_submission(submission, by=Submission.DeletedBy.OPERATOR)
+                self.log_change(request, submission, "Submission gelöscht")
+                self.message_user(request, f"Submission {submission} wurde gelöscht.")
             return HttpResponseRedirect(_change_url(submission.pk))
         return self._confirm(
             request,
             submission,
-            title=f"Abgabe {submission} zurückziehen",
+            title=f"Submission {submission} löschen",
             question=(
-                "Alle Master, Angaben und Einwilligungen dieser Abgabe werden endgültig gelöscht. "
-                "Es bleibt nur die Abgabe-Kennung. Die Abgabe lässt sich nicht wieder öffnen."
+                "Alle Master, Angaben und Einwilligungen dieser Submission werden endgültig "
+                "gelöscht. Es bleibt nur die Submission-ID. Die Submission lässt sich nicht "
+                "wieder öffnen."
             ),
             details=[str(m) for m in submission.masters.filter(state__in=services.DELETABLE)],
-            button="Ja, zurückziehen",
+            button="Ja, löschen",
         )
 
     def _master(self, request, pk, master_id):
@@ -510,27 +513,21 @@ class SubmissionAdmin(admin.ModelAdmin):
     @method_decorator(require_http_methods(["GET", "POST"]))
     def revoke_view(self, request, pk, consent_id):
         submission = self._submission(request, pk)
-        consent = get_object_or_404(Consent, pk=consent_id, submission=submission)
-        withdraws = services.revocation_withdraws(consent)
+        # Nur die Namensnennung lässt sich widerrufen; für die Nutzung im Projekt gibt es die
+        # Löschung der Submission.
+        consent = get_object_or_404(
+            Consent, pk=consent_id, submission=submission, kind__in=services.REVOCABLE
+        )
         if request.method == "POST":
-            label = consent.get_kind_display()
-            if services.revoke(consent, by=Submission.WithdrawnBy.OPERATOR):
-                self.log_change(request, submission, f"Widerruf vermerkt: {label}")
-                if withdraws:
-                    self.log_change(request, submission, "Abgabe zurückgezogen (nach Widerruf)")
-                self.message_user(request, f"Widerruf vermerkt: {label}.", messages.SUCCESS)
+            if services.revoke(consent):
+                self.log_change(request, submission, "Widerruf vermerkt: Namensnennung")
+                self.message_user(request, "Widerruf der Namensnennung vermerkt.", messages.SUCCESS)
             return HttpResponseRedirect(_change_url(submission.pk))
-        question = f"Widerruf der Einwilligung „{consent.get_kind_display()}“ vermerken?"
-        if withdraws:
-            question += (
-                " Ohne diese Einwilligung kann die Abgabe nicht bleiben: Sie wird zurückgezogen, "
-                "alle Master und Angaben werden endgültig gelöscht."
-            )
-        else:
-            question += (
-                " Die Nennung wird gelöscht und aus den Begleitdateien entfernt; die Abgabe "
-                "bleibt anonym. Die Einwilligung bleibt mit dem Zeitpunkt des Widerrufs stehen."
-            )
+        question = (
+            "Widerruf der Einwilligung zur Namensnennung vermerken? Die Namensnennung wird "
+            "gelöscht und aus den Begleitdateien entfernt; die Submission bleibt anonym. Die "
+            "Einwilligung bleibt mit dem Zeitpunkt des Widerrufs stehen."
+        )
         return self._confirm(
             request,
             submission,
@@ -544,9 +541,9 @@ class SubmissionAdmin(admin.ModelAdmin):
 
 
 class ExposureForm(forms.ModelForm):
-    """Belichtungsangaben im Admin: dieselben Regeln wie auf der Abgabeseite (ADR 0010).
+    """Belichtungsangaben im Admin: dieselben Regeln wie auf der Submission-Seite (ADR 0010).
 
-    Zahlen sind Textfelder, damit `exposure.parse` wie auf der Abgabeseite auch ein
+    Zahlen sind Textfelder, damit `exposure.parse` wie auf der Submission-Seite auch ein
     Dezimalkomma annimmt.
     """
 
@@ -644,7 +641,7 @@ class MasterAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
-    @admin.display(description="Abgabe", ordering="submission__reference")
+    @admin.display(description="Submission", ordering="submission__reference")
     def submission_link(self, master):
         url = _change_url(master.submission_id)
         return format_html('<a href="{}">{}</a>', url, master.submission.reference)
@@ -655,7 +652,7 @@ class MasterAdmin(admin.ModelAdmin):
 
 @admin.register(ProtocolEntry, site=site)
 class ProtocolAdmin(admin.ModelAdmin):
-    """Wer hat wann was geändert, gelöscht, zurückgezogen oder heruntergeladen."""
+    """Wer hat wann was geändert, gelöscht, widerrufen oder heruntergeladen."""
 
     list_display = ["action_time", "user", "object_repr", "action_flag", "message"]
     list_filter = ["user", "action_flag"]

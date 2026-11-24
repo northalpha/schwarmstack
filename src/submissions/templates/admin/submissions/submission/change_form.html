@@ -1,7 +1,7 @@
 {% extends "admin/change_form.html" %}
 {% block object-tools-items %}
-{% if original and not original.is_withdrawn %}
-<li><a href="{% url 'operator:submissions_submission_withdraw' original.pk %}">Zurückziehen …</a></li>
+{% if original and not original.is_deleted %}
+<li><a href="{% url 'operator:submissions_submission_delete_submission' original.pk %}">Submission löschen …</a></li>
 {% endif %}
 {{ block.super }}
 {% endblock %}

@@ -1,4 +1,4 @@
-"""Nennung nur bei Einwilligung zur Veröffentlichung (Ticket #33)."""
+"""Namensnennung nur bei Einwilligung zur Namensnennung (Ticket #33)."""
 
 import json
 
@@ -29,7 +29,7 @@ def anonymous_form(valid_form):
     return form
 
 
-def test_anonym_ohne_nennung_anlegen(client, campaign, anonymous_form):
+def test_anonym_ohne_namensnennung_anlegen(client, campaign, anonymous_form):
     del anonymous_form["credit_name"]
     response = client.post("/", anonymous_form)
     assert response.status_code == 302
@@ -37,11 +37,11 @@ def test_anonym_ohne_nennung_anlegen(client, campaign, anonymous_form):
 
 
 @pytest.mark.parametrize("name", ["", "   "])
-def test_mit_haekchen_ist_die_nennung_pflicht(client, campaign, valid_form, name):
+def test_mit_haekchen_ist_die_namensnennung_pflicht(client, campaign, valid_form, name):
     response = client.post("/", dict(valid_form, credit_name=name))
     assert response.status_code == 200
     assert Submission.objects.count() == 0
-    assert "Nennung" in response.context["form"].errors["credit_name"][0]
+    assert "Namensnennung" in response.context["form"].errors["credit_name"][0]
 
 
 def test_ohne_haekchen_wird_ein_name_verworfen(client, campaign, anonymous_form):
@@ -58,8 +58,8 @@ def test_ohne_haekchen_erfaehrt_man_dass_der_eingetragene_name_verworfen_wurde(
 ):
     content = client.post("/", anonymous_form, follow=True).content.decode()
     assert "Deinen Namen haben wir nicht gespeichert" in content
-    # Nur einmal, nicht bei jedem Besuch der Abgabeseite.
-    location = f"/abgabe/{Submission.objects.get().reference}/"
+    # Nur einmal, nicht bei jedem Besuch der Submission-Seite.
+    location = f"/submission/{Submission.objects.get().reference}/"
     assert "Deinen Namen haben wir nicht gespeichert" not in client.get(location).content.decode()
 
 
@@ -75,28 +75,32 @@ def test_formular_sagt_dass_ohne_haekchen_kein_name_gespeichert_wird(client, cam
     assert "ohne Häkchen speichern wir keinen Namen" in client.get("/").content.decode()
 
 
-def test_mit_haekchen_steht_die_nennung_auf_der_abgabeseite(client, campaign, valid_form):
+def test_mit_haekchen_steht_die_namensnennung_auf_der_submission_seite(
+    client, campaign, valid_form
+):
     location = client.post("/", valid_form)["Location"]
     assert Submission.objects.get().credit_name == "Ada Sternguck"
     assert "Ada Sternguck" in client.get(location).content.decode()
 
 
-def test_begleitdatei_mit_einwilligung_enthaelt_die_nennung(
+def test_begleitdatei_mit_einwilligung_enthaelt_die_namensnennung(
     client, campaign, valid_form, storage_dir
 ):
     master = upload_one(client, valid_form)
     assert sidecar(storage_dir, master)["credit_name"] == "Ada Sternguck"
 
 
-def test_begleitdatei_ohne_einwilligung_hat_keine_nennung(
+def test_begleitdatei_ohne_einwilligung_hat_keine_namensnennung(
     client, campaign, anonymous_form, storage_dir
 ):
     master = upload_one(client, anonymous_form)
     assert sidecar(storage_dir, master)["credit_name"] is None
 
 
-def test_begleitdatei_nach_widerruf_hat_keine_nennung(client, campaign, valid_form, storage_dir):
-    """Auch wenn die Nennung noch in der Datenbank stünde: ohne gültige Einwilligung nie."""
+def test_begleitdatei_nach_widerruf_hat_keine_namensnennung(
+    client, campaign, valid_form, storage_dir
+):
+    """Auch wenn die Namensnennung noch in der Datenbank stünde: ohne gültige Einwilligung nie."""
     client.post("/", valid_form)
     submission = Submission.objects.get()
     submission.consents.filter(kind="publish_credit").update(revoked_at=submission.created_at)
@@ -105,16 +109,20 @@ def test_begleitdatei_nach_widerruf_hat_keine_nennung(client, campaign, valid_fo
     assert sidecar(storage_dir, master)["credit_name"] is None
 
 
-def test_nur_der_widerruf_der_nutzung_zieht_die_abgabe_zurueck(participant):
-    """Ticket #42: Admin und `revoke` fragen dieselbe Regel."""
+def test_widerrufen_laesst_sich_nur_die_namensnennung(participant):
+    """Issue #66: Die Nutzung im Projekt lässt sich nicht widerrufen; wer sie nicht mehr will,
+    löscht die Submission. Der Widerruf der Namensnennung löscht nichts."""
     submission = Submission.objects.get(reference=participant.reference)
     consents = {c.kind: c for c in submission.consents.all()}
-    assert not services.revocation_withdraws(consents[Consent.Kind.PUBLISH_CREDIT])
-    assert services.revocation_withdraws(consents[Consent.Kind.PROJECT_USE])
 
-    services.revoke(consents[Consent.Kind.PUBLISH_CREDIT], by=Submission.WithdrawnBy.OPERATOR)
+    assert services.revoke(consents[Consent.Kind.PUBLISH_CREDIT])
     submission.refresh_from_db()
-    assert not submission.is_withdrawn
-    services.revoke(consents[Consent.Kind.PROJECT_USE], by=Submission.WithdrawnBy.OPERATOR)
+    assert not submission.is_deleted
+
+    project_use = consents[Consent.Kind.PROJECT_USE]
+    with pytest.raises(ValueError):
+        services.revoke(project_use)
+    project_use.refresh_from_db()
+    assert project_use.revoked_at is None
     submission.refresh_from_db()
-    assert submission.is_withdrawn
+    assert not submission.is_deleted

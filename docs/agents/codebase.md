@@ -8,16 +8,16 @@ src/
 │   ├── operator_site.py   # Admin-Site der Betreiber, Startseite = Statistik
 │   ├── login_limit.py     # gebremste Anmeldung (Fehlversuche je IP-Hash)
 │   └── staticfiles.py     # WhiteNoise-Storage
-├── submissions/           # Fachmodul: Aktion, Abgabe, Master, Einwilligung
+├── submissions/           # Fachmodul: Aktion, Submission, Master, Einwilligung
 │   ├── models.py
-│   ├── services.py        # Fachverhalten zur Abgabe: anlegen, Master löschen, Rückzug, Widerruf
+│   ├── services.py        # Fachverhalten zur Submission: anlegen, Master löschen, Löschung, Widerruf
 │   ├── uploads.py         # Upload-Ablauf: Quote, Gesamtgrenze, Zeitfenster, Dubletten, Begleitdatei
 │   ├── validation.py      # Prüfung der Master (XISF/FITS-Header), Ablehnungskategorien
 │   ├── exposure.py        # Belichtungsangaben: Header-Whitelist lesen, Vorschläge, Herkunft (ADR 0010)
-│   ├── access.py          # signiertes Cookie: welche Abgaben gehören zu diesem Browser
+│   ├── access.py          # signiertes Cookie: welche Submissions gehören zu diesem Browser
 │   ├── views.py, api.py   # Seiten für Teilnehmende / JSON-API für Uppy
 │   ├── public.py          # öffentlich ohne Cookie: /zahlen.json (Community-Zahlen, ADR 0009)
-│   ├── admin.py           # Admin: Aktion pflegen, Abgaben korrigieren; ruft services auf
+│   ├── admin.py           # Admin: Aktion pflegen, Angaben ändern; ruft services auf
 │   ├── statistics.py      # Zahlen für die Statistik und die Community-Zahlen
 │   └── management/commands/  # campaign.py: die Aktion anlegen/ändern;
 │                             # backfill_exposure.py: Belichtungsangaben für Altbestand lesen

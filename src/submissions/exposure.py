@@ -406,7 +406,7 @@ def _compute(per_light, count, total) -> tuple[Suggestion | None, str | None]:
 
 
 def proposal(master) -> Proposal:
-    """Was die Abgabeseite zu den Belichtungsangaben zeigt: Werte mit Herkunft, ein Vorschlag
+    """Was die Submission-Seite zu den Belichtungsangaben zeigt: Werte mit Herkunft, ein Vorschlag
     für einen fehlenden Wert, Hinweise und gegebenenfalls die Frage nach EXPTIME."""
     rows = tuple(
         Row(name, LABELS[name], getattr(master, name), getattr(master, f"{name}_source"))

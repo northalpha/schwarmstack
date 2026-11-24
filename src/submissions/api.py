@@ -1,4 +1,4 @@
-"""JSON-Endpunkte für den Upload im Browser. Alle an die Abgabe aus dem Cookie gebunden."""
+"""JSON-Endpunkte für den Upload im Browser. Alle an die Submission aus dem Cookie gebunden."""
 
 import functools
 import json
@@ -21,7 +21,7 @@ def _submission(request, reference) -> Submission:
 
 
 def _with_master(view):
-    """Übergibt den Master der eigenen Abgabe. Fehlt er, wurde er gelöscht, etwa in einem
+    """Übergibt den Master der eigenen Submission. Fehlt er, wurde er gelöscht, etwa in einem
     anderen Tab, während dieser noch hochlädt; das soll der Uploader verständlich anzeigen."""
 
     @functools.wraps(view)
@@ -99,7 +99,7 @@ def sign(request, master):
 @require_POST
 @_with_master
 def abort(request, master):
-    # Ohne JavaScript schickt der Browser das Formular; dann zurück zur Abgabeseite.
+    # Ohne JavaScript schickt der Browser das Formular; dann zurück zur Submission-Seite.
     from_form = request.content_type == "application/x-www-form-urlencoded"
     try:
         master = uploads.abort(master)
@@ -115,7 +115,7 @@ def abort(request, master):
 
 
 def _usage_json(submission: Submission) -> dict:
-    """Neue Belegung, damit die Abgabeseite sie ohne Neuladen anzeigen kann."""
+    """Neue Belegung, damit die Submission-Seite sie ohne Neuladen anzeigen kann."""
     usage = uploads.quota_usage(submission)
     label = render_to_string("submissions/_usage_label.html", usage).strip()
     return {"label": label, "percent": usage["percent"]}

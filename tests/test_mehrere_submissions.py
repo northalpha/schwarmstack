@@ -1,4 +1,4 @@
-"""Mehrere Abgaben je Browser und Zeitfenster beim Anlegen (Ticket #10)."""
+"""Mehrere Submissions je Browser und Zeitfenster beim Anlegen (Ticket #10)."""
 
 from datetime import timedelta
 
@@ -18,7 +18,7 @@ def create(client, data, url=NEW):
     return client.post(url, data)
 
 
-def test_zweite_abgabe_im_selben_browser(client, campaign, valid_form):
+def test_zweite_submission_im_selben_browser(client, campaign, valid_form):
     first = create(client, valid_form, "/")["Location"]
     second = create(client, dict(valid_form, setup_description="Zweites Setup"))["Location"]
     assert first != second
@@ -27,7 +27,7 @@ def test_zweite_abgabe_im_selben_browser(client, campaign, valid_form):
     assert client.get(second).status_code == 200
 
 
-def test_abgabeseite_bietet_wechsel_und_neue_abgabe(client, campaign, valid_form):
+def test_submission_seite_bietet_wechsel_und_neue_submission(client, campaign, valid_form):
     first = create(client, valid_form, "/")["Location"]
     second = create(client, valid_form)["Location"]
     content = client.get(second).content.decode()
@@ -35,18 +35,18 @@ def test_abgabeseite_bietet_wechsel_und_neue_abgabe(client, campaign, valid_form
     assert f'href="{NEW}"' in content
 
 
-def test_hoechstens_drei_abgaben_je_browser(client, campaign, valid_form):
+def test_hoechstens_drei_submissions_je_browser(client, campaign, valid_form):
     for _ in range(3):
         assert create(client, valid_form).status_code == 302
     response = create(client, valid_form)
     assert Submission.objects.count() == 3
     assert response.status_code == 200
     content = response.content.decode()
-    assert "höchstens 3 Abgaben" in content
+    assert "höchstens 3 Submissions" in content
     assert 'name="credit_name"' not in content
 
 
-def test_bei_drei_abgaben_kein_formular_und_kein_link(client, campaign, valid_form):
+def test_bei_drei_submissions_kein_formular_und_kein_link(client, campaign, valid_form):
     for _ in range(3):
         location = create(client, valid_form)["Location"]
     assert 'name="credit_name"' not in client.get(NEW).content.decode()
@@ -60,7 +60,7 @@ def test_grenze_gilt_je_browser(campaign, valid_form):
     assert create(b, valid_form).status_code == 302
 
 
-def test_cookie_enthaelt_nur_eigene_abgaben(campaign, valid_form):
+def test_cookie_enthaelt_nur_eigene_submissions(campaign, valid_form):
     a, b = Client(), Client()
     location_a = create(a, valid_form)["Location"]
     create(b, valid_form)
@@ -89,7 +89,7 @@ def test_vor_dem_beginn_kein_anlegen(client, campaign, valid_form):
 
 
 @pytest.mark.parametrize("since", [timedelta(minutes=1), timedelta(days=3)])
-def test_nach_dem_ende_keine_neue_abgabe(client, campaign, valid_form, since):
+def test_nach_dem_ende_keine_neue_submission(client, campaign, valid_form, since):
     _shift(campaign, ends_at=timezone.now() - since)
     response = create(client, valid_form, "/")
     assert Submission.objects.count() == 0
@@ -98,7 +98,7 @@ def test_nach_dem_ende_keine_neue_abgabe(client, campaign, valid_form, since):
     assert "beendet" in content
 
 
-def test_nach_dem_ende_bleibt_abgabe_sichtbar(client, campaign, valid_form):
+def test_nach_dem_ende_bleibt_submission_sichtbar(client, campaign, valid_form):
     location = create(client, valid_form, "/")["Location"]
     _shift(campaign, ends_at=timezone.now() - timedelta(days=3))
     response = client.get(location)

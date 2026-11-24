@@ -1,4 +1,4 @@
-"""Abgabe-Kennung: kurz, lesbar, ohne verwechselbare Zeichen (kein 0/O, 1/I/L)."""
+"""Submission-ID: kurz, lesbar, ohne verwechselbare Zeichen (kein 0/O, 1/I/L)."""
 
 import secrets
 
@@ -13,9 +13,9 @@ def _draw() -> str:
 
 
 def new_reference(exists) -> str:
-    """Zieht eine Kennung, die `exists(kennung)` noch nicht kennt."""
+    """Zieht eine Submission-ID, die `exists(reference)` noch nicht kennt."""
     for _ in range(MAX_ATTEMPTS):
         reference = PREFIX + _draw()
         if not exists(reference):
             return reference
-    raise RuntimeError("Keine freie Abgabe-Kennung gefunden")
+    raise RuntimeError("Keine freie Submission-ID gefunden")
