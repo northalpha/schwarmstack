@@ -7,7 +7,7 @@ from . import access
 from .forms import SubmissionForm
 from .models import Campaign, Master, Phase, Submission
 from .services import create_submission
-from .uploads import release_stale, usage
+from .uploads import interrupted, release_stale, usage
 
 
 @require_http_methods(["GET", "POST"])
@@ -63,13 +63,10 @@ def submission(request, reference):
     quota = campaign.quota if campaign else 0
     phase = campaign.phase() if campaign else Phase.CLOSED
     masters = submission.masters.all()
-    # Unterbrochene Uploads: im Speicher angelegt, aber nie fertig gemeldet. Fortsetzen geht,
-    # solange die Abgabe nicht schreibgeschützt ist.
-    resumable = (
-        masters.filter(state=Master.State.UPLOADING).exclude(upload_id="")
-        if phase in (Phase.OPEN, Phase.GRACE)
-        else masters.none()
-    )
+    # Unterbrochene Uploads: nie fertig gemeldet. Abbrechen lässt sich jeder; fortsetzen nur,
+    # wenn der Multipart-Upload im Speicher schon angelegt ist.
+    abortable = interrupted(masters)
+    resumable = abortable.exclude(upload_id="")
     show_uploader = not submission.is_withdrawn and (
         phase is Phase.OPEN or (phase is Phase.GRACE and resumable.exists())
     )
@@ -87,6 +84,7 @@ def submission(request, reference):
             "own": _own(request),
             "can_add": can_add,
             "masters": masters.exclude(state=Master.State.ABORTED),
+            "abortable_ids": set(abortable.values_list("pk", flat=True)),
             "resumable_ids": set(resumable.values_list("pk", flat=True)),
             "phase": phase.name.lower(),
             "show_uploader": show_uploader,

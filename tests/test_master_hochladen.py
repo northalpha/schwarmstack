@@ -229,7 +229,7 @@ def test_abgabeseite_listet_master(client, reference):
     assert "OIII" in content
     assert "angenommen" in content
     assert "m101_sii.fits" in content
-    assert "im Upload" in content
+    assert "unterbrochen" in content  # nie fertig gemeldet (Ticket #39)
 
 
 def test_abgabeseite_bindet_uppy_ohne_externe_quellen(client, reference):

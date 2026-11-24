@@ -24,11 +24,14 @@
 </p>
 {% endif %}
 {% if masters %}
-<table class="masters">
+<table class="masters" data-csrf="{{ csrf_token }}">
   <thead><tr><th>Datei</th><th>Kanal</th><th>Größe</th><th>Zustand</th></tr></thead>
   <tbody>
   {% for m in masters %}
-    <tr data-state="{{ m.state }}"{% if m.pk in resumable_ids %} class="resumable" data-master-id="{{ m.public_id }}" data-key="{{ m.key }}" data-upload-id="{{ m.upload_id }}" data-name="{{ m.original_name }}" data-size="{{ m.declared_size }}" data-channel="{{ m.channel }}"{% endif %}><td>{{ m.original_name }}</td><td>{{ m.get_channel_display }}</td><td>{{ m.size|default:m.declared_size|filesizeformat }}</td><td>{% if m.pk in resumable_ids %}unterbrochen<br><span class="help">Wähle die Datei erneut aus, um fortzusetzen.</span>{% else %}{{ m.get_state_display }}{% endif %}{% if m.rejection_reason %}<br><span class="reason">{{ m.rejection_reason }}</span>{% endif %}</td></tr>
+    <tr data-state="{{ m.state }}"{% if m.pk in abortable_ids %} data-master-id="{{ m.public_id }}"{% endif %}{% if m.pk in resumable_ids %} class="resumable" data-key="{{ m.key }}" data-upload-id="{{ m.upload_id }}" data-name="{{ m.original_name }}" data-size="{{ m.declared_size }}" data-channel="{{ m.channel }}"{% endif %}>
+      <td>{{ m.original_name }}</td><td>{{ m.get_channel_display }}</td><td>{{ m.size|default:m.declared_size|filesizeformat }}</td>
+      <td><span class="status">{% if m.pk in abortable_ids %}unterbrochen{% if m.pk in resumable_ids %}<br><span class="help">Wähle die Datei erneut aus, um fortzusetzen.</span>{% endif %}{% else %}{{ m.get_state_display }}{% endif %}</span>{% if m.rejection_reason %}<br><span class="reason">{{ m.rejection_reason }}</span>{% endif %}{% if m.pk in abortable_ids %} <button type="button" class="abort" hidden data-abort-url="{% url 'upload_abort' submission.reference m.public_id %}">Abbrechen</button>{% endif %}</td>
+    </tr>
   {% endfor %}
   </tbody>
 </table>

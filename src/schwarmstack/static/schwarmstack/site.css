@@ -76,7 +76,7 @@ table.masters td:nth-child(3) { white-space: nowrap; }
 select { font: inherit; padding: .3rem; }
 .usage progress { width: 100%; }
 .usage label { font-weight: 400; margin: 0; }
-.queue .cancel { margin: 0; padding: .2rem .6rem; background: transparent; color: var(--accent); border: 1px solid var(--border); font-weight: 400; }
+.queue .cancel, table.masters .abort { margin: 0; padding: .2rem .6rem; background: transparent; color: var(--accent); border: 1px solid var(--border); font-weight: 400; }
 .notice { padding: .75rem 1rem; border-left: 4px solid var(--accent); background: transparent; }
 .queue .pause { margin: 0; padding: .2rem .6rem; background: transparent; color: var(--accent); border: 1px solid var(--border); font-weight: 400; }
 button:disabled { opacity: .5; cursor: not-allowed; }
