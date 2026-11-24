@@ -5,10 +5,9 @@ from zoneinfo import ZoneInfo
 
 import pytest
 from admin_helper import ADMIN, operator, operator_client, submission_url  # noqa: F401
-from django.test import Client
 from django.utils import timezone
 from files import fits, xisf
-from uploads_helper import start, upload
+from uploads_helper import new_submission, start, upload
 
 from submissions.models import Master, Submission
 
@@ -18,13 +17,6 @@ GIB = 1024**3
 BERLIN = ZoneInfo("Europe/Berlin")
 L_DATA = fits()
 HA_DATA = xisf()
-
-
-def new_submission(form):
-    client = Client()
-    before = set(Submission.objects.values_list("pk", flat=True))
-    client.post("/", form)
-    return client, Submission.objects.exclude(pk__in=before).get()
 
 
 @pytest.fixture

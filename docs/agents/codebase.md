@@ -15,8 +15,9 @@ src/
 │   ├── validation.py      # Prüfung der Master (XISF/FITS-Header), Ablehnungskategorien
 │   ├── access.py          # signiertes Cookie: welche Abgaben gehören zu diesem Browser
 │   ├── views.py, api.py   # Seiten für Teilnehmende / JSON-API für Uppy
+│   ├── public.py          # öffentlich ohne Cookie: /zahlen.json (Community-Zahlen, ADR 0009)
 │   ├── admin.py           # Admin: Aktion pflegen, Abgaben korrigieren; ruft services auf
-│   ├── statistics.py      # Zahlen für die Statistik
+│   ├── statistics.py      # Zahlen für die Statistik und die Community-Zahlen
 │   └── management/commands/campaign.py   # die Aktion anlegen/ändern
 └── storage/               # Speicher-Modul: Protokoll in __init__.py, Adapter local.py und s3.py;
                            # local_views.py bildet für Uppy S3 nach (nur lokaler Speicher)
