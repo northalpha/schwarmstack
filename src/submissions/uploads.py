@@ -1,4 +1,4 @@
-"""Upload-Ablauf eines Masters über dem Speicher-Modul (ADR 0005).
+"""Upload-Ablauf eines Masters über dem Speicher-Modul (ADR 0005, ADR 0009).
 
 Der Browser führt die S3-Anfragen selbst aus; hier wird nur entschieden, welche Anfrage für
 welchen Master signiert wird, und nach dem Upload der Master übernommen.
