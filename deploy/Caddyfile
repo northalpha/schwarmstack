@@ -2,7 +2,8 @@
 # die direkten Uploads gehen am Proxy vorbei zum S3-Speicher und sind nicht betroffen.
 
 (zugang-an) {
-	@geschuetzt not path /healthz
+	# /zahlen.json ist öffentlich (Community-Zahlen, ADR 0009), auch auf Staging.
+	@geschuetzt not path /healthz /zahlen.json
 	basic_auth @geschuetzt {
 		{$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
 	}

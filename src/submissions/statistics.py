@@ -1,6 +1,7 @@
 """Statistik für die Betreiber: Stand der Aktion, bei jedem Aufruf frisch berechnet.
 
-Zählt Abgaben, nie Personen. Nicht öffentlich: Sie erscheint nur im Admin.
+Zählt Abgaben, nie Personen. Nicht öffentlich: Sie erscheint nur im Admin. Öffentlich sind nur
+die Community-Zahlen (`community_numbers`), reine Summen ohne Namen, Kennungen oder Abgaben.
 """
 
 import datetime as dt
@@ -94,6 +95,21 @@ def compute() -> Statistics:
         rejections=_rejections(),
         days=_days(accepted),
     )
+
+
+def community_numbers() -> dict[str, int]:
+    """Community-Zahlen: dieselben Regeln wie `compute()`, aber rein lesend (kein
+    `release_stale()`), denn sie laufen im öffentlichen Pfad.
+
+    Abgaben: alle nicht zurückgezogenen, auch ohne Master. Master und Bytes: nur angenommene,
+    Dubletten eingeschlossen; Reservierungen laufender Uploads zählen nicht.
+    """
+    accepted_bytes, _ = usage_parts(Master.objects.all())
+    return {
+        "submissions": Submission.objects.filter(withdrawn_at__isnull=True).count(),
+        "masters": Master.objects.filter(state=Master.State.ACCEPTED).count(),
+        "bytes": accepted_bytes,
+    }
 
 
 def _channels(accepted) -> list[ChannelRow]:
