@@ -1,6 +1,7 @@
 """Richtet den S3-Bucket für den direkten Upload aus dem Browser ein (ADR 0005).
 
-- CORS: Der Browser lädt von der eigenen Domain direkt in den Bucket und muss den ETag lesen.
+- CORS: Der Browser lädt von der eigenen Domain direkt in den Bucket und muss den ETag lesen;
+  x-amz-error-code braucht Uppy, um S3-Fehler mit Code statt als Netzwerkfehler zu melden.
 - Lifecycle: Unvollständige Multipart-Uploads werden nach 7 Tagen abgeräumt.
 
 Läuft bei jedem Deploy (deploy/auf-dem-host.sh). Danach fragt der Befehl den Bucket wie ein
@@ -47,7 +48,7 @@ def cors_rules(origins: list[str]) -> dict:
                 "AllowedOrigins": origins,
                 "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
                 "AllowedHeaders": ["*"],
-                "ExposeHeaders": ["ETag"],
+                "ExposeHeaders": ["ETag", "x-amz-error-code"],
                 "MaxAgeSeconds": 3600,
             }
         ]
