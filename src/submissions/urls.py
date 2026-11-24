@@ -29,4 +29,9 @@ urlpatterns = [
         api.finish,
         name="upload_finish",
     ),
+    path(
+        "abgabe/<str:reference>/master/<uuid:master_id>/belichtung/",
+        api.change_exposure,
+        name="exposure",
+    ),
 ]

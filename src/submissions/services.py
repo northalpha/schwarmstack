@@ -3,13 +3,15 @@
 Admin und Abgabeseite rufen diese Operationen auf; sie selbst kennen keine Anfrage.
 """
 
+from pathlib import PurePosixPath
+
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from storage import get_storage
 
-from . import references
+from . import exposure, references, validation
 from .models import Campaign, Consent, Master, Submission
 from .uploads import abort_multipart, sidecar
 
@@ -152,3 +154,37 @@ def revoke(consent: Consent, *, by: Submission.WithdrawnBy) -> bool:
         # Ohne gültige Einwilligung wird die Nennung dabei verworfen.
         details_corrected(consent.submission)
     return True
+
+
+# -- Belichtungsangaben (ADR 0010) ---------------------------------------------
+
+
+def exposure_changeable_by_participant(master: Master) -> bool:
+    """Teilnehmende ändern Belichtungsangaben, solange sie Master hochladen dürfen; danach
+    nur noch die Betreiber im Admin."""
+    return master.state == Master.State.ACCEPTED and changeable_by_participant(master.submission)
+
+
+def change_exposure(master: Master, data: dict) -> None:
+    """Eine Änderung der Belichtungsangaben: einen Vorschlag übernehmen (`accept`), die
+    Bedeutung von EXPTIME festlegen (`exptime_meaning`) oder Werte von Hand ändern.
+
+    Ungültige Eingaben werfen `exposure.InvalidInput`.
+    """
+    if "accept" in data:
+        changed = exposure.accept(master, data["accept"])
+    elif "exptime_meaning" in data:
+        changed = exposure.choose_exptime_meaning(master, data["exptime_meaning"])
+    else:
+        changed = exposure.set_by_hand(master, data)
+    if changed:
+        master.save(update_fields=changed)
+
+
+def backfill_exposure(master: Master) -> None:
+    """Liest den Header eines angenommenen Masters erneut per Range Request und trägt die
+    Belichtungsangaben nach. Werte mit der Herkunft `manuell` bleiben unangetastet."""
+    head = get_storage().read_head(master.key, validation.HEAD_BYTES)
+    suffix = PurePosixPath(master.key).suffix
+    changed = exposure.apply_header(master, exposure.read(head, suffix), keep_manual=True)
+    master.save(update_fields=changed)
