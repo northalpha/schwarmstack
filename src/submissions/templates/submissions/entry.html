@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Abgabe anlegen – Schwarmstack{% endblock %}
 {% block content %}
 <h1>Mitmachen bei {{ campaign.object_name }}</h1>
@@ -9,4 +10,7 @@
   {% for field in form %}{% include "submissions/_field.html" %}{% endfor %}
   <button type="submit">Abgabe anlegen</button>
 </form>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'submissions/nennung.js' %}" defer></script>
 {% endblock %}

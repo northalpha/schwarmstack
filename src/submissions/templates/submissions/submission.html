@@ -3,6 +3,7 @@
 {% block title %}Abgabe {{ submission.reference }} – Schwarmstack{% endblock %}
 {% block content %}
 {% include "submissions/_own.html" %}
+{% for message in messages %}<p class="notice">{{ message }}</p>{% endfor %}
 <h1>Deine Abgabe{% if campaign %} zu {{ campaign.object_name }}{% endif %}</h1>
 <p>Deine Abgabe-Kennung:</p>
 <p class="reference">{{ submission.reference }}</p>

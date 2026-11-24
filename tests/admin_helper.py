@@ -50,7 +50,8 @@ def change_form_data(response, **overrides):
             data[f"{management.prefix}-{name}"] = management.initial.get(name, 0)
         for index, sub in enumerate(inline.formset.forms):
             for name in sub.fields:
-                value = sub.initial.get(name)
+                # Das versteckte `id` steht nicht in `initial`, der Browser schickt es mit.
+                value = sub.initial.get(name, sub[name].value())
                 if value is not None:
                     data[f"{inline.formset.prefix}-{index}-{name}"] = value
     data.update(overrides)
