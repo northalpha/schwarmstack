@@ -8,8 +8,8 @@ Beim Abschluss eines Uploads liest der Server aus demselben Range Request wie di
 - Was `EXPTIME` bedeutet (Gesamtzeit oder pro Light), legt eine kleine Tabelle je Erzeuger im Code fest (`exposure.EXPTIME_MEANING`). Bei einem unbekannten Erzeuger wird nichts gerechnet; die Teilnehmenden wählen die Bedeutung. `LIVETIME` ist, wenn vorhanden, die Gesamtbelichtung.
 - Berechnete Werte sind nur Vorschläge; erst ein Klick speichert sie als `berechnet`. Rechnet der Server nicht glatt, zeigt er einen Hinweis statt eines Vorschlags. Gerechnet wird nur auf dem Server, nicht im Browser.
 - In XISF hat die XISF-Property Vorrang vor dem eingebetteten FITS-Keyword; ein Widerspruch wird gespeichert und angezeigt.
-- Die Werte stehen in Manifest und Export (aus der Datenbank), nicht in der Begleitdatei: Die Begleitdatei soll die Zuordnung rekonstruierbar machen (ADR 0006), nicht die Angaben duplizieren.
-- Teilnehmende ändern die Werte bis zum Ende der Aktion, danach nur die Betreiber im Admin. Der Rückzug löscht sie mit den Mastern.
+- Die Werte gehören in Manifest und Export, die aus der Datenbank lesen, nicht in die Begleitdatei: Die Begleitdatei soll die Zuordnung rekonstruierbar machen (ADR 0006), nicht die Angaben duplizieren. Manifest und Export entstehen erst mit #34; `exposure.manifest_values` liefert ihnen die Werte samt Herkunft.
+- Teilnehmende ändern die Werte bis zum Ende der Aktion, danach nur die Betreiber im Admin. Der Rückzug löscht sie mit den Mastern, Herkunft und Erzeuger eingeschlossen.
 - Bewusste Folge aus ADR 0003: Die Dateien bleiben byte-genau. Die vollständigen Header mit Standortdaten liegen also weiter in den Master-Dateien im S3-Speicher; Schwarmstack liest sie nur nicht. Wie damit umzugehen ist, behandelt #62.
 
 ## Considered Options

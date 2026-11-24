@@ -1,11 +1,11 @@
-"""Belichtungsangaben für Master nachtragen, die vor dem Feature hochgeladen wurden (Ticket #50)."""
+"""Belichtungsangaben für Master lesen, die vor dem Feature hochgeladen wurden (Ticket #50)."""
 
 from io import StringIO
 
 import pytest
 from django.core.management import call_command
-from files import fits
-from test_belichtungsangaben import DWARF
+from files import DWARF_KEYWORDS as DWARF
+from files import UNKNOWN_CREATOR_KEYWORDS, fits
 
 from submissions.models import Master
 
@@ -74,3 +74,15 @@ def test_nur_angenommene_master(participant):
 
     rejected.refresh_from_db()
     assert rejected.creator == ""
+
+
+def test_beantwortete_frage_nach_exptime_kommt_nicht_wieder(participant):
+    master = participant.upload(fits(keywords=UNKNOWN_CREATOR_KEYWORDS))
+    participant.save_exposure(master, exptime_meaning="exposure_per_light")
+    participant.save_exposure(master, exposure_per_light="30")
+
+    backfill()
+
+    master.refresh_from_db()
+    assert master.exposure_per_light == 30
+    assert "<code>EXPTIME</code> =" not in participant.page()
