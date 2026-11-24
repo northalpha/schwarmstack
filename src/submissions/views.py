@@ -88,7 +88,7 @@ def submission(request, reference):
             "show_uploader": shows_uploader(submission),
             "may_start": may_start(submission),
             "may_change": services.changeable_by_participant(submission),
-            "may_revoke": services.revocable_by_participant(submission) is not None,
+            "may_revoke": services.consent_revocable_by_participant(submission) is not None,
             **quota_usage(submission),
             "max_master_size": campaign.max_master_size if campaign else 0,
             "channels": Master.Channel.choices,
@@ -147,7 +147,7 @@ def delete_master(request, reference, master_id):
 def revoke_credit(request, reference):
     """Widerruf der Einwilligung zur Namensnennung, jederzeit (Ticket #68)."""
     submission = _own_submission(request, reference)
-    consent = services.revocable_by_participant(submission)
+    consent = services.consent_revocable_by_participant(submission)
     if consent is None:
         return redirect("submission", submission.reference)
     if request.method == "POST":

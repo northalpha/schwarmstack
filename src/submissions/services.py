@@ -141,24 +141,26 @@ def revoke(consent: Consent) -> bool:
     """Widerruf der Einwilligung zur Namensnennung: Sie bekommt einen Zeitpunkt und bleibt
     stehen; die Namensnennung wird gelöscht und die Begleitdateien neu geschrieben.
 
-    Gibt zurück, ob sich etwas geändert hat (ein schon vermerkter Widerruf ändert nichts).
-    Andere Einwilligungen lassen sich nicht widerrufen (`ValueError`).
+    Gibt zurück, ob sich etwas geändert hat: Ein schon vermerkter Widerruf ändert nichts, und
+    ebenso wenig eine Einwilligung, die eine Löschung (etwa in einem anderen Tab) schon entfernt
+    hat. Andere Einwilligungen lassen sich nicht widerrufen (`ValueError`).
     """
     if consent.kind not in REVOCABLE:
         raise ValueError(
             f"Die Einwilligung „{consent.get_kind_display()}“ lässt sich nicht widerrufen; "
             "dafür die Submission löschen."
         )
-    if consent.revoked_at is not None:
+    now = timezone.now()
+    # In einem Schritt, damit ein gleichzeitiger Widerruf oder eine Löschung nicht dazwischenkommt.
+    if not Consent.objects.filter(pk=consent.pk, revoked_at__isnull=True).update(revoked_at=now):
         return False
-    consent.revoked_at = timezone.now()
-    consent.save(update_fields=["revoked_at"])
+    consent.revoked_at = now
     # Ohne gültige Einwilligung wird die Namensnennung dabei verworfen.
     details_changed(consent.submission)
     return True
 
 
-def revocable_by_participant(submission: Submission) -> Consent | None:
+def consent_revocable_by_participant(submission: Submission) -> Consent | None:
     """Die Einwilligung zur Namensnennung, die Teilnehmende selbst widerrufen dürfen.
 
     Der Widerruf geht jederzeit, auch in der Nachfrist und nach dem Ende der Aktion
@@ -166,9 +168,7 @@ def revocable_by_participant(submission: Submission) -> Consent | None:
     """
     if submission.is_deleted:
         return None
-    return submission.consents.filter(
-        kind=Consent.Kind.PUBLISH_CREDIT, revoked_at__isnull=True
-    ).first()
+    return submission.consents.filter(kind__in=REVOCABLE, revoked_at__isnull=True).first()
 
 
 # -- Belichtungsangaben (ADR 0010) ---------------------------------------------
