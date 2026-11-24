@@ -26,7 +26,7 @@ tests/
 ├── uploads_helper.py      # Upload-Schritte wie der Browser (start, sign, send_parts, finish)
 ├── admin_helper.py        # Betreiber-Fixtures, Admin-URLs, Formulardaten
 ├── files.py               # erzeugt XISF/FITS-Testdateien
-└── e2e/                   # Durchlauf im echten Browser gegen Garage
+└── e2e/                   # E2E-Test im echten Browser gegen Garage
 deploy/                    # Compose, Caddy, Skripte für Host und Deploy (docs/betrieb/deployment.md)
 scripts/                   # pruefen.sh (alle Prüfungen wie CI), garage.sh, glossar.py, changelog.py
 ```

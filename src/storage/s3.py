@@ -1,6 +1,6 @@
 """Speicher im S3-kompatiblen Bucket (Hetzner in Produktion, Garage in CI).
 
-Der Server spricht S3 nur für Größe, Teilabruf, Löschen, Begleitdateien und kurz gültige
+Der Server spricht S3 nur für Größe, Range Request, Löschen, Begleitdateien und kurz gültige
 Download-Links für Betreiber; die Master selbst
 lädt der Browser mit signierten Links direkt hoch (ADR 0005).
 """

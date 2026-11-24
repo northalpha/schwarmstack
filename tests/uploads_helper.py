@@ -1,4 +1,4 @@
-"""Spielt im Test den Browser (Uppy mit dem AWS-S3-Plugin) gegen die HTTP-Naht."""
+"""Spielt im Test den Browser (Uppy mit dem AWS-S3-Plugin) gegen den HTTP-Seam."""
 
 import hashlib
 import json

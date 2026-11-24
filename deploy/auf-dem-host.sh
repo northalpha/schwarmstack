@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Teil des Deploys, der als `deploy` auf dem Host läuft; ausrollen.sh kopiert das Skript per SSH.
+# Teil des Deploys, der als `deploy` auf dem Host läuft; deploy.sh kopiert das Skript per SSH.
 #
 #   auf-dem-host.sh <image-tag> <domain> <registry-benutzer>   (Registry-Token auf stdin)
 #

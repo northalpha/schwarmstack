@@ -1,4 +1,4 @@
-"""Ein Durchlauf im echten Browser: Uppy lädt direkt in S3 (Garage), Ticket #12.
+"""E2E-Test im echten Browser: Uppy lädt direkt in S3 (Garage), Ticket #12.
 
 Prüft nur den Weg Browser -> S3 -> Abschluss; fachliche Regeln testen die HTTP-Tests.
 Läuft nur, wenn Garage gestartet ist (scripts/garage.sh start).

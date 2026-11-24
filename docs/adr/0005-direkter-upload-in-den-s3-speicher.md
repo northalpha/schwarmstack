@@ -1,6 +1,6 @@
 # Master gehen direkt aus dem Browser in den S3-Speicher
 
-Der Browser lädt Master per S3-Multipart-Upload direkt in den Hetzner-S3-Speicher; Django stellt nur die signierten Links aus, prüft Quote und Gesamtgrenze vorab und prüft den Master nach Abschluss über einen Teilabruf des Headers. Die Master-Daten laufen nie durch den App-Server. Upload-Bibliothek im Browser ist Uppy, als Datei im Repo mitgeliefert. Der Bucket braucht dafür eine CORS-Freigabe für die eigene Domain.
+Der Browser lädt Master per S3-Multipart-Upload direkt in den Hetzner-S3-Speicher; Django stellt nur die signierten Links aus, prüft Quote und Gesamtgrenze vorab und prüft den Master nach Abschluss über einen Range Request auf den Header. Die Master-Daten laufen nie durch den App-Server. Upload-Bibliothek im Browser ist Uppy, als Datei im Repo mitgeliefert. Der Bucket braucht dafür eine CORS-Freigabe für die eigene Domain.
 
 ## Consequences
 

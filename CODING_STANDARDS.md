@@ -42,7 +42,7 @@ grün ist, wird im Review nicht wiederholt.
   Befund.
 - Zugriff auf Dateien nur über `storage.get_storage()` und das `Storage`-Protokoll in
   `src/storage/__init__.py`. Eine neue Methode bekommt jeder Adapter (`local.py`, `s3.py`) und
-  einen Fall in `tests/test_speicher_vertrag.py`, der für alle Adapter läuft.
+  einen Fall in `tests/test_speicher_contract.py`, der für alle Adapter läuft.
 - Breites `except Exception` nur beim Aufräumen am Speicher, mit einem Kommentar, warum der
   Fehler egal ist, und einem Log-Eintrag.
 
@@ -53,7 +53,7 @@ grün ist, wird im Review nicht wiederholt.
 - Jede Änderung mit Wirkung für Teilnehmende oder Betreiber hat einen Eintrag in `changelog.d/`
   mit dem *Warum* (siehe [`changelog.d/README.md`](changelog.d/README.md)).
 - Neue Einstellungen aus der Umgebung stehen in `docs/betrieb/deployment.md` und, wenn der
-  Deploy sie braucht, in `deploy/ausrollen.sh` und `.github/workflows/ausrollen.yml`.
+  Deploy sie braucht, in `deploy/deploy.sh` und `.github/workflows/deploy.yml`.
 
 ## Tests
 

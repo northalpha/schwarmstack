@@ -30,4 +30,4 @@ DEBUG=1 uv run python manage.py campaign --object "M 101" \
 DEBUG=1 uv run python manage.py runserver
 ```
 
-Prüfen wie in CI: `scripts/pruefen.sh` startet Garage (S3) und lässt Lint, Migrationen und alle Tests laufen, auch den Durchlauf im Browser; `scripts/pruefen.sh --schnell` ohne Garage. Einzelne Tests: `uv run pytest` im Repo-Wurzelverzeichnis, siehe [`docs/betrieb/s3-speicher.md`](docs/betrieb/s3-speicher.md).
+Prüfen wie in CI: `scripts/pruefen.sh` startet Garage (S3) und lässt Lint, Migrationen und alle Tests laufen, auch den E2E-Test im Browser; `scripts/pruefen.sh --schnell` ohne Garage. Einzelne Tests: `uv run pytest` im Repo-Wurzelverzeichnis, siehe [`docs/betrieb/s3-speicher.md`](docs/betrieb/s3-speicher.md).

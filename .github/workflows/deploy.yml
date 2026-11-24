@@ -1,4 +1,4 @@
-name: Ausrollen
+name: Deploy
 # Wird von ci.yml aufgerufen. Alle Werte kommen aus dem GitHub-Environment der Umgebung;
 # die Liste steht in docs/betrieb/deployment.md. Freigabe für production im Environment einstellen.
 on:
@@ -16,19 +16,19 @@ permissions:
   packages: read
 
 jobs:
-  ausrollen:
+  deploy:
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.umgebung }}
       url: https://${{ vars.DOMAIN }}
     # Nie zwei Deploys gleichzeitig auf denselben Host.
     concurrency:
-      group: ausrollen-${{ inputs.umgebung }}
+      group: deploy-${{ inputs.umgebung }}
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - name: ${{ inputs.image_tag }} nach ${{ inputs.umgebung }}
-        run: deploy/ausrollen.sh
+        run: deploy/deploy.sh
         env:
           IMAGE_TAG: ${{ inputs.image_tag }}
           # Kurzlebig, nur für diesen Job; der Host behält keinen Zugang zur Registry.

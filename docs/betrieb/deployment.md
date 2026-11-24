@@ -1,15 +1,15 @@
 # Deployment: vom leeren Hetzner-Konto bis zur laufenden Instanz
 
-Schwarmstack läuft als Container-Image mit Docker Compose (App mit gunicorn, Caddy für TLS) auf einer eigenen Hetzner-VM und wird per GitHub Actions ausgerollt (ADR 0001). Diese Anleitung führt durch **Staging** (`upload.northalpha.de`); die **Produktion** (`upload.dzvf.de`) wird später genauso aufgesetzt, mit dem Environment `production` statt `staging`.
+Schwarmstack läuft als Container-Image mit Docker Compose (App mit gunicorn, Caddy für TLS) auf einer eigenen Hetzner-VM und kommt per Deploy über GitHub Actions auf den Host (ADR 0001). Diese Anleitung führt durch **Staging** (`upload.northalpha.de`); die **Produktion** (`upload.dzvf.de`) wird später genauso aufgesetzt, mit dem Environment `production` statt `staging`.
 
 | Was | Wo |
 |---|---|
 | Image | `Dockerfile`, gebaut nach `ghcr.io/northalpha/schwarmstack` (privat) |
 | Compose-Datei, Caddyfile | `deploy/compose.yaml`, `deploy/Caddyfile` (für beide Umgebungen gleich) |
 | Einrichtung des Hosts | `deploy/host-einrichten.sh` (cloud-init oder per SSH) |
-| Deploy | `.github/workflows/ci.yml` → `ausrollen.yml` → `deploy/ausrollen.sh` → `deploy/auf-dem-host.sh` |
+| Deploy | `.github/workflows/ci.yml` → `deploy.yml` → `deploy/deploy.sh` → `deploy/auf-dem-host.sh` |
 
-## Wann was ausgerollt wird
+## Wann was deployt wird
 
 - **Push auf `main`:** Tests → Image `sha-<commit>` bauen, im Container `/healthz` prüfen, pushen → nach **Staging**.
 - **Tag `vX.Y.Z`:** dasselbe mit Image `vX.Y.Z` → nach **Produktion**, erst nach Freigabe im Environment `production`. Fehlen dort Pflichtwerte, bricht der Job mit einer Liste ab, bevor er den Host anfasst.
@@ -105,7 +105,7 @@ Sind beide gesetzt, verlangt Caddy für alle Seiten außer `/healthz` Benutzerna
 
 ## 7. Erster Deploy
 
-Ein Push auf `main` (oder *Run workflow* mit einem vorhandenen `sha-…`-Tag) rollt aus. Der Deploy-Job ist grün, wenn `https://upload.northalpha.de/healthz` mit `ok` antwortet. `/healthz` prüft Datenbank und S3-Speicher, verlangt kein Passwort und gibt keine Details preis; die Gründe stehen im Log. Dieselbe Adresse nutzt das externe Monitoring (ADR 0007).
+Ein Push auf `main` (oder *Run workflow* mit einem vorhandenen `sha-…`-Tag) startet den Deploy. Der Deploy-Job ist grün, wenn `https://upload.northalpha.de/healthz` mit `ok` antwortet. `/healthz` prüft Datenbank und S3-Speicher, verlangt kein Passwort und gibt keine Details preis; die Gründe stehen im Log. Dieselbe Adresse nutzt das externe Monitoring (ADR 0007).
 
 ## 8. Aktion anlegen
 
@@ -127,7 +127,7 @@ Betreiber-Konten für den Admin unter `https://upload.northalpha.de/<ADMIN_PATH>
 cd /opt/schwarmstack && docker compose run --rm app python manage.py createsuperuser
 ```
 
-## Zurückrollen
+## Rollback
 
 Actions → CI → *Run workflow*: Umgebung und den früheren Image-Tag (`sha-…` oder `vX.Y.Z`) eintragen. Für die Produktion unter *Use workflow from* einen Tag `vX.Y.Z` wählen, sonst lässt das Environment den Job nicht zu (nur `v*.*.*` erlaubt). Die Tags stehen im Deploy-Verlauf des Environments und unter *Packages* im Repo. Migrationen werden dabei nicht zurückgedreht: Ein älteres Image läuft nur, wenn es mit dem neueren Datenbankschema zurechtkommt.
 
