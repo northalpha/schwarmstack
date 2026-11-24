@@ -7,7 +7,13 @@ urlpatterns = [
     path("zahlen.json", public.community_numbers_view, name="community_numbers"),
     path("neu/", views.new_submission, name="new_submission"),
     path("abgabe/<str:reference>/", views.submission, name="submission"),
+    path("abgabe/<str:reference>/zurueckziehen/", views.withdraw, name="withdraw"),
     path("abgabe/<str:reference>/master/", api.start, name="upload_start"),
+    path(
+        "abgabe/<str:reference>/master/<uuid:master_id>/loeschen/",
+        views.delete_master,
+        name="delete_master",
+    ),
     path(
         "abgabe/<str:reference>/master/<uuid:master_id>/signieren/",
         api.sign,
