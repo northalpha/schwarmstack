@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
 from . import access, services
-from .forms import SubmissionForm
+from .forms import DetailsForm, SubmissionForm
 from .models import Campaign, Master, Phase, Submission
 from .services import create_submission
 from .uploads import (
@@ -93,6 +93,25 @@ def submission(request, reference):
             "channels": Master.Channel.choices,
         },
     )
+
+
+@require_http_methods(["GET", "POST"])
+def change_details(request, reference):
+    submission = _own_submission(request, reference)
+    if not services.changeable_by_participant(submission):
+        return _not_changeable(request, submission)
+    initial = {
+        "setup_description": submission.setup_description,
+        "credit_name": submission.credit_name,
+    }
+    form = DetailsForm(request.POST or None, initial=initial, submission=submission)
+    if request.method == "POST" and form.is_valid():
+        changed = services.change_details(submission, **form.cleaned_data)
+        if changed:
+            services.log_participant_change(submission, "Angaben geändert (durch Teilnehmende)")
+        messages.info(request, "Deine Angaben wurden geändert.")
+        return redirect("submission", submission.reference)
+    return render(request, "submissions/details.html", {"submission": submission, "form": form})
 
 
 @require_http_methods(["GET", "POST"])

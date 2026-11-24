@@ -6,6 +6,9 @@ Admin und Submission-Seite rufen diese Operationen auf; sie selbst kennen keine 
 from pathlib import PurePosixPath
 
 from django.conf import settings
+from django.contrib.admin.models import CHANGE, LogEntry
+from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
@@ -105,6 +108,49 @@ def changeable_by_participant(submission: Submission) -> bool:
     Ende der Aktion und nicht mehr nach einer Löschung (ADR 0002)."""
     phase = Campaign.current_phase()
     return phase.allows_changes_by_participants and not submission.is_deleted
+
+
+def change_details(submission: Submission, *, setup_description, credit_name=None) -> list[str]:
+    """Angaben ändern: Setup und Namensnennung, danach die Begleitdateien neu schreiben.
+
+    Ohne gültige Einwilligung zur Namensnennung bleibt die Namensnennung leer. Gibt die
+    Namen der geänderten Felder zurück; ohne Änderung wird nichts gespeichert.
+    """
+    changed = []
+    if setup_description != submission.setup_description:
+        submission.setup_description = setup_description
+        changed.append("setup_description")
+    if credit_name is not None and credit_name != submission.credit_name:
+        submission.credit_name = credit_name
+        changed.append("credit_name")
+    if changed:
+        submission.save(update_fields=changed)
+        details_changed(submission)
+    return changed
+
+
+PARTICIPANT_USERNAME = "teilnehmende"
+
+
+def log_participant_change(submission: Submission, message: str) -> None:
+    """Protokolleintrag für eine Änderung durch Teilnehmende. Das Protokoll (`LogEntry`)
+    verlangt einen Benutzer; Teilnehmende haben kein Konto, deshalb steht ein reservierter,
+    gesperrter Benutzer „teilnehmende“ dafür, ohne Passwort und nicht anmeldbar."""
+    user_model = get_user_model()
+    user, created = user_model.objects.get_or_create(
+        **{user_model.USERNAME_FIELD: PARTICIPANT_USERNAME}, defaults={"is_active": False}
+    )
+    if created:
+        user.set_unusable_password()
+        user.save(update_fields=["password"])
+    LogEntry.objects.create(
+        user=user,
+        content_type=ContentType.objects.get_for_model(Submission),
+        object_id=str(submission.pk),
+        object_repr=str(submission),
+        action_flag=CHANGE,
+        change_message=message,
+    )
 
 
 def delete_submission(submission: Submission, *, by: Submission.DeletedBy) -> Submission:
