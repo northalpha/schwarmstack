@@ -14,18 +14,18 @@ class SubmissionForm(forms.Form):
         error_messages={"required": "Pflichtangabe: Ohne diese Einwilligung geht es nicht."},
     )
     consent_publish_credit = forms.BooleanField(
-        label="Meine Nennung darf veröffentlicht werden.",
+        label="Mein Name darf im Projekt genannt werden (Namensnennung).",
         required=False,
         help_text="Freiwillig. Ohne Häkchen trägst du anonym bei.",
     )
-    # Nach dem Häkchen, an dem sie hängt (Ticket #33); nennung.js koppelt beides im Browser.
+    # Nach dem Häkchen, an dem sie hängt (Ticket #33); namensnennung.js koppelt beides im Browser.
     credit_name = forms.CharField(
-        label="Nennung",
+        label="Namensnennung",
         max_length=120,
         required=False,
         help_text=(
             "Unter diesem Namen wirst du im Projekt genannt. Nur mit Häkchen bei der "
-            "Veröffentlichung; ohne Häkchen speichern wir keinen Namen."
+            "Namensnennung; ohne Häkchen speichern wir keinen Namen."
         ),
     )
 
@@ -34,7 +34,7 @@ class SubmissionForm(forms.Form):
         if cleaned.get("consent_publish_credit") and not cleaned.get("credit_name"):
             self.add_error(
                 "credit_name",
-                "Pflichtangabe: Ohne Nennung können wir dich nicht nennen. Trag einen Namen ein "
-                "oder nimm das Häkchen bei der Veröffentlichung weg.",
+                "Pflichtangabe: Ohne Namen können wir dich nicht nennen. Trag einen Namen ein "
+                "oder nimm das Häkchen bei der Namensnennung weg.",
             )
         return cleaned

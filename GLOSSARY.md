@@ -44,7 +44,7 @@ _Avoid_: Abgabe, Upload (als Sammelbegriff), Einreichung, Beitrag
 Ein kurzer, lesbarer Code (z. B. `SW-7K3Q`), der eine Submission eindeutig benennt. Teilnehmende sehen ihn nach dem Anlegen und nennen ihn, wenn sie sich beim Betreiber melden.
 _Avoid_: Abgabe-Kennung, Kennung, ID (ohne Bezug), Ticketnummer, Token
 
-**Löschung** (`withdrawn`):
+**Löschung** (`deleted_at`):
 Das endgültige Löschen einer ganzen Submission, durch die Teilnehmenden selbst oder in ihrem Auftrag durch einen Betreiber. Master, Foto, Angaben und Einwilligungen verschwinden; es bleiben die Submission-ID, der Zeitpunkt und wer gelöscht hat. Eine gelöschte Submission zählt nicht auf Quote oder Gesamtgrenze und öffnet nicht wieder. Wer die Nutzung im Projekt nicht mehr will, löscht die Submission.
 _Avoid_: Rückzug, zurückziehen, Stornierung, Abmeldung
 
@@ -99,7 +99,7 @@ _Avoid_: Kontingent, Limit (ohne Bezug)
 ### Auswertung
 
 **Admin**:
-Die Oberfläche nur für Betreiber, mit eigenem Konto je Betreiber: Statistik, Aktion pflegen, Submissions und Master ansehen und im Auftrag der Teilnehmenden korrigieren. Jeder Eingriff steht im Protokoll.
+Die Oberfläche nur für Betreiber, mit eigenem Konto je Betreiber: Statistik, Aktion pflegen, Submissions und Master ansehen und im Auftrag der Teilnehmenden ändern. Jeder Eingriff steht im Protokoll.
 _Avoid_: Backend, Dashboard
 
 **Statistik**:

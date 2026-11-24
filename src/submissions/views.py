@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.http import Http404
+from django.http import Http404, HttpResponsePermanentRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
@@ -20,7 +20,7 @@ from .uploads import (
 
 @require_http_methods(["GET", "POST"])
 def entry(request):
-    """Einstieg über den Link der Projektwebsite: zur eigenen Abgabe oder zum Formular."""
+    """Einstieg über den Link der Projektwebsite: zur eigenen Submission oder zum Formular."""
     existing = access.references(request)
     if request.method == "GET" and existing and Campaign.current() is not None:
         return redirect("submission", existing[0])
@@ -51,7 +51,7 @@ def new_submission(request):
         if form.cleaned_data["credit_name"] and not submission.credit_name:
             messages.info(
                 request,
-                "Deinen Namen haben wir nicht gespeichert: Ohne Häkchen bei der Veröffentlichung "
+                "Deinen Namen haben wir nicht gespeichert: Ohne Häkchen bei der Namensnennung "
                 "trägst du anonym bei.",
             )
         response = redirect("submission", submission.reference)
@@ -96,23 +96,24 @@ def submission(request, reference):
 
 
 @require_http_methods(["GET", "POST"])
-def withdraw(request, reference):
+def delete_submission(request, reference):
     submission = _own_submission(request, reference)
     if not services.changeable_by_participant(submission):
         return _not_changeable(request, submission)
     if request.method == "POST":
-        services.withdraw(submission, by=Submission.WithdrawnBy.PARTICIPANT)
-        messages.info(request, "Deine Abgabe wurde zurückgezogen.")
+        services.delete_submission(submission, by=Submission.DeletedBy.PARTICIPANT)
+        messages.info(request, "Deine Submission wurde gelöscht.")
         return redirect("submission", submission.reference)
     return _confirm(
         request,
         submission,
-        title="Abgabe zurückziehen",
+        title="Submission löschen",
         question=(
-            "Alle Master, Angaben und Einwilligungen dieser Abgabe werden endgültig gelöscht. "
-            "Es bleibt nur die Abgabe-Kennung. Die Abgabe lässt sich nicht wieder öffnen."
+            "Alle Master, Angaben und Einwilligungen dieser Submission werden endgültig "
+            "gelöscht. Es bleibt nur die Submission-ID. Die Submission lässt sich nicht wieder "
+            "öffnen."
         ),
-        button="Ja, zurückziehen",
+        button="Ja, löschen",
     )
 
 
@@ -148,15 +149,17 @@ def _own_submission(request, reference) -> Submission:
 
 
 def _not_changeable(request, submission):
-    """Zurück zur Abgabeseite, wenn Teilnehmende nichts mehr ändern dürfen; sie erklärt den
-    Rückzug selbst, das Ende der Aktion sagt die Meldung."""
-    if not submission.is_withdrawn:
-        messages.info(request, "Die Aktion ist beendet. Deine Abgabe kannst du nicht mehr ändern.")
+    """Zurück zur Submission-Seite, wenn Teilnehmende nichts mehr ändern dürfen; sie erklärt die
+    Löschung selbst, das Ende der Aktion sagt die Meldung."""
+    if not submission.is_deleted:
+        messages.info(
+            request, "Die Aktion ist beendet. Deine Submission kannst du nicht mehr ändern."
+        )
     return redirect("submission", submission.reference)
 
 
 def _confirm(request, submission, *, title, question, button, details=()):
-    """Rückfrage vor einer Löschung; Abbrechen führt zurück zur Abgabeseite."""
+    """Rückfrage vor dem Löschen; Abbrechen führt zurück zur Submission-Seite."""
     return render(
         request,
         "submissions/confirm.html",
@@ -174,3 +177,15 @@ def _own(request) -> list[Submission]:
     refs = access.references(request)
     found = {s.reference: s for s in Submission.objects.filter(reference__in=refs)}
     return [found[r] for r in refs if r in found]
+
+
+def legacy_redirect(request, rest):
+    """Alte Adressen unter `abgabe/` (vor Issue #66) führen dauerhaft auf `submission/`,
+    damit Lesezeichen und Links in Mails weiter funktionieren."""
+    prefix = request.path.removesuffix("abgabe/" + rest)
+    if rest.endswith("/zurueckziehen/"):
+        rest = rest.removesuffix("zurueckziehen/") + "loeschen/"
+    target = f"{prefix}submission/{rest}"
+    if request.META.get("QUERY_STRING"):
+        target += "?" + request.META["QUERY_STRING"]
+    return HttpResponsePermanentRedirect(target)

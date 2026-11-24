@@ -97,7 +97,9 @@ def test_ungueltige_groesse(client, reference, size):
 
 
 def test_ungueltiges_json(client, reference):
-    response = client.post(f"/abgabe/{reference}/master/", "kein json", content_type="text/plain")
+    response = client.post(
+        f"/submission/{reference}/master/", "kein json", content_type="text/plain"
+    )
     assert response.status_code == 400
 
 
@@ -106,7 +108,7 @@ def test_alle_kanaele_aus_dem_glossar(client, reference):
         assert start(client, reference, channel=channel, size=10).status_code == 201
 
 
-def test_fremde_abgabe_gibt_404(client, reference, valid_form):
+def test_fremde_submission_gibt_404(client, reference, valid_form):
     other = Client()
     other.post("/", valid_form)
     assert start(other, reference, size=10).status_code == 404
@@ -117,10 +119,10 @@ def test_fremder_master_gibt_404(client, reference, valid_form):
     other = Client()
     other.post("/", valid_form)
     other_ref = Submission.objects.exclude(reference=reference).get().reference
-    # eigener Cookie, aber fremder Master unter eigener Abgabe
+    # eigener Cookie, aber fremder Master unter eigener Submission
     assert sign(other, other_ref, master_id, method="GET", key="x", uploadId="u").status_code == 404
     assert finish(other, other_ref, master_id).status_code == 404
-    # fremde Abgabe direkt
+    # fremde Submission direkt
     assert finish(other, reference, master_id).status_code == 404
 
 
@@ -164,7 +166,7 @@ def test_erfundene_upload_id_trifft_nur_den_eigenen_master(client, reference, ca
     # Die echte Upload-ID wird danach nicht mehr signiert ...
     assert sign_part(create(client, body["url"])).status_code == 400
     # ... aber Abbrechen gibt die Reservierung frei, und ein neuer Upload passt wieder.
-    abort = client.post(f"/abgabe/{reference}/master/{body['masterId']}/abbrechen/")
+    abort = client.post(f"/submission/{reference}/master/{body['masterId']}/abbrechen/")
     assert abort.json()["state"] == "aborted"
     assert start(client, reference, size=len(DATA)).status_code == 201
 
@@ -239,10 +241,10 @@ def test_complete_mit_falschem_etag_schlaegt_fehl(client, reference):
     assert client.post(url, xml, content_type="application/xml").status_code == 400
 
 
-def test_abgabeseite_listet_master(client, reference):
+def test_submission_seite_listet_master(client, reference):
     upload(client, reference, DATA, channel="OIII", filename="m101_oiii.fits")
     start(client, reference, channel="SII", filename="m101_sii.fits", size=10)
-    content = client.get(f"/abgabe/{reference}/").content.decode()
+    content = client.get(f"/submission/{reference}/").content.decode()
     assert "m101_oiii.fits" in content
     assert "OIII" in content
     assert "angenommen" in content
@@ -250,8 +252,8 @@ def test_abgabeseite_listet_master(client, reference):
     assert "unterbrochen" in content  # nie fertig gemeldet (Ticket #39)
 
 
-def test_abgabeseite_bindet_uppy_ohne_externe_quellen(client, reference):
-    content = client.get(f"/abgabe/{reference}/").content.decode()
+def test_submission_seite_bindet_uppy_ohne_externe_quellen(client, reference):
+    content = client.get(f"/submission/{reference}/").content.decode()
     assert "uppy.min.js" in content
     assert "<script>" not in content  # kein Inline-JS
     assert "https://" not in content and "http://" not in content

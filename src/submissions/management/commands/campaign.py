@@ -25,7 +25,7 @@ class Command(BaseCommand):
         parser.add_argument("--object", required=True, help="Objekt, z. B. 'M 101'")
         parser.add_argument("--starts-at", required=True, type=_aware, help="ISO 8601 mit Zone")
         parser.add_argument("--ends-at", required=True, type=_aware, help="ISO 8601 mit Zone")
-        parser.add_argument("--quota-gib", required=True, type=float, help="Quote je Abgabe")
+        parser.add_argument("--quota-gib", required=True, type=float, help="Quote je Submission")
         parser.add_argument("--global-cap-gib", required=True, type=float, help="Gesamtgrenze")
         parser.add_argument("--grace-hours", type=float, default=6, help="Nachfrist (Standard 6)")
         parser.add_argument(

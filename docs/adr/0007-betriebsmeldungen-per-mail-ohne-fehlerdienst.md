@@ -1,6 +1,6 @@
 # Betriebsmeldungen per Mail, ohne Fehlerdienst eines Drittanbieters
 
-Schwarmstack überwacht sich selbst und meldet dem Betreiber per SMTP-Mail: Gesamtgrenze bei 80 % und 95 %, Serverfehler, fehlende oder fehlgeschlagene Datenbanksicherung, knapper Platz auf dem Host und nicht erreichbarer S3-Speicher. Die Erreichbarkeit von außen prüft das bestehende Monitoring des Betreibers über `/healthz`. Meldungen enthalten keine Angaben von Teilnehmenden: nur Fehlertyp, URL ohne Parameter, Zeitpunkt und Abgabe-Kennung, höchstens eine Mail je Fehlertyp und Stunde; den Stacktrace gibt es nur in den Logs.
+Schwarmstack überwacht sich selbst und meldet dem Betreiber per SMTP-Mail: Gesamtgrenze bei 80 % und 95 %, Serverfehler, fehlende oder fehlgeschlagene Datenbanksicherung, knapper Platz auf dem Host und nicht erreichbarer S3-Speicher. Die Erreichbarkeit von außen prüft das bestehende Monitoring des Betreibers über `/healthz`. Meldungen enthalten keine Angaben von Teilnehmenden: nur Fehlertyp, URL ohne Parameter, Zeitpunkt und Submission-ID, höchstens eine Mail je Fehlertyp und Stunde; den Stacktrace gibt es nur in den Logs.
 
 ## Consequences
 

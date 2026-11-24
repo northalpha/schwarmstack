@@ -1,4 +1,4 @@
-"""Abgabe anlegen über den HTTP-Seam (Ticket #9)."""
+"""Submission anlegen über den HTTP-Seam (Ticket #9)."""
 
 import re
 
@@ -29,7 +29,7 @@ def test_formular_wird_angezeigt(client, campaign):
     assert "M 101" in content
 
 
-def test_abgabe_anlegen_zeigt_kennung(client, campaign, valid_form):
+def test_submission_anlegen_zeigt_submission_id(client, campaign, valid_form):
     response = create(client, valid_form)
     submission = Submission.objects.get()
     assert response.status_code == 302
@@ -42,14 +42,14 @@ def test_abgabe_anlegen_zeigt_kennung(client, campaign, valid_form):
     assert submission.setup_description == "RedCat 51, ASI2600MM"
 
 
-def test_kennung_hat_das_vereinbarte_format(client, campaign, valid_form):
+def test_submission_id_hat_das_vereinbarte_format(client, campaign, valid_form):
     create(client, valid_form)
     reference = Submission.objects.get().reference
     assert re.fullmatch(r"SW-[" + ALPHABET + "]{4}", reference)
     assert not set("0O1IL") & set(ALPHABET)
 
 
-def test_kennung_wird_bei_kollision_neu_gezogen(campaign, valid_form, monkeypatch):
+def test_submission_id_wird_bei_kollision_neu_gezogen(campaign, valid_form, monkeypatch):
     from submissions import references
 
     draws = iter(["AAAA", "AAAA", "BBBB"])
@@ -86,7 +86,7 @@ def test_einwilligungen_werden_einzeln_gespeichert(client, campaign, valid_form)
         assert consent.text_version
 
 
-def test_veroeffentlichung_der_nennung_ist_freiwillig(client, campaign, valid_form):
+def test_namensnennung_ist_freiwillig(client, campaign, valid_form):
     data = dict(valid_form)
     del data["consent_publish_credit"]
     create(client, data)
@@ -114,12 +114,12 @@ def test_manipuliertes_cookie_gibt_404(client, campaign, valid_form):
     assert other.get(response["Location"]).status_code == 404
 
 
-def test_unbekannte_kennung_gibt_404(client, campaign, valid_form):
+def test_unbekannte_submission_id_gibt_404(client, campaign, valid_form):
     create(client, valid_form)
     assert client.get(reverse("submission", args=["SW-ZZZZ"])).status_code == 404
 
 
-def test_rueckkehr_fuehrt_zur_abgabeseite(client, campaign, valid_form):
+def test_rueckkehr_fuehrt_zur_submission_seite(client, campaign, valid_form):
     location = create(client, valid_form)["Location"]
     response = client.get(ENTRY)
     assert response.status_code == 302
@@ -143,7 +143,7 @@ def test_cookie_eigenschaften(client, campaign, valid_form):
 
 def test_kein_token_in_der_url(client, campaign, valid_form):
     location = create(client, valid_form)["Location"]
-    assert location == f"/abgabe/{Submission.objects.get().reference}/"
+    assert location == f"/submission/{Submission.objects.get().reference}/"
 
 
 def test_ohne_aktion_kein_formular(client, db):

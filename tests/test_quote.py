@@ -24,7 +24,7 @@ def storage_dir(settings, tmp_path):
 
 
 def abort(client, reference, master_id):
-    return client.post(f"/abgabe/{reference}/master/{master_id}/abbrechen/")
+    return client.post(f"/submission/{reference}/master/{master_id}/abbrechen/")
 
 
 def set_campaign(campaign, **values):
@@ -51,7 +51,7 @@ def test_master_genau_auf_der_hoechstgroesse(client, reference):
     assert start(client, reference, size=500 * MIB).status_code == 201
 
 
-# -- Quote je Abgabe ---------------------------------------------------------
+# -- Quote je Submission ---------------------------------------------------------
 
 
 def test_quote_wird_vor_dem_start_geprueft(client, reference, campaign):
@@ -64,7 +64,7 @@ def test_quote_wird_vor_dem_start_geprueft(client, reference, campaign):
     assert start(client, reference, size=40 * MIB).status_code == 201
 
 
-def test_quote_gilt_je_abgabe(client, reference, campaign, valid_form):
+def test_quote_gilt_je_submission(client, reference, campaign, valid_form):
     set_campaign(campaign, quota=100 * MIB)
     start(client, reference, size=100 * MIB)
     other = Client()
@@ -91,7 +91,7 @@ def test_abgelehnte_master_zaehlen_nicht(client, reference, campaign):
 # -- Gesamtgrenze ------------------------------------------------------------
 
 
-def test_gesamtgrenze_ueber_alle_abgaben(client, reference, campaign, valid_form):
+def test_gesamtgrenze_ueber_alle_submissions(client, reference, campaign, valid_form):
     set_campaign(campaign, global_cap=150 * MIB)
     start(client, reference, size=100 * MIB)
     other = Client()
@@ -178,27 +178,27 @@ def test_juengere_uploads_bleiben_reserviert(client, reference, campaign):
 # -- Anzeige -----------------------------------------------------------------
 
 
-def test_abgabeseite_zeigt_belegung(client, reference, campaign):
+def test_submission_seite_zeigt_belegung(client, reference, campaign):
     set_campaign(campaign, quota=1000 * MIB)
     start(client, reference, size=250 * MIB)
-    content = client.get(f"/abgabe/{reference}/").content.decode().replace("\xa0", " ")
+    content = client.get(f"/submission/{reference}/").content.decode().replace("\xa0", " ")
     assert "250,0 MB" in content
     assert "1000,0 MB" in content or "1,0 GB" in content  # Django: 1000 MiB -> "1000,0 MB"
     assert 'value="25"' in content  # Balken in Prozent
 
 
-def test_abgabeseite_gibt_hoechstgroesse_an_den_uploader(client, reference):
-    content = client.get(f"/abgabe/{reference}/").content.decode()
+def test_submission_seite_gibt_hoechstgroesse_an_den_uploader(client, reference):
+    content = client.get(f"/submission/{reference}/").content.decode()
     assert f'data-max-size="{500 * MIB}"' in content
 
 
 def test_abgebrochene_master_stehen_nicht_in_der_liste(client, reference):
     body = start(client, reference, size=10, filename="weg.fits").json()
     abort(client, reference, body["masterId"])
-    assert "weg.fits" not in client.get(f"/abgabe/{reference}/").content.decode()
+    assert "weg.fits" not in client.get(f"/submission/{reference}/").content.decode()
 
 
-# -- Gesamtgrenze ändern und Belegung je Abgabe (Ticket #42) ------------------
+# -- Gesamtgrenze ändern und Belegung je Submission (Ticket #42) ------------------
 
 
 def test_gesamtgrenze_nicht_unter_der_belegung(reference, campaign):
@@ -218,7 +218,7 @@ def test_aufgegebene_uploads_zaehlen_beim_aendern_der_gesamtgrenze_nicht(referen
     check_global_cap(0)
 
 
-def test_belegung_je_abgabe_wie_fuer_die_quote(client, reference, campaign, storage_dir):
+def test_belegung_je_submission_wie_fuer_die_quote(client, reference, campaign, storage_dir):
     upload(client, reference, fits())
     start(client, reference, size=5 * MIB)
     submission = Submission.objects.annotate(used=submission_usage()).get()
