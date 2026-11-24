@@ -14,20 +14,31 @@
     return data;
   }
 
+  // Neue Belegung nach dem Abbrechen, ohne die Seite neu zu laden.
+  function showUsage(usage) {
+    const bar = document.getElementById("usage");
+    if (!bar || !usage) return;
+    bar.value = usage.percent;
+    bar.textContent = `${usage.percent} %`;
+    document.querySelector("label[for=usage]").textContent = usage.label;
+  }
+
   // Unterbrochene Uploads in der Master-Liste abbrechen, auch ohne Uploader (z. B. in der
   // Nachfrist, wenn sich nichts fortsetzen lässt). Der Server gibt die Reservierung frei.
   (() => {
     const table = document.querySelector("table.masters");
     if (!table) return;
     for (const button of table.querySelectorAll("button.abort")) {
-      button.hidden = false;
-      button.addEventListener("click", async () => {
+      // Ohne JavaScript schickt das Formular ab; mit JavaScript bleibt die Seite stehen.
+      button.form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (button.form.dataset.confirm && !window.confirm(button.form.dataset.confirm)) return;
         const row = button.closest("tr");
         const status = row.querySelector(".status");
         button.disabled = true;
         try {
-          await post(button.dataset.abortUrl, table.dataset.csrf);
-          button.remove();
+          showUsage((await post(button.dataset.abortUrl, table.dataset.csrf)).usage);
+          button.form.remove();
           row.dataset.state = "aborted";
           status.textContent = "abgebrochen";
           document.dispatchEvent(
@@ -217,7 +228,7 @@
         select.disabled = true;
         status.textContent = "wird fortgesetzt";
         // Ab jetzt bricht die Warteschlange ab, nicht mehr die Liste.
-        document.querySelector(`tr[data-master-id="${match.masterId}"] button.abort`)?.remove();
+        document.querySelector(`tr[data-master-id="${match.masterId}"] form.abort`)?.remove();
       }
       updateButton();
     });
@@ -239,7 +250,7 @@
       row.dataset.state = "aborted";
       row.querySelector(".status").textContent = "abgebrochen";
       try {
-        await post(`${base}${masterId}/abbrechen/`, csrf);
+        showUsage((await post(`${base}${masterId}/abbrechen/`, csrf)).usage);
       } catch (error) {
         row.querySelector(".status").textContent = error.message;
       }

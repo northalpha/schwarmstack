@@ -2,8 +2,10 @@
 
 import json
 
+from django.contrib import messages
 from django.http import Http404, JsonResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
+from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
 
 from . import access, uploads
@@ -86,13 +88,26 @@ def sign(request, reference, master_id):
 @require_POST
 def abort(request, reference, master_id):
     master = _master(request, reference, master_id)
+    # Ohne JavaScript schickt der Browser das Formular; dann zurück zur Abgabeseite.
+    from_form = request.content_type == "application/x-www-form-urlencoded"
     try:
         master = uploads.abort(master)
-    except uploads.UploadError as exc:
-        return _error(exc, 400)
-    except uploads.Conflict as exc:
-        return _error(exc, 409)
-    return JsonResponse(master_json(master))
+    except (uploads.UploadError, uploads.Conflict) as exc:
+        if from_form:
+            messages.error(request, str(exc))
+            return redirect("submission", reference)
+        return _error(exc, 409 if isinstance(exc, uploads.Conflict) else 400)
+    if from_form:
+        messages.info(request, f"Upload von {master.original_name} abgebrochen.")
+        return redirect("submission", reference)
+    return JsonResponse({**master_json(master), "usage": _usage_json(master.submission)})
+
+
+def _usage_json(submission: Submission) -> dict:
+    """Neue Belegung, damit die Abgabeseite sie ohne Neuladen anzeigen kann."""
+    usage = uploads.quota_usage(submission)
+    label = render_to_string("submissions/_usage_label.html", usage).strip()
+    return {"label": label, "percent": usage["percent"]}
 
 
 @require_POST

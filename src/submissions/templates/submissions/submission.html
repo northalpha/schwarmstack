@@ -19,8 +19,8 @@
 <h2>Master</h2>
 {% if quota %}
 <p class="usage">
-  <label for="usage">Belegt: {{ used|filesizeformat }} von {{ quota|filesizeformat }}</label>
-  <progress id="usage" max="100" value="{{ used_percent }}">{{ used_percent }} %</progress>
+  <label for="usage">{% include "submissions/_usage_label.html" %}</label>
+  <progress id="usage" max="100" value="{{ percent }}">{{ percent }} %</progress>
 </p>
 {% endif %}
 {% if masters %}
@@ -30,7 +30,14 @@
   {% for m in masters %}
     <tr data-state="{{ m.state }}"{% if m.pk in abortable_ids %} data-master-id="{{ m.public_id }}"{% endif %}{% if m.pk in resumable_ids %} class="resumable" data-key="{{ m.key }}" data-upload-id="{{ m.upload_id }}" data-name="{{ m.original_name }}" data-size="{{ m.declared_size }}" data-channel="{{ m.channel }}"{% endif %}>
       <td>{{ m.original_name }}</td><td>{{ m.get_channel_display }}</td><td>{{ m.size|default:m.declared_size|filesizeformat }}</td>
-      <td><span class="status">{% if m.pk in abortable_ids %}unterbrochen{% if m.pk in resumable_ids %}<br><span class="help">Wähle die Datei erneut aus, um fortzusetzen.</span>{% endif %}{% else %}{{ m.get_state_display }}{% endif %}</span>{% if m.rejection_reason %}<br><span class="reason">{{ m.rejection_reason }}</span>{% endif %}{% if m.pk in abortable_ids %} <button type="button" class="abort" hidden data-abort-url="{% url 'upload_abort' submission.reference m.public_id %}">Abbrechen</button>{% endif %}</td>
+      <td>
+      {% if m.pk in abortable_ids %}{% url 'upload_abort' submission.reference m.public_id as abort_url %}
+        <span class="status">{% if m.pk in active_ids %}läuft gerade oder wurde eben unterbrochen{% else %}unterbrochen{% endif %}{% if m.pk in resumable_ids %}<br><span class="help">Wähle die Datei erneut aus, um fortzusetzen.</span>{% endif %}</span>
+        <form method="post" action="{{ abort_url }}" class="abort"{% if m.pk in active_ids %} data-confirm="Läuft dieser Upload noch in einem anderen Fenster, bricht er dort ab. Trotzdem abbrechen?"{% endif %}>{% csrf_token %}<button type="submit" class="abort" data-abort-url="{{ abort_url }}">Abbrechen</button></form>
+      {% else %}
+        <span class="status">{{ m.get_state_display }}</span>{% if m.rejection_reason %}<br><span class="reason">{{ m.rejection_reason }}</span>{% endif %}
+      {% endif %}
+      </td>
     </tr>
   {% endfor %}
   </tbody>

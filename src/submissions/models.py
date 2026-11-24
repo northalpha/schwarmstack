@@ -50,6 +50,12 @@ class Campaign(models.Model):
     def current(cls) -> "Campaign | None":
         return cls.objects.first()
 
+    @classmethod
+    def current_phase(cls) -> Phase:
+        """Phase der Aktion jetzt; ohne eingerichtete Aktion ist alles geschlossen."""
+        campaign = cls.current()
+        return campaign.phase() if campaign else Phase.CLOSED
+
     @property
     def closes_at(self) -> datetime:
         """Ende der Aktion plus Nachfrist: ab hier ist jede Abgabe schreibgeschützt."""
@@ -189,6 +195,8 @@ class Master(models.Model):
         related_name="duplicates",
     )
     created_at = models.DateTimeField("angelegt", auto_now_add=True)
+    # Letzte Anfrage des Browsers zu diesem Upload (Start oder Signieren).
+    last_activity_at = models.DateTimeField("zuletzt aktiv", null=True, blank=True)
     completed_at = models.DateTimeField("abgeschlossen", null=True, blank=True)
 
     class Meta:
