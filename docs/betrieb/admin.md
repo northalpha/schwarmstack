@@ -10,7 +10,7 @@ Statistik.
 | `ADMIN_PATH` | in Produktion ja | Pfad des Admin ohne Schrägstriche, z. B. eine zufällige Zeichenfolge. Fehlt er bei `DEBUG=0`, startet die App nicht. Lokal (`DEBUG=1`) ist `betrieb` der Standard. |
 | `TRUST_X_FORWARDED_FOR` | nein | Standard bei `DEBUG=0`: an. Die IP für das Rate-Limit kommt dann aus dem letzten Eintrag von `X-Forwarded-For` (Caddy). Nur abschalten, wenn kein Proxy davor steht. |
 | `LOGIN_ATTEMPTS_MAX` | nein | Fehlversuche je IP im Zeitfenster, danach Sperre (Standard 5). |
-| `LOGIN_ATTEMPTS_WINDOW_SECONDS` | nein | Zeitfenster der Sperre in Sekunden (Standard 900). |
+| `LOGIN_ATTEMPTS_WINDOW_SECONDS` | nein | Zeitfenster der Sperre in Sekunden (Standard 900, höchstens 3600). |
 
 Fehlversuche zählt die Datenbank (SQLite), nicht der Cache: gunicorn läuft mit mehreren Prozessen.
 Die IP steht nur als HMAC-Hash darin (ADR 0002).
@@ -49,6 +49,40 @@ Lokal ohne Docker: `uv run python src/manage.py createsuperuser`.
   `UPLOAD_LINK_SECONDS` (Standard 15 Minuten) gilt.
 - **Protokoll**: jede Änderung, Löschung, jeder Widerruf und Download mit Betreiber und
   Zeitpunkt.
+
+## Export und Löschfrist
+
+Unter *Aktion → Export* (ADR 0008):
+
+- **Vorläufiger Export**: jederzeit das Manifest (`manifest-vorlaeufig.json`) nach heutigem Stand,
+  ohne Download-Links. Stichproben weiter über den Download einzelner Master.
+- **Endgültiger Export**: genau einmal, frühestens nach Ende der Aktion plus Nachfrist, mit
+  Rückfrage. Danach ist alles eingefroren, auch für Betreiber: Angaben und Belichtungsangaben
+  lassen sich nicht mehr ändern, Master nicht mehr löschen, die Aktion nicht mehr ändern. Widerruf
+  und Löschung bleiben möglich.
+- **Links**: Nach dem endgültigen Export stellt jedes Herunterladen von Manifest oder
+  Download-Liste neue Links aus, die 7 Tage gelten; jedes Ausstellen steht im Protokoll. Neue
+  Links gibt es bis zum Ablauf der Löschfrist.
+- **Herunterladen**: `aria2c -i download-liste.txt -d <Ziel>`. Die Liste legt die Dateinamen fest
+  (`SW-7K3Q/Ha_3f9c1a2b.xisf`: Submission-ID als Ordner, Kanal, Anfang der Master-ID; der
+  Originalname steht nur im Manifest), und aria2c gleicht nach dem Laden die Prüfsumme ab.
+- **Manifest**: je Submission die Submission-ID, Namensnennung (nur bei gültiger Einwilligung zur Namensnennung),
+  Setup, Anlagezeitpunkt, alle Einwilligungen mit Art, Zeitpunkt, Fassung und Widerruf; je
+  angenommenem Master Kanal, Originalname, Größe, Prüfsumme, Dublettenverweis, Zielpfad und (nach
+  dem endgültigen Export) Link; dazu das Equipment-Foto als
+  `SW-7K3Q/equipment.jpg` (ohne Thumbnail, ohne Prüfsumme). Gelöschte Submissions nur mit Submission-ID und Zeitpunkt. Das Manifest
+  ist nach der Löschung der einzige Nachweis der Einwilligungen: aufbewahren.
+- **Nachtrag**: Widerruf oder Löschung nach dem endgültigen Export wirkt sofort, wird an der
+  Submission vermerkt (`amended_at` im Manifest, Filter „Nachtrag“ in der Liste der Submissions, Liste
+  auf der Export-Seite) und per Betriebsmeldung gemeldet, nur mit der Submission-ID. Danach
+  lokale Kopien und die Credits-Liste anpassen.
+- **Löschfrist**: 30 Tage ab dem endgültigen Export; die restlichen Tage stehen auf der Statistik
+  und der Export-Seite. Sieben Tage vorher und nach der Löschung kommt eine Betriebsmeldung. Die
+  Löschung (`manage.py delete_after_export`, täglich per Cron) entfernt alle Objekte im Bucket
+  außer `sicherungen/`, alle Submissions samt Mastern und Einwilligungen, die Fehlversuche der
+  Anmeldung und die Protokolleinträge zu Submissions. Es bleiben die Aktion mit den Zeitpunkten von
+  Export und Löschung, ihre Protokolleinträge und die Betreiber-Konten. Den Abbau der Installation
+  macht ihr danach von Hand.
 
 ## Deployment
 

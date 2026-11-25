@@ -9,7 +9,9 @@ import json
 import os
 import re
 import shutil
+import time
 import uuid
+from collections.abc import Iterator
 from pathlib import Path
 
 from django.conf import settings
@@ -26,8 +28,10 @@ class StorageError(Exception):
     pass
 
 
-def sign_token(request: S3Request) -> str:
-    payload = {"m": request.method, "k": request.key}
+def sign_token(request: S3Request, seconds: int | None = None) -> str:
+    seconds = settings.UPLOAD_LINK_SECONDS if seconds is None else seconds
+    # Ablauf steht im signierten Inhalt, damit Links unterschiedlich lange gelten können.
+    payload = {"m": request.method, "k": request.key, "e": int(time.time()) + seconds}
     if request.upload_id is not None:
         payload["u"] = request.upload_id
     if request.part_number is not None:
@@ -37,7 +41,9 @@ def sign_token(request: S3Request) -> str:
 
 def read_token(token: str) -> S3Request:
     """Prüft Signatur und Ablauf; wirft signing.BadSignature."""
-    payload = signing.loads(token, salt=_SALT, max_age=settings.UPLOAD_LINK_SECONDS)
+    payload = signing.loads(token, salt=_SALT)
+    if time.time() >= payload["e"]:
+        raise signing.SignatureExpired("Link abgelaufen")
     return S3Request(payload["m"], payload["k"], payload.get("u"), payload.get("p"))
 
 
@@ -103,9 +109,17 @@ class LocalStorage:
         if not os.access(self.root, os.W_OK):
             raise StorageError(f"Nicht beschreibbar: {self.root}")
 
-    def download_url(self, key: str) -> str:
+    def download_url(self, key: str, seconds: int | None = None) -> str:
         self._object(key)  # Schlüssel prüfen
-        return reverse("local_s3", args=[sign_token(S3Request("GET", key))])
+        return reverse("local_s3", args=[sign_token(S3Request("GET", key), seconds)])
+
+    def keys(self) -> Iterator[str]:
+        objects = self.root / "objects"
+        if not objects.is_dir():
+            return
+        for path in sorted(objects.rglob("*")):
+            if path.is_file():
+                yield path.relative_to(objects).as_posix()
 
     def open(self, key: str):
         """Öffnet ein Objekt zum Lesen (für den lokalen Download-Endpunkt)."""

@@ -1,0 +1,5 @@
+<div class="breadcrumbs">
+<a href="{% url 'operator:index' %}">Start</a>
+&rsaquo; <a href="{% url 'operator:submissions_campaign_change' original.pk %}">{{ opts.verbose_name|capfirst }}</a>
+&rsaquo; {% if cancel_url %}<a href="{{ cancel_url }}">Export</a> &rsaquo; {% endif %}{{ title }}
+</div>

@@ -6,11 +6,15 @@ Django-Projekt unter `src/` (`manage.py` dort), Tests unter `tests/` (pytest aus
 src/
 ├── schwarmstack/          # Projekt: Settings (alles aus der Umgebung), URLs, /healthz
 │   ├── operator_site.py   # Admin-Site der Betreiber, Startseite = Statistik
-│   ├── login_limit.py     # gebremste Anmeldung (Fehlversuche je IP-Hash)
+│   ├── login_limit.py     # gebremste Anmeldung (Fehlversuche je IP-Hash, höchstens 1 Stunde)
+│   ├── notices.py         # Betriebsmeldungen per Mail an die Betreiber (ADR 0007)
 │   └── staticfiles.py     # WhiteNoise-Storage
 ├── submissions/           # Fachmodul: Aktion, Submission, Master, Einwilligung
 │   ├── models.py
 │   ├── services.py        # Fachverhalten zur Submission (Details im Modul-Docstring)
+│   ├── export.py          # Export: Manifest, Download-Liste (aria2c), endgültiger Export
+│   ├── deletion.py        # Löschung nach Ablauf der Löschfrist (manage.py delete_after_export)
+│   ├── privacy.py         # Datenschutzhinweis je Fassung (templates/submissions/datenschutz/)
 │   ├── uploads.py         # Upload-Ablauf und seine Regeln (Details im Modul-Docstring)
 │   ├── photos.py          # Equipment-Foto bereinigen: dekodieren, nur Pixel neu schreiben (#82)
 │   ├── validation.py      # Prüfung der Master (XISF/FITS-Header), Ablehnungskategorien
@@ -22,6 +26,7 @@ src/
 │   ├── statistics.py      # Zahlen für die Statistik und die Community-Zahlen
 │   └── management/commands/  # campaign.py: die Aktion anlegen/ändern;
 │                             # backfill_exposure.py: Belichtungsangaben für Altbestand lesen
+│                             # delete_after_export.py: Löschung nach Ablauf der Löschfrist
 └── storage/               # Speicher-Modul: Protokoll in __init__.py, Adapter local.py und s3.py;
                            # local_views.py bildet für Uppy S3 nach (nur lokaler Speicher)
 tests/

@@ -11,6 +11,9 @@ from . import exposure
 from .exposure import Source
 from .validation import Category
 
+# Löschfrist nach dem endgültigen Export (ADR 0008).
+DELETION_PERIOD = timedelta(days=30)
+
 
 class Phase(enum.Enum):
     """Zeitfenster der Aktion. Die einzige Stelle, an der Zeiten verglichen werden."""
@@ -46,6 +49,10 @@ class Campaign(models.Model):
     max_master_size = models.PositiveBigIntegerField(
         "Höchstgröße je Master (Bytes)", default=500 * 1024**2
     )
+    # Endgültiger Export (ADR 0008): ab hier ist alles eingefroren, und die Löschfrist läuft.
+    exported_at = models.DateTimeField("endgültiger Export am", null=True, blank=True)
+    deletion_warned_at = models.DateTimeField("an die Löschung erinnert am", null=True, blank=True)
+    data_deleted_at = models.DateTimeField("Daten gelöscht am", null=True, blank=True)
 
     class Meta:
         verbose_name = "Aktion"
@@ -76,6 +83,15 @@ class Campaign(models.Model):
         """Ende der Aktion plus Nachfrist: ab hier ist jede Submission schreibgeschützt."""
         return self.ends_at + self.grace_period
 
+    @property
+    def is_exported(self) -> bool:
+        return self.exported_at is not None
+
+    @property
+    def deletes_at(self) -> datetime | None:
+        """Ablauf der Löschfrist: 30 Tage nach dem endgültigen Export."""
+        return self.exported_at + DELETION_PERIOD if self.exported_at else None
+
     def phase(self, now: datetime | None = None) -> Phase:
         now = now or timezone.now()
         if now < self.starts_at:
@@ -104,6 +120,8 @@ class Submission(models.Model):
     deleted_by = models.CharField(
         "gelöscht durch", max_length=16, choices=DeletedBy.choices, blank=True
     )
+    # Nachtrag: Widerruf oder Löschung nach dem endgültigen Export (Ticket #34).
+    amended_at = models.DateTimeField("Nachtrag am", null=True, blank=True)
 
     class Meta:
         verbose_name = "Submission"
