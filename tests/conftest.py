@@ -1,7 +1,6 @@
 from datetime import timedelta
 
 import pytest
-from admin_helper import PASSWORD
 from django.test import Client
 from django.utils import timezone
 from uploads_helper import Participant
@@ -58,9 +57,15 @@ def another(campaign, valid_form, storage_dir):
 
 
 @pytest.fixture
-def operator(db, django_user_model):
+def operator_password():
+    """Passwort des Betreiber-Kontos `operator`."""
+    return "sternenstaub-2026"
+
+
+@pytest.fixture
+def operator(db, django_user_model, operator_password):
     """Ein Betreiber-Konto für den Admin."""
-    return django_user_model.objects.create_superuser("ada", "ada@example.org", PASSWORD)
+    return django_user_model.objects.create_superuser("ada", "ada@example.org", operator_password)
 
 
 @pytest.fixture
