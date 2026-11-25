@@ -119,16 +119,33 @@ class DetailsForm(forms.Form):
         label="Namensnennung",
         max_length=120,
         help_text="Unter diesem Namen wirst du im Projekt genannt.",
-        error_messages={
-            "required": "Pflichtangabe: Mit Einwilligung zur Namensnennung braucht die "
-            "Submission einen Namen."
-        },
+        required=False,  # Pflicht nur ohne Widerruf, siehe `clean`
+    )
+    revoke_credit = forms.BooleanField(
+        label="Einwilligung zur Namensnennung widerrufen: Dein Name wird gelöscht, die "
+        "Submission ist danach anonym. Deine Master bleiben im Projekt.",
+        required=False,
     )
 
     def __init__(self, *args, submission, **kwargs):
         super().__init__(*args, **kwargs)
         if not submission.publishes_credit:
             del self.fields["credit_name"]
+            del self.fields["revoke_credit"]
+
+    def clean(self):
+        cleaned = super().clean()
+        if (
+            "credit_name" in self.fields
+            and not cleaned.get("revoke_credit")
+            and not cleaned.get("credit_name")
+        ):
+            self.add_error(
+                "credit_name",
+                "Pflichtangabe: Mit Einwilligung zur Namensnennung braucht die "
+                "Submission einen Namen.",
+            )
+        return cleaned
 
 
 class CreditForm(forms.Form):

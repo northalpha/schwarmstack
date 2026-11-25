@@ -130,8 +130,24 @@ def change_details(request, reference):
     }
     form = DetailsForm(request.POST or None, initial=initial, submission=submission)
     if request.method == "POST" and form.is_valid():
-        services.change_details(submission, **form.cleaned_data)
-        messages.info(request, "Deine Angaben wurden geändert.")
+        data = form.cleaned_data
+        consent = (
+            services.consent_revocable_by_participant(submission)
+            if data.get("revoke_credit")
+            else None
+        )
+        if consent is not None:
+            # Der Widerruf löscht die Namensnennung; ein eingetragener Name wird nicht gespeichert.
+            services.change_details(submission, setup_description=data["setup_description"])
+            services.revoke(consent)
+            messages.info(request, "Deine Einwilligung zur Namensnennung ist widerrufen.")
+        else:
+            services.change_details(
+                submission,
+                setup_description=data["setup_description"],
+                credit_name=data.get("credit_name"),
+            )
+            messages.info(request, "Deine Angaben wurden geändert.")
         return redirect("submission", submission.reference)
     context = {"submission": submission, "form": form}
     if submission.photo is None:
