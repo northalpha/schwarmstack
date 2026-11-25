@@ -46,8 +46,8 @@ The bundled privacy notice is written for the DZVF project. Anyone running Schwa
 
 ## Contributing and security
 
-Issues are welcome. Please discuss in an issue before opening a pull request. Report vulnerabilities privately through GitHub ("Report a vulnerability" under *Security*), not as a public issue.
+Issues are welcome. Please discuss in an issue before opening a pull request (see [`CONTRIBUTING.md`](CONTRIBUTING.md), in German). Report vulnerabilities privately through GitHub, not as a public issue (see [`SECURITY.md`](SECURITY.md)).
 
 ## License
 
-[MIT](LICENSE). The bundled Uppy build keeps its own license.
+[MIT](LICENSE). Bundled third-party code (the Uppy build) keeps its own license, see [`THIRD_PARTY.md`](THIRD_PARTY.md).

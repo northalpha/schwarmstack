@@ -1,0 +1,42 @@
+name: Fehler
+description: Etwas funktioniert nicht wie erwartet.
+labels: [needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke für die Meldung. Schwarmstack ist ein Hobbyprojekt ohne Support-Zusage.
+        **Sicherheitslücken bitte nicht hier**, sondern wie in SECURITY.md beschrieben.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Release-Tag, z. B. v0.2.0.
+    validations:
+      required: true
+  - type: textarea
+    id: schritte
+    attributes:
+      label: Schritte zum Nachstellen
+      placeholder: |
+        1. …
+        2. …
+    validations:
+      required: true
+  - type: textarea
+    id: erwartet
+    attributes:
+      label: Was du erwartet hast und was stattdessen passiert ist
+    validations:
+      required: true
+  - type: textarea
+    id: compose
+    attributes:
+      label: Ausgabe von Compose
+      description: Bei Betriebsproblemen `docker compose logs --tail 100`. Entferne Passwörter, Schlüssel und Adressen von Teilnehmenden.
+      render: text
+  - type: input
+    id: umgebung
+    attributes:
+      label: Umgebung
+      description: Betriebssystem, Browser (bei Fehlern im Browser), Selbstbetrieb oder Betreiber-Compose.

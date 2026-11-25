@@ -90,8 +90,8 @@ Wichtig für jeden Betreiber: Der mitgelieferte Datenschutzhinweis ist auf die D
 
 ## Mitmachen
 
-Issues sind willkommen: Fehler, Wünsche und Fragen. Pull Requests bitte erst nach Absprache in einem Issue, damit niemand Arbeit umsonst macht. Es gibt kein Support-Versprechen. Sicherheitslücken bitte nicht als öffentliches Issue melden, sondern über die private Meldung von GitHub („Report a vulnerability“ im Reiter *Security*).
+Issues sind willkommen: Fehler, Wünsche und Fragen, die Formulare führen durch. Pull Requests bitte erst nach Absprache in einem Issue, damit niemand Arbeit umsonst macht. Es gibt kein Support-Versprechen. Alles Weitere steht in [`CONTRIBUTING.md`](CONTRIBUTING.md) und im [Verhaltenskodex](CODE_OF_CONDUCT.md). Sicherheitslücken bitte nicht als öffentliches Issue melden, sondern wie in [`SECURITY.md`](SECURITY.md) beschrieben.
 
 ## Lizenz
 
-[MIT](LICENSE). Das mitgelieferte Uppy-Bundle behält seine eigene Lizenz; der Hinweis liegt bei den Dateien (`src/submissions/static/submissions/vendor/uppy/`).
+[MIT](LICENSE). Mitgelieferter fremder Code (das Uppy-Bundle) steht mit seinen Lizenzen in [`THIRD_PARTY.md`](THIRD_PARTY.md).
