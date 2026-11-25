@@ -81,6 +81,16 @@
 <section id="uploader" class="uploader card" hidden data-may-start="{{ may_start|yesno:"1,0" }}" data-base="{% url 'upload_start' submission.reference %}" data-csrf="{{ csrf_token }}" data-max-size="{{ max_master_size }}" data-sha-worker="{% static 'submissions/sha256-worker.js' %}">
   <h3>Master hochladen</h3>
   <p class="help">XISF oder FITS, 32 Bit, je Kanal eine Datei, höchstens {{ max_master_size|filesizeformat }}. Wähle für jede Datei den Kanal, dann starte den Upload.</p>
+  <details id="header-hinweis" class="header-hinweis">
+    <summary>Standort und Name im Dateikopf deiner Master</summary>
+    <p class="help">Wir speichern deine Master unverändert, mit vollständigem FITS- bzw. XISF-Header. Der kann Standortdaten (<code>SITELAT</code>, <code>SITELONG</code>, <code>OBSGEO-X</code>/<code>-Y</code>/<code>-Z</code>) und Personendaten (<code>OBSERVER</code>) enthalten. Schwarmstack liest sie nicht aus und entfernt sie nicht. Die Betreiber bekommen sie mit den Dateien beim Export, bis zur Löschung 30 Tage danach; ihre eigenen Kopien bleiben bestehen (<a href="{% url 'privacy_notice_version' privacy_version %}">Datenschutzhinweis</a>).</p>
+    <p class="help">Willst du das nicht, entferne die Keywords <strong>vor dem Upload</strong>, am besten an einer Kopie deiner Datei:</p>
+    <ul class="help">
+      <li><strong>Siril</strong> und <strong>PixInsight</strong>: Öffne den Dateikopf (FITS-Header, in PixInsight bei XISF auch die Properties) in der Bildinfo bzw. im Prozess zum FITS-Header, lösche die genannten Keywords und speichere die Datei neu. Wo genau das in deiner Version liegt, steht in der Dokumentation des Programms.</li>
+      <li><strong>NINA</strong>: Das Programm kann Standort und Beobachter aus seinem Profil in die Dateien schreiben. Lass diese Angaben vor der Aufnahme im Profil leer, oder entferne die Keywords danach wie oben.</li>
+    </ul>
+    <p class="help">Prüfe die Datei danach noch einmal in einem Programm, das den Dateikopf anzeigt. Die Belichtungsangaben (<code>EXPTIME</code>, <code>STACKCNT</code>, <code>INSTRUME</code>, <code>TELESCOP</code>) lässt du besser stehen, sie füllen deine Belichtungsangaben vor.</p>
+  </details>
   <label for="files">Dateien auswählen</label>
   <input id="files" type="file" multiple accept=".xisf,.fits,.fit,.fts">
   <ul class="queue"></ul>
