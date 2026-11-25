@@ -29,6 +29,7 @@ class Outcome(enum.Enum):
     NOTHING = "nichts zu tun"
     WARNED = "an die Löschung erinnert"
     DELETED = "gelöscht"
+    INCOMPLETE = "unvollständig, der nächste Lauf versucht es erneut"
 
 
 def run() -> Outcome:
@@ -37,8 +38,7 @@ def run() -> Outcome:
         return Outcome.NOTHING
     now = timezone.now()
     if now >= campaign.deletes_at:
-        _delete(campaign)
-        return Outcome.DELETED
+        return Outcome.DELETED if _delete(campaign) else Outcome.INCOMPLETE
     if now >= campaign.deletes_at - WARN_BEFORE and campaign.deletion_warned_at is None:
         when = timezone.localtime(campaign.deletes_at)
         if notices.send(
@@ -54,15 +54,35 @@ def run() -> Outcome:
     return Outcome.NOTHING
 
 
-def _delete(campaign: Campaign) -> None:
-    """Erst der Speicher, dann die Datenbank. Bricht der Speicher ab, bleibt `data_deleted_at` leer,
-    und der nächste Lauf fängt von vorn an."""
+def _delete(campaign: Campaign) -> bool:
+    """Erst der Speicher, dann die Datenbank; gibt zurück, ob alles gelöscht ist.
+
+    Ein Fehler bei einem Objekt (auch bei einem Equipment-Foto oder seinem Thumbnail) bricht den
+    Lauf nicht ab: Alle übrigen Objekte werden trotzdem gelöscht. Blieb etwas liegen, bleiben auch
+    die Datenbank und `data_deleted_at` stehen, die Betreiber bekommen eine Meldung, und der
+    nächste Lauf fängt von vorn an.
+    """
     storage = get_storage()
     deleted = 0
+    failed = 0
     for key in list(storage.keys()):
-        if not key.startswith(BACKUP_PREFIX):
+        if key.startswith(BACKUP_PREFIX):
+            continue
+        try:
             storage.delete(key)
             deleted += 1
+        except Exception:
+            # Der Schlüssel enthält nur die Submission-ID, nichts aus Dateien der Teilnehmenden.
+            log.exception("Objekt %s ließ sich nach Ablauf der Löschfrist nicht löschen", key)
+            failed += 1
+    if failed:
+        notices.send(
+            "Löschung unvollständig",
+            f"Nach Ablauf der Löschfrist ließen sich {failed} Objekte im Speicher nicht löschen "
+            f"({deleted} wurden gelöscht). Die Datenbank bleibt bis dahin stehen; der nächste "
+            "tägliche Lauf versucht es erneut. Bitte den Speicher prüfen.",
+        )
+        return False
     with transaction.atomic():
         Submission.objects.all().delete()  # mit Mastern und Einwilligungen
         # Das Protokoll nennt Submission-IDs und Dateinamen. Was die Aktion betrifft (Export,
@@ -78,3 +98,4 @@ def _delete(campaign: Campaign) -> None:
         f"gelöscht ({deleted} Objekte im Speicher); die Sicherungen laufen von selbst aus. "
         "Die Installation kann jetzt abgebaut werden.",
     )
+    return True
