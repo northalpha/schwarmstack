@@ -116,7 +116,8 @@ LIFECYCLE_VERWEIGERT = ("put_bucket_lifecycle_configuration", "PutBucketLifecycl
 def test_verweigerte_einrichtung_nur_warnung_wenn_preflight_passt(s3, monkeypatch, capsys):
     # Die Freigabe aus einem früheren Deploy liegt noch im Bucket.
     s3.client.put_bucket_cors(
-        Bucket=s3.bucket, CORSConfiguration=s3_bucket_setup.cors_rules(["https://upload.example.com"])
+        Bucket=s3.bucket,
+        CORSConfiguration=s3_bucket_setup.cors_rules(["https://upload.example.com"]),
     )
     verweigern(s3, monkeypatch, CORS_VERWEIGERT, LIFECYCLE_VERWEIGERT)
     call_command("s3_bucket_setup", "--origin", "https://upload.example.com")
@@ -138,7 +139,8 @@ def test_verweigerte_cors_mit_alter_freigabe_fuer_andere_domain_bricht_ab(s3, mo
 
 def test_andere_fehler_brechen_weiter_ab(s3, monkeypatch):
     s3.client.put_bucket_cors(
-        Bucket=s3.bucket, CORSConfiguration=s3_bucket_setup.cors_rules(["https://upload.example.com"])
+        Bucket=s3.bucket,
+        CORSConfiguration=s3_bucket_setup.cors_rules(["https://upload.example.com"]),
     )
     verweigern(s3, monkeypatch, CORS_VERWEIGERT, code="InternalError", status=500)
     with pytest.raises(Exception, match="InternalError"):
