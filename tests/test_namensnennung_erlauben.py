@@ -120,7 +120,7 @@ def test_erlauben_steht_im_protokoll(anonymous):
 def test_nach_dem_widerruf_erlaubt_eine_neue_einwilligung_die_widerrufene_bleibt(
     participant, settings
 ):
-    settings.CONSENT_TEXT_VERSION = "2026-11-25"
+    angelegt_mit = settings.CONSENT_TEXT_VERSION
     first = credit_consents(participant)[0]
     participant.client.post(revoke_url(participant))
     assert f'href="{grant_url(participant)}"' in participant.page()
@@ -131,7 +131,7 @@ def test_nach_dem_widerruf_erlaubt_eine_neue_einwilligung_die_widerrufene_bleibt
     old, new = credit_consents(participant)
     assert old.pk == first.pk
     assert old.revoked_at is not None
-    assert old.text_version == "2026-11-25"
+    assert old.text_version == angelegt_mit
     assert new.pk != old.pk
     assert new.revoked_at is None
     assert new.granted_at > old.granted_at
@@ -285,14 +285,14 @@ def manifest_entry(operator_client, campaign, participant):
 def test_manifest_fuehrt_widerrufene_und_neue_einwilligung_je_mit_eigenem_zeitpunkt(
     operator_client, participant, campaign, settings
 ):
-    settings.CONSENT_TEXT_VERSION = "2026-11-25"
+    angelegt_mit = settings.CONSENT_TEXT_VERSION
     participant.client.post(revoke_url(participant))
     settings.CONSENT_TEXT_VERSION = "2026-12-01"
     grant(participant, name="Ada S.")
 
     entry = manifest_entry(operator_client, campaign, participant)
     credits = [c for c in entry["consents"] if c["kind"] == "publish_credit"]
-    assert [c["text_version"] for c in credits] == ["2026-11-25", "2026-12-01"]
+    assert [c["text_version"] for c in credits] == [angelegt_mit, "2026-12-01"]
     assert credits[0]["revoked_at"] is not None
     assert credits[1]["revoked_at"] is None
     assert credits[0]["granted_at"] <= credits[1]["granted_at"]
