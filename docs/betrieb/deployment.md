@@ -1,6 +1,6 @@
 # Deployment: vom leeren Hetzner-Konto bis zur laufenden Instanz
 
-Schwarmstack läuft als Container-Image mit Docker Compose (App mit gunicorn, Caddy für TLS) auf einer eigenen Hetzner-VM und kommt per Deploy über GitHub Actions auf den Host (ADR 0001). Diese Anleitung führt durch **Staging** (`upload.northalpha.de`); die **Produktion** (`upload.dzvf.de`) wird später genauso aufgesetzt, mit dem Environment `production` statt `staging`.
+Schwarmstack läuft als Container-Image mit Docker Compose (App mit gunicorn, Caddy für TLS) auf einer eigenen Hetzner-VM und kommt per Deploy über GitHub Actions auf den Host (ADR 0001). Diese Anleitung führt durch **Staging** (`staging.example.com`); die **Produktion** (`upload.example.com`) wird später genauso aufgesetzt, mit dem Environment `production` statt `staging`.
 
 | Was | Wo |
 |---|---|
@@ -59,7 +59,7 @@ Mit dem Fingerabdruck vergleichen, den der Server selbst meldet (beim ersten `ss
 
 ## 4. DNS
 
-`A` (und, falls vorhanden, `AAAA`) für `upload.northalpha.de` auf die IP des Servers. Caddy holt das Zertifikat beim ersten Start und erneuert es selbst; ohne DNS-Eintrag scheitert der erste Deploy an `/healthz`.
+`A` (und, falls vorhanden, `AAAA`) für `staging.example.com` auf die IP des Servers. Caddy holt das Zertifikat beim ersten Start und erneuert es selbst; ohne DNS-Eintrag scheitert der erste Deploy an `/healthz`.
 
 ## 5. Bucket
 
@@ -74,7 +74,7 @@ Im Repo unter *Settings → Environments* das Environment `staging` anlegen (fü
 | Name | Staging (Beispiel) | Pflicht |
 |---|---|---|
 | `DEPLOY_HOST` | IP oder Name des Servers | ja |
-| `DOMAIN` | `upload.northalpha.de` | ja |
+| `DOMAIN` | `staging.example.com` | ja |
 | `ADMIN_PATH` | zufällige Zeichenfolge, z. B. `openssl rand -hex 12` ([`admin.md`](admin.md)) | ja |
 | `S3_ENDPOINT_URL` | `https://fsn1.your-objectstorage.com` | ja |
 | `S3_BUCKET` | `schwarmstack-staging` | ja |
@@ -115,7 +115,7 @@ Sind beide gesetzt, verlangt Caddy für alle Seiten außer `/healthz` und `/zahl
 
 ## 7. Erster Deploy
 
-Ein Push auf `main` (oder *Run workflow* mit einem vorhandenen `sha-…`-Tag) startet den Deploy. Der Deploy-Job ist grün, wenn `https://upload.northalpha.de/healthz` mit `ok` antwortet. `/healthz` prüft Datenbank und S3-Speicher, verlangt kein Passwort und gibt keine Details preis; die Gründe stehen im Log. Dieselbe Adresse nutzt das externe Monitoring (ADR 0007).
+Ein Push auf `main` (oder *Run workflow* mit einem vorhandenen `sha-…`-Tag) startet den Deploy. Der Deploy-Job ist grün, wenn `https://staging.example.com/healthz` mit `ok` antwortet. `/healthz` prüft Datenbank und S3-Speicher, verlangt kein Passwort und gibt keine Details preis; die Gründe stehen im Log. Dieselbe Adresse nutzt das externe Monitoring (ADR 0007).
 
 ## 8. Aktion anlegen
 
@@ -131,7 +131,7 @@ cd /opt/schwarmstack && docker compose run --rm app python manage.py campaign --
   --quota-gib 2 --global-cap-gib 20
 ```
 
-Betreiber-Konten für den Admin unter `https://upload.northalpha.de/<ADMIN_PATH>/` legt dasselbe Muster an, je Betreiber einmal:
+Betreiber-Konten für den Admin unter `https://staging.example.com/<ADMIN_PATH>/` legt dasselbe Muster an, je Betreiber einmal:
 
 ```bash
 cd /opt/schwarmstack && docker compose run --rm app python manage.py createsuperuser
