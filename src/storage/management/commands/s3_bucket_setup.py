@@ -110,7 +110,7 @@ class Command(BaseCommand):
             "--origin",
             action="append",
             required=True,
-            help="Erlaubte Herkunft, z. B. https://upload.dzvf.de (mehrfach möglich)",
+            help="Erlaubte Herkunft, z. B. https://upload.example.com (mehrfach möglich)",
         )
 
     def handle(self, *args, **opts):
