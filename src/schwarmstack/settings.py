@@ -100,7 +100,8 @@ STORAGES = {
 
 # Zugang zur Submission nur über ein signiertes Cookie (ADR 0002).
 SUBMISSION_COOKIE_SECURE = env_bool("SUBMISSION_COOKIE_SECURE", not DEBUG)
-# Version des Hinweistextes, auf den sich eine Einwilligung bezieht.
+# Aktuelle Fassung des Hinweistextes, auf die sich neue Einwilligungen beziehen
+# (`Consent.text_version`).
 # Zu jeder Fassung gibt es einen Datenschutzhinweis (submissions/datenschutz/<Fassung>.html).
 CONSENT_TEXT_VERSION = os.environ.get("CONSENT_TEXT_VERSION", "2026-11-25")
 # Kontaktadresse im Datenschutzhinweis für Fragen, Widerruf und Löschung; Pflicht in Produktion.

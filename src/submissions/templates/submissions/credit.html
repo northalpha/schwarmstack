@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Namensnennung erlauben – Schwarmstack{% endblock %}
+{% block content %}
+<h1>Namensnennung erlauben</h1>
+<p>Submission <strong>{{ submission.reference }}</strong></p>
+<p>Du kannst die Namensnennung bis zum Ende der Aktion erlauben, auch wenn du sie früher widerrufen hast. Die Einwilligung gilt ab jetzt; eine frühere bleibt als Nachweis gespeichert.</p>
+<form method="post" novalidate>{% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form %}{% include "submissions/_field.html" %}{% endfor %}
+  <p>Was mit deinen Angaben geschieht und wie lange, steht im <a href="{% url 'privacy_notice_version' privacy_version %}">Datenschutzhinweis</a>. Deine Einwilligung bezieht sich auf diese Fassung. Du kannst sie jederzeit widerrufen.</p>
+  <button type="submit">Namensnennung erlauben</button>
+  <a href="{% url 'submission' submission.reference %}" class="cancel">Abbrechen</a>
+</form>
+{% endblock %}

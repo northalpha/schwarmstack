@@ -383,6 +383,8 @@ class ConsentInline(admin.TabularInline):
     model = Consent
     extra = 0
     can_delete = False
+    # Je Zweck können mehrere stehen (widerrufene und eine gültige): nach Zeitpunkt der Erteilung.
+    ordering = ["kind", "granted_at", "pk"]
     fields = ["kind", "granted_at", "text_version", "revoked_at", "revoke_link"]
     readonly_fields = fields
 

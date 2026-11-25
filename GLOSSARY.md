@@ -85,8 +85,12 @@ Die Rücknahme der Einwilligung zur Namensnennung oder zum Equipment-Foto. Die N
 _Avoid_: Kündigung, Opt-out
 
 **Datenschutzhinweis**:
-Der Text in Schwarmstack, der erklärt, wer was wie lange verarbeitet; Verantwortlicher ist DZVF. Er ist versioniert, und jede Einwilligung hält fest, auf welche Version sie sich bezieht.
+Der Text in Schwarmstack, der erklärt, wer was wie lange verarbeitet; Verantwortlicher ist DZVF. Es gibt ihn in Fassungen, und jede Einwilligung hält fest, auf welche Fassung sie sich bezieht.
 _Avoid_: Datenschutzerklärung, Privacy Policy
+
+**Fassung des Hinweistextes** (`Consent.text_version`):
+Die Fassung des Datenschutzhinweises, auf die sich eine Einwilligung bezieht; sie wird mit der Einwilligung gespeichert, damit nachweisbar ist, was die Person gesehen hat. Die aktuelle Fassung steht in `CONSENT_TEXT_VERSION`, zu jeder Fassung gibt es einen eigenen Datenschutzhinweis. Wechselt sie, gilt für neue Einwilligungen die neue; schon erteilte behalten ihre.
+_Avoid_: Version, Hinweisversion
 
 **Equipment-Foto**:
 Ein optionales Foto der Ausrüstung, das Teilnehmende ihrer Submission beilegen können, beim Anlegen oder jederzeit später in „Angaben ändern“ (bis zum Ende der Aktion). Kein Master. Es braucht eine eigene, aktiv erteilte Einwilligung; wer das Foto löscht, widerruft sie. Der Server dekodiert das Foto und schreibt nur die Pixel neu (JPEG): Alle Metadaten, vor allem der Standort, werden entfernt, das Original wird nie gespeichert. Aus dem bereinigten Foto entsteht ein **Thumbnail** für die Seitenleiste der Submission-Seite. Foto und Thumbnail liefert nur die App aus, nie ein öffentlicher Link; die Betreiber sehen sie im Admin, das Foto auch im Export.

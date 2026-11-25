@@ -96,7 +96,7 @@ def manifest(campaign: Campaign, *, links: bool = False) -> dict:
         Submission.objects.order_by("created_at")
         .select_related("equipment_photo")
         .prefetch_related(
-            Prefetch("consents", queryset=Consent.objects.order_by("kind")),
+            Prefetch("consents", queryset=Consent.objects.order_by("kind", "granted_at", "pk")),
             Prefetch(
                 "masters",
                 queryset=Master.objects.filter(state=Master.State.ACCEPTED)
