@@ -5,13 +5,13 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("submissions", "0008_letzte_aktivitaet"),
+        ("submissions", "0010_submission_loeschung"),
     ]
 
     operations = [
         migrations.AddField(
             model_name="campaign",
-            name="deleted_at",
+            name="data_deleted_at",
             field=models.DateTimeField(blank=True, null=True, verbose_name="Daten gelöscht am"),
         ),
         migrations.AddField(

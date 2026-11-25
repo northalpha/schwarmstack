@@ -66,7 +66,7 @@
     // In der Nachfrist dürfen nur begonnene Uploads fortgesetzt werden.
     const mayStart = root.dataset.mayStart === "1";
 
-    // Unterbrochene Uploads dieser Abgabe (vom Server). Wählen Teilnehmende dieselbe Datei
+    // Unterbrochene Uploads dieser Submission (vom Server). Wählen Teilnehmende dieselbe Datei
     // erneut aus, setzt Uppy über die Liste der schon übertragenen Teile fort.
     const resumable = new Map();
     for (const row of document.querySelectorAll("tr.resumable")) {

@@ -31,7 +31,7 @@ def exported(campaign, days_ago):
 
 @pytest.fixture
 def stored(participant, storage_dir):
-    """Eine Abgabe mit Master und Begleitdatei im Speicher, dazu eine Sicherung."""
+    """Eine Submission mit Master und Begleitdatei im Speicher, dazu eine Sicherung."""
     master = participant.upload(fits())
     get_storage().put_json(f"{BACKUP_PREFIX}db-2026-12-01.json", {"sicherung": True})
     return master
@@ -75,8 +75,8 @@ def test_sieben_tage_vorher_kommt_genau_eine_erinnerung(campaign, stored, mailou
 def test_nach_ablauf_wird_alles_ausser_den_sicherungen_geloescht(
     campaign, stored, mailoutbox, operator_client
 ):
-    # Ein Eingriff im Admin hinterlässt Kennung und Dateiname im Protokoll.
-    operator_client.post(submission_url(stored.submission, "zurueckziehen/"))
+    # Ein Eingriff im Admin hinterlässt Submission-ID und Dateiname im Protokoll.
+    operator_client.post(submission_url(stored.submission, "loeschen/"))
     assert LogEntry.objects.exists()
     LoginAttempt.objects.create(ip_hash="a" * 64)
     exported(campaign, days_ago=31)
@@ -87,10 +87,10 @@ def test_nach_ablauf_wird_alles_ausser_den_sicherungen_geloescht(
     assert Master.objects.count() == 0
     assert Consent.objects.count() == 0
     assert LoginAttempt.objects.count() == 0
-    # Das Protokoll nennt Kennungen und Dateinamen; es wird mit gelöscht, bis auf die Einträge
+    # Das Protokoll nennt Submission-IDs und Dateinamen; es wird mit gelöscht, bis auf die Einträge
     # zur Aktion (Export, Links), die keine Angaben von Teilnehmenden enthalten.
     assert not LogEntry.objects.exclude(content_type__model="campaign").exists()
-    assert Campaign.objects.get().deleted_at is not None
+    assert Campaign.objects.get().data_deleted_at is not None
     assert any("gelöscht" in mail.subject for mail in mailoutbox)
 
 
@@ -98,7 +98,7 @@ def test_loeschung_ist_idempotent(campaign, stored, mailoutbox):
     exported(campaign, days_ago=31)
     run()
     count = len(mailoutbox)
-    deleted_at = Campaign.objects.get().deleted_at
+    deleted_at = Campaign.objects.get().data_deleted_at
     run()
     assert len(mailoutbox) == count
-    assert Campaign.objects.get().deleted_at == deleted_at
+    assert Campaign.objects.get().data_deleted_at == deleted_at

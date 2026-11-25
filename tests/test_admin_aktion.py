@@ -104,7 +104,7 @@ def test_gesamtgrenze_nicht_unter_der_belegung(
 
 def test_groessen_in_gib_und_mib(operator_client, campaign):
     form = operator_client.get(url(campaign)).content.decode()
-    assert "Quote je Abgabe (GiB)" in form
+    assert "Quote je Submission (GiB)" in form
     assert "Gesamtgrenze (GiB)" in form
     assert "Höchstgröße je Master (MiB)" in form
 

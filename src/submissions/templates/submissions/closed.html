@@ -2,10 +2,10 @@
 {% block content %}
 {% if before_start %}
 <h1>Gleich geht es los</h1>
-<p>Die Aktion zu {{ campaign.object_name }} beginnt am {{ campaign.starts_at|date:"j. F Y, H:i" }} Uhr. Dann kannst du hier deine Abgabe anlegen.</p>
+<p>Die Aktion zu {{ campaign.object_name }} beginnt am {{ campaign.starts_at|date:"j. F Y, H:i" }} Uhr. Dann kannst du hier deine Submission anlegen.</p>
 {% else %}
 <h1>Die Aktion ist beendet</h1>
-<p>Die Aktion zu {{ campaign.object_name }} ist am {{ campaign.ends_at|date:"j. F Y, H:i" }} Uhr zu Ende gegangen. Neue Abgaben sind nicht mehr möglich. Danke fürs Interesse!</p>
+<p>Die Aktion zu {{ campaign.object_name }} ist am {{ campaign.ends_at|date:"j. F Y, H:i" }} Uhr zu Ende gegangen. Neue Submissions sind nicht mehr möglich. Danke fürs Interesse!</p>
 {% endif %}
 {% include "submissions/_own_links.html" %}
 {% endblock %}

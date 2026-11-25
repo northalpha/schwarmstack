@@ -8,8 +8,8 @@
   <link rel="stylesheet" href="{% static 'schwarmstack/site.css' %}">
 </head>
 <body>
-  <header><p class="brand">Schwarmstack</p></header>
-  <main>{% block content %}{% endblock %}</main>
+  <header class="top"><p class="brand"><img src="{% static 'schwarmstack/mark.svg' %}" alt="" width="30" height="30">Schwarmstack</p></header>
+  <main class="{% block mainclass %}page-narrow{% endblock %}">{% block content %}{% endblock %}</main>
 {% block scripts %}{% endblock %}
 </body>
 </html>

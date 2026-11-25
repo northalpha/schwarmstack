@@ -1,16 +1,18 @@
-"""Zugang zur Abgabe nur aus dem Browser, in dem sie angelegt wurde (ADR 0002).
+"""Zugang zur Submission nur aus dem Browser, in dem sie angelegt wurde (ADR 0002).
 
-Das Cookie ist signiert und enthält die Abgabe-Kennungen dieses Browsers.
+Das Cookie ist signiert und enthält die Submission-IDs dieses Browsers.
 """
 
 from django.conf import settings
 from django.utils import timezone
 
+# Name bleibt trotz Umbenennung (Issue #66): Ein neuer Name sperrte Teilnehmende aus ihren
+# bestehenden Submissions aus, denn ohne das Cookie gibt es keinen Zugang.
 COOKIE_NAME = "schwarmstack_abgaben"
 _SALT = "submissions.access"
-# Ein Browser kann höchstens so viele Abgaben halten (ADR 0002).
+# Ein Browser kann höchstens so viele Submissions halten (ADR 0002).
 MAX_PER_BROWSER = 3
-# Puffer über Ende der Aktion plus Nachfrist hinaus, damit die Abgabe danach noch ansehbar ist.
+# Puffer über Ende der Aktion plus Nachfrist hinaus, damit die Submission danach noch ansehbar ist.
 _EXTRA = 30 * 86400
 
 
@@ -38,8 +40,10 @@ def grant(response, request, reference: str, campaign) -> None:
     )
 
 
-def has_room(request) -> bool:
-    return len(references(request)) < MAX_PER_BROWSER
+def has_room(held: int) -> bool:
+    """`held` zählt nur bestehende Submissions: Gelöschte bleiben im Cookie, belegen aber
+    keinen Platz."""
+    return held < MAX_PER_BROWSER
 
 
 def may_access(request, reference: str) -> bool:

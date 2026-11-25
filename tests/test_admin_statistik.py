@@ -22,7 +22,7 @@ HA_DATA = xisf()
 @pytest.fixture
 def bestand(campaign, valid_form, settings, tmp_path, operator_client):
     """A: L + Hα angenommen. B: Dublette von A, zwei abgelehnt. C: ein Upload läuft.
-    D: zurückgezogen. E: ein abgebrochener Upload."""
+    D: gelöscht. E: ein abgebrochener Upload."""
     settings.STORAGE_LOCAL_DIR = tmp_path
     a_client, a = new_submission(valid_form)
     upload(a_client, a.reference, L_DATA, channel="L")
@@ -38,11 +38,11 @@ def bestand(campaign, valid_form, settings, tmp_path, operator_client):
 
     d_client, d = new_submission(valid_form)
     upload(d_client, d.reference, fits(width=9), channel="B", filename="b.fits")
-    operator_client.post(submission_url(d, "zurueckziehen/"))
+    operator_client.post(submission_url(d, "loeschen/"))
 
     e_client, e = new_submission(valid_form)
     master_id = start(e_client, e.reference, size=2000).json()["masterId"]
-    e_client.post(f"/abgabe/{e.reference}/master/{master_id}/abbrechen/")
+    e_client.post(f"/submission/{e.reference}/master/{master_id}/abbrechen/")
     return {"a": a, "b": b, "c": c, "d": d, "e": e}
 
 
@@ -52,10 +52,10 @@ def statistik(client):
     return response, response.context["statistik"]
 
 
-def test_abgaben_aktiv_und_zurueckgezogen(operator_client, bestand):
+def test_submissions_aktiv_und_geloescht(operator_client, bestand):
     _, s = statistik(operator_client)
     assert s.submissions_active == 4
-    assert s.submissions_withdrawn == 1
+    assert s.submissions_deleted == 1
 
 
 def test_master_je_zustand(operator_client, bestand):
@@ -115,13 +115,13 @@ def test_verlauf_je_tag_in_berliner_zeit(operator_client, bestand):
     today = timezone.now().astimezone(BERLIN).date()
 
     earlier = days[dt.date(2025, 1, 11)]
-    assert (earlier.new_submissions, earlier.accepted, earlier.withdrawals) == (
+    assert (earlier.new_submissions, earlier.accepted, earlier.deletions) == (
         1,
         len(HA_DATA),
         0,
     )
-    # Zurückgezogene Abgaben fallen aus dem Verlauf heraus, ihr Rückzug steht daneben.
-    assert (days[today].new_submissions, days[today].withdrawals) == (3, 1)
+    # Gelöschte Submissions fallen aus dem Verlauf heraus, ihre Löschung steht daneben.
+    assert (days[today].new_submissions, days[today].deletions) == (3, 1)
     assert days[today].accepted == 2 * len(L_DATA)
 
 

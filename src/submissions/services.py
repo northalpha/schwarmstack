@@ -1,27 +1,35 @@
-"""Fachverhalten rund um die Abgabe: anlegen, Master löschen, Rückzug, Widerruf, Nachtrag.
+"""Fachverhalten rund um die Submission: anlegen, Master löschen, Angaben ändern, Löschung,
+Widerruf, Nachtrag.
 
-Admin und Abgabeseite rufen diese Operationen auf; sie selbst kennen keine Anfrage.
+Admin und Submission-Seite rufen diese Operationen auf; sie selbst kennen keine Anfrage.
 """
 
+from pathlib import PurePosixPath
+
 from django.conf import settings
+from django.contrib.admin.models import CHANGE, LogEntry
+from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from schwarmstack import notices
 from storage import get_storage
 
-from . import references
+from . import exposure, references, validation
 from .models import Campaign, Consent, Master, Submission
 from .uploads import abort_multipart, sidecar
 
 _ATTEMPTS = 5
+# Reservierter, nicht anmeldbarer Benutzer für das Protokoll bei Änderungen durch Teilnehmende.
+PARTICIPANT_USERNAME = "teilnehmende"
 
 
 def create_submission(*, credit_name, setup_description, publish_credit) -> Submission:
-    """Legt eine Abgabe samt Einwilligungen an und vergibt eine freie Abgabe-Kennung.
+    """Legt eine Submission samt Einwilligungen an und vergibt eine freie Submission-ID.
 
-    Die Nennung gibt es nur mit der Einwilligung zur Veröffentlichung; ohne sie wird ein
-    eingegebener Name verworfen und die Abgabe bleibt anonym.
+    Die Namensnennung gibt es nur mit der Einwilligung zur Namensnennung; ohne sie wird ein
+    eingegebener Name verworfen und die Submission bleibt anonym.
     """
     kinds = [Consent.Kind.PROJECT_USE]
     if publish_credit:
@@ -48,9 +56,9 @@ def create_submission(*, credit_name, setup_description, publish_credit) -> Subm
                     for kind in kinds
                 )
             return submission
-        except IntegrityError:  # gleichzeitig dieselbe Kennung gezogen
+        except IntegrityError:  # gleichzeitig dieselbe Submission-ID gezogen
             continue
-    raise RuntimeError("Abgabe konnte nicht angelegt werden")
+    raise RuntimeError("Submission konnte nicht angelegt werden")
 
 
 # Nur diese Master lassen sich löschen; abgelehnte und abgebrochene haben keine Datei mehr.
@@ -84,12 +92,12 @@ def delete_master(master: Master) -> None:
             storage.put_json(duplicate.sidecar_key, sidecar(duplicate))
 
 
-def details_corrected(submission: Submission) -> None:
-    """Nach einer Änderung von Nennung oder Setup (im Admin oder durch einen Widerruf) die
+def details_changed(submission: Submission) -> None:
+    """Nach einer Änderung von Namensnennung oder Setup (im Admin oder durch einen Widerruf) die
     Begleitdateien neu schreiben, damit die Zuordnung ohne Datenbank stimmt (ADR 0006).
 
-    Ohne gültige Einwilligung zur Veröffentlichung bleibt die Abgabe anonym: Eine nachträglich
-    eingetragene Nennung wird verworfen.
+    Ohne gültige Einwilligung zur Namensnennung bleibt die Submission anonym: Eine nachträglich
+    eingetragene Namensnennung wird verworfen.
     """
     if submission.credit_name and not submission.publishes_credit:
         submission.credit_name = ""
@@ -100,9 +108,10 @@ def details_corrected(submission: Submission) -> None:
 
 
 def correctable_by_operator() -> bool:
-    """Ob Betreiber Abgaben korrigieren und Master löschen dürfen: bis zum endgültigen Export.
+    """Ob Betreiber Angaben und Belichtungsangaben ändern und Master löschen dürfen: bis zum
+    endgültigen Export.
 
-    Danach müssen Manifest und Speicher übereinstimmen; nur Widerruf und Rückzug bleiben
+    Danach müssen Manifest und Speicher übereinstimmen; nur Widerruf und Löschung bleiben
     möglich, als Nachtrag (ADR 0008).
     """
     campaign = Campaign.current()
@@ -110,40 +119,83 @@ def correctable_by_operator() -> bool:
 
 
 def _amendment(submission: Submission, what: str) -> None:
-    """Nach dem endgültigen Export ist ein Widerruf oder Rückzug ein Nachtrag: Er wird an der
-    Abgabe vermerkt und den Betreibern gemeldet, damit sie ihre Kopien anpassen."""
+    """Nach dem endgültigen Export ist ein Widerruf oder eine Löschung ein Nachtrag: Er wird an
+    der Submission vermerkt und den Betreibern gemeldet, damit sie ihre Kopien anpassen."""
     if correctable_by_operator():
         return
     submission.amended_at = timezone.now()
     submission.save(update_fields=["amended_at"])
     notices.send(
         f"Nachtrag zum Export: {submission.reference}",
-        f"{what} für die Abgabe {submission.reference} nach dem endgültigen Export.\n\n"
-        "Bitte lokale Kopien und die Credits-Liste anpassen; die Abgabe steht im Admin unter "
-        "Export → Nachträge.",
+        f"{what} für die Submission {submission.reference} nach dem endgültigen Export.\n\n"
+        "Bitte lokale Kopien und die Credits-Liste anpassen; die Submission steht im Admin "
+        "unter Export → Nachträge.",
     )
 
 
 def changeable_by_participant(submission: Submission) -> bool:
-    """Ob Teilnehmende selbst Master löschen oder die Abgabe zurückziehen dürfen: nur bis zum
-    Ende der Aktion und nicht mehr nach einem Rückzug (ADR 0002)."""
+    """Ob Teilnehmende selbst Master löschen, die Submission löschen oder ihre Angaben ändern
+    dürfen: nur bis zum Ende der Aktion und nicht mehr nach einer Löschung (ADR 0002)."""
     phase = Campaign.current_phase()
-    return phase.allows_changes_by_participants and not submission.is_withdrawn
+    return phase.allows_changes_by_participants and not submission.is_deleted
 
 
-def withdraw(submission: Submission, *, by: Submission.WithdrawnBy) -> Submission:
-    """Rückzug: löscht alle Master, Angaben und Einwilligungen samt Widerruf.
+def change_details(submission: Submission, *, setup_description, credit_name=None) -> bool:
+    """Angaben ändern durch Teilnehmende: Setup und Namensnennung speichern, die Begleitdateien
+    neu schreiben und im Protokoll vermerken.
 
-    Es bleiben die Abgabe-Kennung, der Zeitpunkt und wer den Rückzug ausgelöst hat. Eine
-    zurückgezogene Abgabe zählt nicht mehr auf Quote oder Gesamtgrenze und öffnet nicht wieder.
+    Ohne gültige Einwilligung zur Namensnennung bleibt die Namensnennung leer. Ohne Änderung
+    wird nichts gespeichert und nichts vermerkt; gibt zurück, ob sich etwas geändert hat.
+    """
+    changed = []
+    if setup_description != submission.setup_description:
+        submission.setup_description = setup_description
+        changed.append("setup_description")
+    if credit_name is not None and credit_name != submission.credit_name:
+        submission.credit_name = credit_name
+        changed.append("credit_name")
+    if changed:
+        submission.save(update_fields=changed)
+        details_changed(submission)
+        log_participant_change(submission, "Angaben geändert (durch Teilnehmende)")
+    return bool(changed)
+
+
+def log_participant_change(submission: Submission, message: str) -> None:
+    """Protokolleintrag für eine Änderung durch Teilnehmende. Das Protokoll (`LogEntry`)
+    verlangt einen Benutzer; Teilnehmende haben kein Konto, deshalb steht ein reservierter,
+    gesperrter Benutzer „teilnehmende“ dafür, ohne Passwort und nicht anmeldbar."""
+    user_model = get_user_model()
+    user, created = user_model.objects.get_or_create(
+        **{user_model.USERNAME_FIELD: PARTICIPANT_USERNAME}, defaults={"is_active": False}
+    )
+    if created:
+        user.set_unusable_password()
+        user.save(update_fields=["password"])
+    LogEntry.objects.create(
+        user=user,
+        content_type=ContentType.objects.get_for_model(Submission),
+        object_id=str(submission.pk),
+        object_repr=str(submission),
+        action_flag=CHANGE,
+        change_message=message,
+    )
+
+
+def delete_submission(submission: Submission, *, by: Submission.DeletedBy) -> Submission:
+    """Löschung: löscht alle Master, Angaben und Einwilligungen samt Widerruf.
+
+    Es bleiben die Submission-ID, der Zeitpunkt und wer gelöscht hat. Eine gelöschte
+    Submission zählt nicht mehr auf Quote oder Gesamtgrenze und öffnet nicht wieder. Wer die
+    Nutzung im Projekt nicht mehr will, löscht die Submission; die Löschung ist der Nachweis.
     """
     with transaction.atomic():
         submission = Submission.objects.select_for_update().get(pk=submission.pk)
-        if submission.is_withdrawn:
+        if submission.is_deleted:
             return submission
-        # Zuerst als zurückgezogen markieren: Ab hier startet kein neuer Upload mehr.
-        submission.withdrawn_at = timezone.now()
-        submission.withdrawn_by = by
+        # Zuerst als gelöscht markieren: Ab hier startet kein neuer Upload mehr.
+        submission.deleted_at = timezone.now()
+        submission.deleted_by = by
         submission.credit_name = ""
         submission.setup_description = ""
         submission.save()
@@ -152,31 +204,90 @@ def withdraw(submission: Submission, *, by: Submission.WithdrawnBy) -> Submissio
         if master.state in DELETABLE:
             delete_master(master)
     submission.masters.all().delete()
-    _amendment(submission, "Rückzug")
+    _amendment(submission, "Löschung")
     return submission
 
 
-def revocation_withdraws(consent: Consent) -> bool:
-    """Ob der Widerruf dieser Einwilligung die ganze Abgabe zurückzieht: nur bei der Nutzung
-    im Projekt, ohne sie kann die Abgabe nicht bleiben."""
-    return consent.kind == Consent.Kind.PROJECT_USE
+# Widerrufen lässt sich nur die Einwilligung zur Namensnennung. Wer die Nutzung im Projekt
+# nicht mehr will, löscht die Submission.
+REVOCABLE = (Consent.Kind.PUBLISH_CREDIT,)
 
 
-def revoke(consent: Consent, *, by: Submission.WithdrawnBy) -> bool:
-    """Widerruf einer Einwilligung: Sie bekommt einen Zeitpunkt und bleibt stehen.
+def revoke(consent: Consent) -> bool:
+    """Widerruf der Einwilligung zur Namensnennung: Sie bekommt einen Zeitpunkt und bleibt
+    stehen; die Namensnennung wird gelöscht und die Begleitdateien neu geschrieben.
 
-    Der Widerruf der Nutzung im Projekt löst den Rückzug der ganzen Abgabe aus. Der Widerruf
-    der Veröffentlichung löscht die Nennung und schreibt die Begleitdateien neu. Gibt zurück,
-    ob sich etwas geändert hat (ein schon vermerkter Widerruf ändert nichts).
+    Gibt zurück, ob sich etwas geändert hat: Ein schon vermerkter Widerruf ändert nichts, und
+    ebenso wenig eine Einwilligung, die eine Löschung (etwa in einem anderen Tab) schon entfernt
+    hat. Andere Einwilligungen lassen sich nicht widerrufen (`ValueError`).
     """
-    if consent.revoked_at is not None:
+    if consent.kind not in REVOCABLE:
+        raise ValueError(
+            f"Die Einwilligung „{consent.get_kind_display()}“ lässt sich nicht widerrufen; "
+            "dafür die Submission löschen."
+        )
+    now = timezone.now()
+    # In einem Schritt, damit ein gleichzeitiger Widerruf oder eine Löschung nicht dazwischenkommt.
+    if not Consent.objects.filter(pk=consent.pk, revoked_at__isnull=True).update(revoked_at=now):
         return False
-    consent.revoked_at = timezone.now()
-    consent.save(update_fields=["revoked_at"])
-    if revocation_withdraws(consent):
-        withdraw(consent.submission, by=by)
-    elif consent.kind == Consent.Kind.PUBLISH_CREDIT:
-        # Ohne gültige Einwilligung wird die Nennung dabei verworfen.
-        details_corrected(consent.submission)
-        _amendment(consent.submission, "Widerruf der Veröffentlichung der Nennung")
+    consent.revoked_at = now
+    # Ohne gültige Einwilligung wird die Namensnennung dabei verworfen.
+    details_changed(consent.submission)
+    _amendment(consent.submission, "Widerruf der Namensnennung")
     return True
+
+
+def consent_revocable_by_participant(submission: Submission) -> Consent | None:
+    """Die Einwilligung zur Namensnennung, die Teilnehmende selbst widerrufen dürfen.
+
+    Der Widerruf geht jederzeit, auch in der Nachfrist und nach dem Ende der Aktion
+    (DSGVO Art. 7 Abs. 3); nach einer Löschung gibt es nichts mehr zu widerrufen.
+    """
+    if submission.is_deleted:
+        return None
+    return submission.consents.filter(kind__in=REVOCABLE, revoked_at__isnull=True).first()
+
+
+# -- Belichtungsangaben (ADR 0010) ---------------------------------------------
+
+
+def exposure_changeable_by_participant(master: Master) -> bool:
+    """Teilnehmende ändern Belichtungsangaben, solange sie Master hochladen dürfen; danach
+    nur noch die Betreiber im Admin."""
+    return exposure_changeable_by_operator(master) and changeable_by_participant(master.submission)
+
+
+def exposure_visible_to_operator(master: Master) -> bool:
+    """Belichtungsangaben gibt es nur für angenommene Master."""
+    return master.state == Master.State.ACCEPTED
+
+
+def exposure_changeable_by_operator(master: Master) -> bool:
+    """Betreiber ändern Belichtungsangaben angenommener Master, auch nach der Aktion, aber
+    nicht mehr nach dem endgültigen Export."""
+    return exposure_visible_to_operator(master) and correctable_by_operator()
+
+
+def change_exposure(master: Master, data: dict) -> None:
+    """Eine Änderung der Belichtungsangaben: einen Vorschlag übernehmen (`accept`), die
+    Bedeutung von EXPTIME festlegen (`exptime_meaning`) oder Werte von Hand ändern.
+
+    Ungültige Eingaben werfen `exposure.InvalidInput`.
+    """
+    if "accept" in data:
+        changed = exposure.accept(master, data["accept"])
+    elif "exptime_meaning" in data:
+        changed = exposure.choose_exptime_meaning(master, data["exptime_meaning"])
+    else:
+        changed = exposure.set_by_hand(master, data)
+    if changed:
+        master.save(update_fields=changed)
+
+
+def backfill_exposure(master: Master) -> None:
+    """Liest den Header eines angenommenen Masters erneut per Range Request und trägt die
+    Belichtungsangaben neu. Werte mit der Herkunft `manuell` bleiben unangetastet."""
+    head = get_storage().read_head(master.key, validation.HEAD_BYTES)
+    suffix = PurePosixPath(master.key).suffix
+    changed = exposure.apply_header(master, exposure.read(head, suffix), keep_manual=True)
+    master.save(update_fields=changed)

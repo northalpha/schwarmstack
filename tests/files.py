@@ -98,3 +98,19 @@ def _property(id_, type_, value):
     if type_ == "String":
         return f"<Property id={quoteattr(id_)} type={quoteattr(type_)}>{escape(value)}</Property>"
     return f"<Property id={quoteattr(id_)} type={quoteattr(type_)} value={quoteattr(value)}/>"
+
+
+# Header-Keywords für die Belichtungsangaben (Ticket #50): ein DWARF-3-Master, bei dem EXPTIME
+# die Gesamtzeit ist, und ein Erzeuger, den die Tabelle nicht kennt.
+DWARF_KEYWORDS = [
+    ("ORIGIN", "DWARFLAB", "Organization or institution"),
+    ("EXPTIME", 5715.0, "[s] Exposure Time"),
+    ("STACKCNT", 381, "Number of stacked frames"),
+    ("INSTRUME", "DWARF3 TELE", ""),
+    ("TELESCOP", "DWARF3", ""),
+]
+UNKNOWN_CREATOR_KEYWORDS = [
+    ("SWCREATE", "Sternenzaehler 2.1", ""),
+    ("EXPTIME", 300.0, ""),
+    ("STACKCNT", 20, ""),
+]

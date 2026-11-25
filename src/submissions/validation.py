@@ -42,7 +42,7 @@ _LABELS = {
     Category.PLANES: "falsche Ebenen für den Kanal",
     Category.DAMAGED: "beschädigt oder unvollständig",
     Category.SIZE: "Größe weicht ab",
-    Category.DUPLICATE: "Dublette in derselben Abgabe",
+    Category.DUPLICATE: "Dublette in derselben Submission",
 }
 
 

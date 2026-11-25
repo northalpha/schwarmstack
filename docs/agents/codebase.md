@@ -9,21 +9,23 @@ src/
 │   ├── login_limit.py     # gebremste Anmeldung (Fehlversuche je IP-Hash, höchstens 1 Stunde)
 │   ├── notices.py         # Betriebsmeldungen per Mail an die Betreiber (ADR 0007)
 │   └── staticfiles.py     # WhiteNoise-Storage
-├── submissions/           # Fachmodul: Aktion, Abgabe, Master, Einwilligung
+├── submissions/           # Fachmodul: Aktion, Submission, Master, Einwilligung
 │   ├── models.py
-│   ├── services.py        # Fachverhalten zur Abgabe: anlegen, Master löschen, Rückzug, Widerruf,
-│   │                      # Nachtrag, Schreibschutz nach dem endgültigen Export
+│   ├── services.py        # Fachverhalten zur Submission (Details im Modul-Docstring)
 │   ├── export.py          # Export: Manifest, Download-Liste (aria2c), endgültiger Export
 │   ├── deletion.py        # Löschung nach Ablauf der Löschfrist (manage.py delete_after_export)
 │   ├── privacy.py         # Datenschutzhinweis je Fassung (templates/submissions/datenschutz/)
-│   ├── uploads.py         # Upload-Ablauf: Quote, Gesamtgrenze, Zeitfenster, Dubletten, Begleitdatei
+│   ├── uploads.py         # Upload-Ablauf und seine Regeln (Details im Modul-Docstring)
 │   ├── validation.py      # Prüfung der Master (XISF/FITS-Header), Ablehnungskategorien
-│   ├── access.py          # signiertes Cookie: welche Abgaben gehören zu diesem Browser
+│   ├── exposure.py        # Belichtungsangaben (ADR 0010)
+│   ├── access.py          # signiertes Cookie: welche Submissions gehören zu diesem Browser
 │   ├── views.py, api.py   # Seiten für Teilnehmende / JSON-API für Uppy
 │   ├── public.py          # öffentlich ohne Cookie: /zahlen.json (Community-Zahlen, ADR 0009)
-│   ├── admin.py           # Admin: Aktion pflegen, Abgaben korrigieren; ruft services auf
+│   ├── admin.py           # Admin: Aktion pflegen, Angaben ändern; ruft services auf
 │   ├── statistics.py      # Zahlen für die Statistik und die Community-Zahlen
-│   └── management/commands/   # campaign.py (Aktion anlegen/ändern), delete_after_export.py
+│   └── management/commands/  # campaign.py: die Aktion anlegen/ändern;
+│                             # backfill_exposure.py: Belichtungsangaben für Altbestand lesen
+│                             # delete_after_export.py: Löschung nach Ablauf der Löschfrist
 └── storage/               # Speicher-Modul: Protokoll in __init__.py, Adapter local.py und s3.py;
                            # local_views.py bildet für Uppy S3 nach (nur lokaler Speicher)
 tests/

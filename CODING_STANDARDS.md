@@ -1,18 +1,18 @@
 # Coding Standards
 
 Für das Review: Regeln, die ein Urteil brauchen. Alles Mechanische prüft `scripts/pruefen.sh`
-(ruff, shellcheck, actionlint, doppelte Glossar-Begriffe, Changelog-Ort, Migrationen); was dort
+(ruff, shellcheck, actionlint, doppelte Glossar-Begriffe, Changelog-Ort, Migrationen, Schreibzugriffe in Views); was dort
 grün ist, wird im Review nicht wiederholt.
 
 ## Sprache des Fachgebiets
 
 - Fachbegriffe stehen in [`GLOSSARY.md`](GLOSSARY.md). Prosa, Oberfläche, Docstrings, Kommentare,
   Testnamen und Commit-Nachrichten verwenden den deutschen Begriff, Code-Bezeichner den Namen in
-  Klammern dahinter (Abgabe → `Submission`, Rückzug → `withdrawn`).
+  Klammern dahinter (Submission → `Submission`, Löschung → `deleted_at`).
 - Wörter unter `_Avoid_` meiden. Hilfe für das Review:
   `uv run python scripts/glossar.py diff <fixed-point>` listet sie in den hinzugefügten Zeilen.
   Jeder Treffer ist zu beurteilen, kein Treffer ist automatisch ein Verstoß (z. B. ein
-  GitHub-„Token“ in `deploy/` ist keine Abgabe-Kennung). Wörter mit Zusatz („Admin (für die
+  GitHub-„Token“ in `deploy/` ist keine Submission-ID). Wörter mit Zusatz („Admin (für die
   Person)“) zählt das Skript nur; die Stellen zeigt `--alle`.
 - Englische Bezeichner deckt das Skript nicht ab: Ein Bezeichner, der einen gemiedenen Begriff
   übersetzt (`Storage.check()` neben „Check“ für die Prüfung), ist ebenso ein Treffer.
@@ -35,11 +35,12 @@ grün ist, wird im Review nicht wiederholt.
 
 ## Wo Fachverhalten liegt
 
-- Regeln zur Abgabe (anlegen, Master löschen, Rückzug, Widerruf) liegen in
+- Regeln zur Submission (anlegen, Master löschen, Löschung, Widerruf) liegen in
   `src/submissions/services.py`, Regeln zum Upload (Quote, Gesamtgrenze, Zeitfenster,
   Dubletten) in `src/submissions/uploads.py`. Views, API und Admin rufen sie auf und entscheiden
   selbst nichts Fachliches; eine Regel, die in einer View oder im Admin neu entsteht, ist ein
-  Befund.
+  Befund. Schreibzugriffe dort fängt `tests/test_fachregeln_ort.py`; im Review bleiben
+  Bedingungen („darf das jetzt?“), die dort stehen, obwohl sie Fachverhalten sind.
 - Zugriff auf Dateien nur über `storage.get_storage()` und das `Storage`-Protokoll in
   `src/storage/__init__.py`. Eine neue Methode bekommt jeder Adapter (`local.py`, `s3.py`) und
   einen Fall in `tests/test_speicher_contract.py`, der für alle Adapter läuft.
@@ -58,7 +59,7 @@ grün ist, wird im Review nicht wiederholt.
 ## Tests
 
 - Testgetrieben, ein Modul je Thema, Modul-Docstring mit Ticket (`"""… (Ticket #15)."""`).
-  Testnamen beschreiben auf Deutsch das Verhalten (`test_widerruf_der_nennung_bleibt_als_vermerk`).
+  Testnamen beschreiben auf Deutsch das Verhalten (`test_widerruf_der_namensnennung_bleibt_als_vermerk`).
 - Was gegen S3 läuft, läuft für alle Adapter (lokal, moto, Garage) über die Fixtures aus
   `tests/storage_backends.py`, nicht nur gegen einen.
 - Fixtures, die mehrere Module brauchen, kommen nach `tests/conftest.py`. Das Importieren von

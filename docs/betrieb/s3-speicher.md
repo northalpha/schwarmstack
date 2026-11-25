@@ -31,6 +31,8 @@ Der Befehl ersetzt die ganze CORS-Konfiguration des Buckets. Eine Herkunft mit U
 
 Danach schickt er für jede Herkunft einen CORS-Preflight (`OPTIONS`) wie der Browser an den Bucket. Lässt der Speicher die Herkunft nicht zu, endet der Befehl mit Fehler. Im Browser zeigt sich das sonst erst beim Upload als „Network error during S3 request“.
 
+Verweigert der Speicher das Setzen von CORS oder Lifecycle mit `AccessDenied`, meldet der Befehl das nur als Warnung (`::warning::`, im Deploy-Job auf GitHub sichtbar). Die Regeln aus früheren Deploys bleiben im Bucket. Ob die CORS-Freigabe für die Domain greift, entscheidet dann allein der Preflight: Passt er, läuft der Deploy weiter, sonst bricht er ab. Andere Fehler brechen weiter sofort ab. Hintergrund: Hetzner verweigert seit dem 24.11.2026 diese Schreibzugriffe im ganzen Projekt, auch mit neuem Schlüssel und für neue Buckets (Issue #73). Solange die Warnung erscheint, wird die Lifecycle-Regel nicht erneuert; ob sie noch gesetzt ist, zeigt `get-bucket-lifecycle-configuration` (siehe unten).
+
 Prüfen, ob beides gesetzt ist (der Anbieter sollte beides kennen; falls die Lifecycle-Regel abgelehnt wird, meldet der Befehl einen Fehler):
 
 ```bash
