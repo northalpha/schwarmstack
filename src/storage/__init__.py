@@ -5,11 +5,16 @@ Der Browser lädt Master per Multipart-Upload direkt in den Speicher; der Server
 signierte Links für einzelne S3-Anfragen aus und liest danach Größe und Header.
 """
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Protocol
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+
+# Eigener Pfad für die Sicherungen der Datenbank (ADR 0006). Die Löschung nach der Löschfrist
+# lässt ihn stehen; die Sicherungen laufen von selbst aus.
+BACKUP_PREFIX = "sicherungen/"
 
 
 @dataclass(frozen=True)
@@ -41,8 +46,15 @@ class Storage(Protocol):
         """Wirft eine Ausnahme, wenn der Speicher nicht erreichbar ist."""
         ...
 
-    def download_url(self, key: str) -> str:
-        """Kurz gültiger Link, mit dem ein Betreiber genau dieses Objekt herunterlädt."""
+    def download_url(self, key: str, seconds: int | None = None) -> str:
+        """Zeitlich begrenzter Link, mit dem ein Betreiber genau dieses Objekt herunterlädt.
+
+        Ohne `seconds` gilt er so lange wie die Links für den Upload (`UPLOAD_LINK_SECONDS`).
+        """
+        ...
+
+    def keys(self) -> Iterator[str]:
+        """Alle Objekt-Schlüssel im Speicher, z. B. für die Löschung nach der Löschfrist."""
         ...
 
 

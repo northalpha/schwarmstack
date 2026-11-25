@@ -8,6 +8,7 @@ Es gibt genau einen endgültigen Export, frühestens nach Ende der Aktion plus N
 - Ein vorläufiger Export enthält nur das Manifest, keine Download-Links. So entstehen vor dem endgültigen Export keine Massenkopien außerhalb des Systems, die bei Löschung oder Widerruf nachgezogen werden müssten.
 - Die Download-Links gelten 7 Tage (Grenze vorsignierter S3-Links). Betreiber können sie bis zum Ablauf der Löschfrist neu ausstellen; jedes Ausstellen steht im Protokoll.
 - Widerruf und Löschung bleiben nach dem endgültigen Export möglich und wirken in Schwarmstack sofort. Sie erscheinen als Nachtrag zum Export, und die Betreiber bekommen eine Betriebsmeldung (ADR 0007), damit sie ihre Kopien anpassen. Nach dem Abbau erledigen die Betreiber solche Anfragen von Hand über die Kontaktadresse im Datenschutzhinweis.
+- „Datenbank löschen“ heißt: Submissions samt Mastern und Einwilligungen, Fehlversuche der Anmeldung und das Protokoll zu den Submissions. Bis zum Abbau bleiben die Aktion mit den Zeitpunkten von Export und Löschung (damit der Befehl idempotent ist), ihre Protokolleinträge und die Betreiber-Konten; keins davon enthält Angaben von Teilnehmenden. Die Datei selbst verschwindet mit dem Abbau.
 - Die Löschung läuft über einen Management-Befehl, den ein Cron-Job auf dem Host täglich aufruft; er tut erst nach Ablauf der Löschfrist etwas. Sieben Tage vorher und nach der Löschung geht eine Betriebsmeldung an die Betreiber. Das ist bewusst kein Worker im Sinne von ADR 0003: ein einzelner, idempotenter Befehl ohne Warteschlange.
 
 ## Considered Options

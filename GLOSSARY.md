@@ -111,7 +111,7 @@ Die wenigen Summen zur Aktion, die Schwarmstack öffentlich als JSON ausgibt, da
 _Avoid_: öffentliche Statistik, Live-Zahlen
 
 **Export**:
-Die Übergabe aller Master und Equipment-Fotos an den Betreiber: ein Manifest und je Master und je Foto ein zeitlich begrenzter Download-Link (das Thumbnail gehört nicht dazu). Ein **vorläufiger Export** ist jederzeit möglich, enthält aber nur das Manifest ohne Links. Den **endgültigen Export** gibt es genau einmal, frühestens nach Ende der Aktion plus Nachfrist; er friert alle Submissions ein, auch für Betreiber, und startet die Löschfrist.
+Die Übergabe aller Master und Equipment-Fotos an den Betreiber: ein Manifest und je Master und je Foto ein zeitlich begrenzter Download-Link (das Thumbnail gehört nicht dazu), gesammelt auch als **Download-Liste** für `aria2c` mit Zielpfad und Prüfsumme. Ein **vorläufiger Export** ist jederzeit möglich, enthält aber nur das Manifest ohne Links. Den **endgültigen Export** gibt es genau einmal, frühestens nach Ende der Aktion plus Nachfrist; er friert alle Submissions ein, auch für Betreiber, und startet die Löschfrist.
 _Avoid_: Download (für den Gesamtvorgang), Archiv, Paket
 
 **Manifest**:
@@ -122,9 +122,13 @@ _Avoid_: Index, Übersicht
 Die Zeitspanne nach dem endgültigen Export (30 Tage), nach der Schwarmstack alle Master, Begleitdateien, Equipment-Fotos und Angaben löscht. Danach wird die Installation abgebaut; die Sicherungen laufen nach weiteren 14 Tagen aus.
 _Avoid_: Aufbewahrungsfrist, Retention, Löschfristen (Mehrzahl)
 
-**Nachtrag**:
+**Nachtrag** (`amended_at`):
 Ein Widerruf oder eine Löschung, die nach dem endgültigen Export eingeht. Der Nachtrag wirkt in Schwarmstack sofort und wird den Betreibern als Änderung am bereits übergebenen Export gemeldet, damit sie ihre Kopien anpassen.
 _Avoid_: Korrektur, Änderung (ohne Bezug)
+
+**Betriebsmeldung** (`notices`):
+Eine Mail von Schwarmstack an die Betreiber über den Betrieb, etwa ein Nachtrag oder der nahende Ablauf der Löschfrist (ADR 0007). Enthält keine Angaben von Teilnehmenden, höchstens die Submission-ID.
+_Avoid_: Benachrichtigung, Alert
 
 **Prüfsumme** (`sha256`):
 Die SHA-256 eines Masters, vom Browser der Teilnehmenden beim Hochladen berechnet und gemeldet. Nicht vom Server bestätigt.

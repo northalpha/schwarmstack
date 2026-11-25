@@ -1,5 +1,5 @@
 """Fachverhalten rund um die Submission: anlegen, Master löschen, Angaben ändern, Löschung,
-Widerruf.
+Widerruf, Nachtrag.
 
 Admin und Submission-Seite rufen diese Operationen auf; sie selbst kennen keine Anfrage.
 """
@@ -15,6 +15,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from schwarmstack import notices
 from storage import get_storage
 
 from . import exposure, references, validation
@@ -125,6 +126,32 @@ def details_changed(submission: Submission) -> None:
     storage = get_storage()
     for master in submission.masters.filter(state=Master.State.ACCEPTED):
         storage.put_json(master.sidecar_key, sidecar(master))
+
+
+def correctable_by_operator() -> bool:
+    """Ob Betreiber Angaben und Belichtungsangaben ändern und Master löschen dürfen: bis zum
+    endgültigen Export.
+
+    Danach müssen Manifest und Speicher übereinstimmen; nur Widerruf und Löschung bleiben
+    möglich, als Nachtrag (ADR 0008).
+    """
+    campaign = Campaign.current()
+    return campaign is None or not campaign.is_exported
+
+
+def _amendment(submission: Submission, what: str) -> None:
+    """Nach dem endgültigen Export ist ein Widerruf oder eine Löschung ein Nachtrag: Er wird an
+    der Submission vermerkt und den Betreibern gemeldet, damit sie ihre Kopien anpassen."""
+    if correctable_by_operator():
+        return
+    submission.amended_at = timezone.now()
+    submission.save(update_fields=["amended_at"])
+    notices.send(
+        f"Nachtrag zum Export: {submission.reference}",
+        f"{what} für die Submission {submission.reference} nach dem endgültigen Export.\n\n"
+        "Bitte lokale Kopien und die Credits-Liste anpassen; die Submission steht im Admin "
+        "unter Export → Nachträge.",
+    )
 
 
 def changeable_by_participant(submission: Submission) -> bool:
@@ -295,9 +322,11 @@ def delete_photo(submission: Submission) -> bool:
     Foto; sie bleibt mit dem Zeitpunkt des Widerrufs als Nachweis stehen. Gibt zurück, ob es ein
     Foto gab."""
     removed = _remove_photo(submission)
-    submission.consents.filter(kind=Consent.Kind.EQUIPMENT_PHOTO, revoked_at__isnull=True).update(
-        revoked_at=timezone.now()
-    )
+    revoked = submission.consents.filter(
+        kind=Consent.Kind.EQUIPMENT_PHOTO, revoked_at__isnull=True
+    ).update(revoked_at=timezone.now())
+    if removed or revoked:
+        _amendment(submission, "Widerruf der Einwilligung „Equipment-Foto“")
     return removed
 
 
@@ -331,6 +360,7 @@ def delete_submission(submission: Submission, *, by: Submission.DeletedBy) -> Su
             delete_master(master)
     submission.masters.all().delete()
     _remove_photo(submission)
+    _amendment(submission, "Löschung")
     return submission
 
 
@@ -365,6 +395,7 @@ def revoke(consent: Consent) -> bool:
     if consent.kind == Consent.Kind.PUBLISH_CREDIT:
         # Ohne gültige Einwilligung wird die Namensnennung dabei verworfen.
         details_changed(consent.submission)
+    _amendment(consent.submission, f"Widerruf der Einwilligung „{consent.get_kind_display()}“")
     return True
 
 
@@ -390,9 +421,15 @@ def exposure_changeable_by_participant(master: Master) -> bool:
     return exposure_changeable_by_operator(master) and changeable_by_participant(master.submission)
 
 
-def exposure_changeable_by_operator(master: Master) -> bool:
-    """Betreiber ändern Belichtungsangaben angenommener Master, auch nach der Aktion."""
+def exposure_visible_to_operator(master: Master) -> bool:
+    """Belichtungsangaben gibt es nur für angenommene Master."""
     return master.state == Master.State.ACCEPTED
+
+
+def exposure_changeable_by_operator(master: Master) -> bool:
+    """Betreiber ändern Belichtungsangaben angenommener Master, auch nach der Aktion, aber
+    nicht mehr nach dem endgültigen Export."""
+    return exposure_visible_to_operator(master) and correctable_by_operator()
 
 
 def change_exposure(master: Master, data: dict) -> None:

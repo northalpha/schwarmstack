@@ -205,6 +205,30 @@ def test_download_link_liefert_die_datei(backend):
     assert reply.body == FIRST + LAST
 
 
+def test_download_link_mit_eigener_gueltigkeit_liefert_die_datei(backend):
+    """Der Export stellt Links aus, die 7 Tage gelten (Ticket #34)."""
+    _, storage, browser = backend
+    k = key()
+    upload(storage, browser, k)
+    reply = browser.send("GET", storage.download_url(k, seconds=7 * 24 * 3600))
+    assert reply.status == 200, reply.text
+    assert reply.body == FIRST + LAST
+
+
+def test_schluessel_listet_alle_objekte(backend):
+    """Für die Löschung nach Ablauf der Löschfrist (Ticket #34)."""
+    _, storage, browser = backend
+    prefix = f"SW-{uuid.uuid4().hex[:6].upper()}"
+    master = f"{prefix}/{uuid.uuid4().hex}.fits"
+    upload(storage, browser, master)
+    storage.put_json(f"{prefix}/{uuid.uuid4().hex}.json", {"a": 1})
+    storage.put_json(f"{prefix}/x/tief.json", {"b": 2})
+    found = sorted(k for k in storage.keys() if k.startswith(prefix + "/"))
+    assert len(found) == 3
+    assert master in found
+    assert f"{prefix}/x/tief.json" in found
+
+
 # -- Signatur: nur dort, wo der Speicher sie wirklich prüft (lokal und Garage, nicht moto) --
 
 SIGNING = [
@@ -238,6 +262,15 @@ def test_abgelaufener_download_link_wird_abgewiesen(signing_backend):
     k = key().replace(".fits", ".json")
     storage.put_json(k, {"a": 1})
     url = storage.download_url(k)
+    time.sleep(2.1)
+    assert browser.send("GET", url).status in (400, 403)
+
+
+def test_download_link_mit_eigener_gueltigkeit_laeuft_ab(signing_backend):
+    storage, browser = signing_backend
+    k = key().replace(".fits", ".json")
+    storage.put_json(k, {"a": 1})
+    url = storage.download_url(k, seconds=1)
     time.sleep(2.1)
     assert browser.send("GET", url).status in (400, 403)
 
