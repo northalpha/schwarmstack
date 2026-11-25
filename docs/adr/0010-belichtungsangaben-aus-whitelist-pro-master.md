@@ -10,7 +10,7 @@ Beim Abschluss eines Uploads liest der Server aus demselben Range Request wie di
 - In XISF hat die XISF-Property Vorrang vor dem eingebetteten FITS-Keyword; ein Widerspruch wird gespeichert und angezeigt.
 - Die Werte gehören in Manifest und Export, die aus der Datenbank lesen, nicht in die Begleitdatei: Die Begleitdatei soll die Zuordnung rekonstruierbar machen (ADR 0006), nicht die Angaben duplizieren. Manifest und Export entstehen erst mit #34; `exposure.manifest_values` liefert ihnen die Werte samt Herkunft.
 - Teilnehmende ändern die Werte bis zum Ende der Aktion, danach nur die Betreiber im Admin. Die Löschung löscht sie mit den Mastern, Herkunft und Erzeuger eingeschlossen.
-- Bewusste Folge aus ADR 0003: Die Dateien bleiben byte-genau. Die vollständigen Header mit Standortdaten liegen also weiter in den Master-Dateien im S3-Speicher; Schwarmstack liest sie nur nicht. Wie damit umzugehen ist, behandelt #62.
+- Bewusste Folge aus ADR 0003: Die Dateien bleiben byte-genau. Die vollständigen Header mit Standortdaten liegen also weiter in den Master-Dateien im S3-Speicher; Schwarmstack liest sie nur nicht. Ein Hinweis im Datenschutzhinweis und vor dem Upload (#62) macht das sichtbar; die Dateien ändert Schwarmstack nicht.
 
 ## Considered Options
 
