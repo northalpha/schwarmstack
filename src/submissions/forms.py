@@ -131,6 +131,23 @@ class DetailsForm(forms.Form):
             del self.fields["credit_name"]
 
 
+class CreditForm(forms.Form):
+    """Namensnennung erlauben: ausdrücklich, mit eigenem Häkchen und mit Namen (Ticket #69)."""
+
+    consent_publish_credit = forms.BooleanField(
+        label="Mein Name darf im Projekt genannt werden (Namensnennung).",
+        error_messages={
+            "required": "Pflichtangabe: Ohne dein Häkchen nennen wir deinen Namen nicht."
+        },
+    )
+    credit_name = forms.CharField(
+        label="Namensnennung",
+        max_length=120,
+        help_text="Unter diesem Namen wirst du im Projekt genannt.",
+        error_messages={"required": "Pflichtangabe: Ohne Namen können wir dich nicht nennen."},
+    )
+
+
 class PhotoForm(PhotoCleaning, forms.Form):
     """Equipment-Foto hinzufügen oder ersetzen. Das Häkchen zur Einwilligung ist Pflicht, solange
     keine gültige Einwilligung zur aktuellen Fassung des Hinweistextes vorliegt."""

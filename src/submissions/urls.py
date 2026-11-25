@@ -32,6 +32,11 @@ urlpatterns = [
         views.revoke_credit,
         name="revoke_credit",
     ),
+    path(
+        "submission/<str:reference>/namensnennung/erlauben/",
+        views.grant_credit,
+        name="grant_credit",
+    ),
     path("submission/<str:reference>/master/", api.start, name="upload_start"),
     path(
         "submission/<str:reference>/master/<uuid:master_id>/loeschen/",
