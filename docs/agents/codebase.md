@@ -16,6 +16,7 @@ src/
 │   ├── deletion.py        # Löschung nach Ablauf der Löschfrist (manage.py delete_after_export)
 │   ├── privacy.py         # Datenschutzhinweis je Fassung (templates/submissions/datenschutz/)
 │   ├── uploads.py         # Upload-Ablauf und seine Regeln (Details im Modul-Docstring)
+│   ├── photos.py          # Equipment-Foto bereinigen: dekodieren, nur Pixel neu schreiben (#82)
 │   ├── validation.py      # Prüfung der Master (XISF/FITS-Header), Ablehnungskategorien
 │   ├── exposure.py        # Belichtungsangaben (ADR 0010)
 │   ├── access.py          # signiertes Cookie: welche Submissions gehören zu diesem Browser
@@ -34,6 +35,7 @@ tests/
 ├── uploads_helper.py      # Upload-Schritte wie der Browser (start, sign, send_parts, finish)
 ├── admin_helper.py        # Betreiber-Fixtures, Admin-URLs, Formulardaten
 ├── files.py               # erzeugt XISF/FITS-Testdateien
+├── photo_files.py         # erzeugt Equipment-Fotos mit allen Metadaten je Format
 └── e2e/                   # E2E-Test im echten Browser gegen Garage
 deploy/                    # Compose, Caddy, Skripte für Host und Deploy (docs/betrieb/deployment.md)
 scripts/                   # pruefen.sh (alle Prüfungen wie CI), garage.sh, glossar.py, changelog.py;

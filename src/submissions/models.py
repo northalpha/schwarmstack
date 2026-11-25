@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime, timedelta
 
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -151,6 +151,14 @@ class Submission(models.Model):
             )
 
     @property
+    def photo(self) -> "EquipmentPhoto | None":
+        """Das Equipment-Foto dieser Submission, wenn sie eines hat."""
+        try:
+            return self.equipment_photo
+        except ObjectDoesNotExist:
+            return None
+
+    @property
     def publishes_credit(self) -> bool:
         """Ob eine gültige (nicht widerrufene) Einwilligung zur Namensnennung vorliegt."""
         return self.consents.filter(
@@ -164,6 +172,7 @@ class Consent(models.Model):
     class Kind(models.TextChoices):
         PROJECT_USE = "project_use", "Nutzung im Projekt"
         PUBLISH_CREDIT = "publish_credit", "Namensnennung"
+        EQUIPMENT_PHOTO = "equipment_photo", "Equipment-Foto"
 
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name="consents")
     kind = models.CharField("Art", max_length=32, choices=Kind.choices)
@@ -176,11 +185,39 @@ class Consent(models.Model):
         verbose_name = "Einwilligung"
         verbose_name_plural = "Einwilligungen"
         constraints = [
-            models.UniqueConstraint(fields=["submission", "kind"], name="consent_once_per_kind")
+            # Je Zweck gilt höchstens eine nicht widerrufene Einwilligung; eine widerrufene bleibt
+            # als Nachweis stehen, und wer erneut einwilligt, bekommt eine neue.
+            models.UniqueConstraint(
+                fields=["submission", "kind"],
+                condition=models.Q(revoked_at__isnull=True),
+                name="consent_once_per_kind",
+            )
         ]
 
     def __str__(self):
         return f"{self.submission} – {self.get_kind_display()}"
+
+
+class EquipmentPhoto(models.Model):
+    """Equipment-Foto: höchstens eines je Submission, bereinigt und mit Thumbnail (Ticket #82).
+
+    Die Objekt-Schlüssel entstehen aus Submission-ID und einer Zufalls-ID, nie aus dem
+    Dateinamen der Teilnehmenden, der nirgends gespeichert wird.
+    """
+
+    submission = models.OneToOneField(
+        Submission, on_delete=models.CASCADE, related_name="equipment_photo"
+    )
+    key = models.CharField("Objekt-Schlüssel", max_length=255, unique=True)
+    thumbnail_key = models.CharField("Objekt-Schlüssel des Thumbnails", max_length=255, unique=True)
+    saved_at = models.DateTimeField("gespeichert am", default=timezone.now)
+
+    class Meta:
+        verbose_name = "Equipment-Foto"
+        verbose_name_plural = "Equipment-Fotos"
+
+    def __str__(self):
+        return f"{self.submission} – Equipment-Foto"
 
 
 def _source_field():

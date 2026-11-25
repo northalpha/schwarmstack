@@ -377,8 +377,8 @@ class MasterInline(admin.TabularInline):
 
 class ConsentInline(admin.TabularInline):
     """Einwilligungen sind nicht änderbar. Betreiber erteilen keine, sie vermerken nur den
-    Widerruf der Namensnennung; wer die Nutzung im Projekt nicht mehr will, löscht die
-    Submission."""
+    Widerruf der Namensnennung oder des Equipment-Fotos; wer die Nutzung im Projekt nicht mehr
+    will, löscht die Submission."""
 
     model = Consent
     extra = 0
@@ -410,6 +410,10 @@ def _master_url(action, master):
     )
 
 
+def _photo_url(action, submission):
+    return reverse(f"operator:submissions_submission_{action}", args=[submission.pk])
+
+
 @admin.register(Submission, site=site)
 class SubmissionAdmin(admin.ModelAdmin):
     change_form_template = "admin/submissions/submission/change_form.html"
@@ -437,6 +441,7 @@ class SubmissionAdmin(admin.ModelAdmin):
         "reference",
         "credit_name",
         "setup_description",
+        "equipment_photo_display",
         "created_at",
         "deleted_at",
         "deleted_by",
@@ -486,6 +491,7 @@ class SubmissionAdmin(admin.ModelAdmin):
         readonly = [
             "reference",
             "credit_display",
+            "equipment_photo_display",
             "created_at",
             "deleted_at",
             "deleted_by",
@@ -498,6 +504,22 @@ class SubmissionAdmin(admin.ModelAdmin):
     @admin.display(description="Namensnennung", ordering="credit_name")
     def credit_display(self, submission):
         return submission.credit_name or "anonym"
+
+    @admin.display(description="Equipment-Foto")
+    def equipment_photo_display(self, submission):
+        photo = submission.photo
+        if photo is None:
+            return "–"
+        return format_html(
+            '<a href="{}"><img src="{}" alt="Equipment-Foto (Vorschau)" style="max-width: 240px">'
+            "</a><br>gespeichert am {} · "
+            '<a href="{}">Foto in voller Größe</a> · <a href="{}">Foto löschen …</a>',
+            _photo_url("photo", submission),
+            _photo_url("photo_thumbnail", submission),
+            photo.saved_at.strftime("%d.%m.%Y"),
+            _photo_url("photo", submission),
+            _photo_url("photo_delete", submission),
+        )
 
     @admin.display(description="Setup")
     def setup_short(self, submission):
@@ -543,6 +565,21 @@ class SubmissionAdmin(admin.ModelAdmin):
                 "<int:pk>/master/<uuid:master_id>/download/",
                 view(self.download_view),
                 name="submissions_submission_master_download",
+            ),
+            path(
+                "<int:pk>/foto/",
+                view(self.photo_view),
+                name="submissions_submission_photo",
+            ),
+            path(
+                "<int:pk>/foto/vorschau/",
+                view(self.photo_thumbnail_view),
+                name="submissions_submission_photo_thumbnail",
+            ),
+            path(
+                "<int:pk>/foto/loeschen/",
+                view(self.delete_photo_view),
+                name="submissions_submission_photo_delete",
             ),
             path(
                 "<int:pk>/einwilligung/<int:consent_id>/widerrufen/",
@@ -648,24 +685,68 @@ class SubmissionAdmin(admin.ModelAdmin):
         )
         return HttpResponseRedirect(url)
 
+    def _serve_photo(self, request, pk, *, thumbnail):
+        photo = self._submission(request, pk).photo
+        if photo is None:
+            raise Http404
+        key = photo.thumbnail_key if thumbnail else photo.key
+        response = HttpResponse(get_storage().read(key), content_type="image/jpeg")
+        response["Cache-Control"] = "private, no-store"
+        return response
+
+    def photo_view(self, request, pk):
+        return self._serve_photo(request, pk, thumbnail=False)
+
+    def photo_thumbnail_view(self, request, pk):
+        return self._serve_photo(request, pk, thumbnail=True)
+
+    @method_decorator(require_http_methods(["GET", "POST"]))
+    def delete_photo_view(self, request, pk):
+        submission = self._submission(request, pk)
+        if submission.photo is None:
+            raise Http404
+        if request.method == "POST":
+            services.delete_photo(submission)
+            self.log_change(request, submission, "Equipment-Foto gelöscht")
+            self.message_user(request, "Das Equipment-Foto und das Thumbnail wurden gelöscht.")
+            return HttpResponseRedirect(_change_url(submission.pk))
+        return self._confirm(
+            request,
+            submission,
+            title=f"Equipment-Foto aus {submission} löschen",
+            question=(
+                "Foto und Thumbnail werden sofort und endgültig gelöscht. Das widerruft die "
+                "Einwilligung zum Foto; sie bleibt mit dem Zeitpunkt des Widerrufs stehen."
+            ),
+            button="Ja, löschen",
+        )
+
     @method_decorator(require_http_methods(["GET", "POST"]))
     def revoke_view(self, request, pk, consent_id):
         submission = self._submission(request, pk)
-        # Nur die Namensnennung lässt sich widerrufen; für die Nutzung im Projekt gibt es die
-        # Löschung der Submission.
+        # Nur Namensnennung und Equipment-Foto lassen sich widerrufen; für die Nutzung im Projekt
+        # gibt es die Löschung der Submission.
         consent = get_object_or_404(
             Consent, pk=consent_id, submission=submission, kind__in=services.REVOCABLE
         )
         if request.method == "POST":
             if services.revoke(consent):
-                self.log_change(request, submission, "Widerruf vermerkt: Namensnennung")
-                self.message_user(request, "Widerruf der Namensnennung vermerkt.", messages.SUCCESS)
+                name = consent.get_kind_display()
+                self.log_change(request, submission, f"Widerruf vermerkt: {name}")
+                self.message_user(request, f"Widerruf ({name}) vermerkt.", messages.SUCCESS)
             return HttpResponseRedirect(_change_url(submission.pk))
-        question = (
-            "Widerruf der Einwilligung zur Namensnennung vermerken? Die Namensnennung wird "
-            "gelöscht und aus den Begleitdateien entfernt; die Submission bleibt anonym. Die "
-            "Einwilligung bleibt mit dem Zeitpunkt des Widerrufs stehen."
-        )
+        if consent.kind == Consent.Kind.EQUIPMENT_PHOTO:
+            question = (
+                "Widerruf der Einwilligung zum Equipment-Foto vermerken? Foto und Thumbnail "
+                "werden sofort gelöscht. Die Einwilligung bleibt mit dem Zeitpunkt des Widerrufs "
+                "stehen."
+            )
+        else:
+            question = (
+                "Widerruf der Einwilligung zur Namensnennung vermerken? Die Namensnennung wird "
+                "gelöscht und aus den Begleitdateien entfernt; die Submission bleibt anonym. Die "
+                "Einwilligung bleibt mit dem Zeitpunkt des Widerrufs stehen."
+            )
         return self._confirm(
             request,
             submission,

@@ -115,6 +115,17 @@ def test_begleitdatei_mit_umlauten(backend):
     assert json.loads(storage.read_head(k, MB).decode()) == {"credit_name": "Jürgen Ö."}
 
 
+def test_bytes_ablegen_und_lesen(backend):
+    _, storage, _ = backend
+    k = f"SW-TEST/{uuid.uuid4().hex}.jpg"
+    daten = bytes(range(256)) * 10
+    storage.put_bytes(k, daten, "image/jpeg")
+    assert storage.size(k) == len(daten)
+    assert storage.read(k) == daten
+    storage.delete(k)
+    assert storage.size(k) is None
+
+
 def test_teile_auflisten(backend):
     _, storage, browser = backend
     k = key()

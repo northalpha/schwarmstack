@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Equipment-Foto {% if form.replaces %}ersetzen{% else %}hinzufügen{% endif %} – Schwarmstack{% endblock %}
+{% block content %}
+<h1>Equipment-Foto {% if form.replaces %}ersetzen{% else %}hinzufügen (freiwillig){% endif %}</h1>
+<p>Submission <strong>{{ submission.reference }}</strong></p>
+<form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form %}{% include "submissions/_field.html" %}{% endfor %}
+  {% if form.replaces and not form.consent_equipment_photo %}<p class="help">Deine Einwilligung zur Nutzung des Fotos gilt weiter. Das alte Foto und sein Thumbnail werden gelöscht.</p>{% endif %}
+  <button type="submit">Speichern</button>
+  <a href="{% url 'change_details' submission.reference %}" class="cancel">Abbrechen</a>
+</form>
+{% endblock %}
