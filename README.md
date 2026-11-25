@@ -16,6 +16,7 @@ Upload-Dienst für ein gemeinsames Astrofotografie-Projekt der [DZVF-Community](
 - [`docs/betrieb/`](docs/betrieb/): Betrieb (Deployment nach Staging und Produktion, S3-Speicher)
 - [`docs/agents/`](docs/agents/): Hinweise für Coding-Agenten (Codebase, Issue-Tracker, Labels, Domain-Docs)
 - [`CODING_STANDARDS.md`](CODING_STANDARDS.md): was das Review beurteilt
+- [`CONTRIBUTING.md`](CONTRIBUTING.md), [`SECURITY.md`](SECURITY.md), [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md), [`THIRD_PARTY.md`](THIRD_PARTY.md): Mitmachen, Sicherheitsmeldungen, Verhalten, Drittlizenzen
 - [`changelog.d/`](changelog.d/README.md): Changelog-Einträge bis zum nächsten Release
 
 ## Lokal starten

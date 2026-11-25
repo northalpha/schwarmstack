@@ -1,0 +1,21 @@
+name: Frage
+description: Du kommst mit der Einrichtung oder Nutzung nicht weiter.
+labels: [needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bitte lies vorher `docs/betrieb/` und die README. Es gibt keine Support-Zusage;
+        Antworten kommen, wenn Zeit ist.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Release-Tag, z. B. v0.2.0.
+  - type: textarea
+    id: frage
+    attributes:
+      label: Deine Frage
+      description: Was hast du versucht, und woran bist du hängen geblieben?
+    validations:
+      required: true

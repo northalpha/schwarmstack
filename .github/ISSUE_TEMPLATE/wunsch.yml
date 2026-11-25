@@ -1,0 +1,24 @@
+name: Wunsch
+description: Eine Idee oder ein fehlendes Merkmal.
+labels: [needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Wünsche sind willkommen, eine Zusage ist das aber nicht. Wenn du die Änderung selbst
+        umsetzen möchtest, sprich sie hier ab, bevor du einen Pull Request öffnest (CONTRIBUTING.md).
+  - type: textarea
+    id: problem
+    attributes:
+      label: Was möchtest du erreichen?
+      description: Beschreibe das Problem, nicht nur die Lösung.
+    validations:
+      required: true
+  - type: textarea
+    id: idee
+    attributes:
+      label: Dein Vorschlag
+  - type: textarea
+    id: alternativen
+    attributes:
+      label: Alternativen, die du bedacht hast
