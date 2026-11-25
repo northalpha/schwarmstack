@@ -230,3 +230,53 @@ def test_links_gelten_nicht_ueber_die_loeschung_hinaus(operator_client, particip
     campaign.save()
     data = manifest(operator_client, campaign)
     assert data["links_valid_until"] <= data["campaign"]["deletes_at"]
+
+
+# -- Equipment-Foto ---------------------------------------------------------------
+
+
+@pytest.fixture
+def photo(participant):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from photo_files import foto
+
+    from submissions.models import EquipmentPhoto
+
+    upload = SimpleUploadedFile("Garten.jpg", foto("jpeg"), content_type="image/jpeg")
+    participant.client.post(
+        f"/submission/{participant.reference}/aendern/foto/",
+        {"equipment_photo": upload, "consent_equipment_photo": "on"},
+    )
+    return EquipmentPhoto.objects.get(submission=participant.submission)
+
+
+def test_manifest_nennt_das_equipment_foto_ohne_link_im_vorlaeufigen_export(
+    operator_client, participant, photo, campaign
+):
+    entry = by_reference(manifest(operator_client, campaign))[participant.reference]
+    assert entry["equipment_photo"] == {
+        "path": f"{participant.reference}/equipment.jpg",
+        "saved_at": photo.saved_at.isoformat(),
+    }
+    consents = {c["kind"] for c in entry["consents"]}
+    assert "equipment_photo" in consents
+
+
+def test_ohne_foto_steht_null_im_manifest(operator_client, participant, campaign):
+    entry = by_reference(manifest(operator_client, campaign))[participant.reference]
+    assert entry["equipment_photo"] is None
+
+
+def test_endgueltiger_export_mit_link_zum_foto_aber_ohne_thumbnail(
+    operator_client, participant, photo, campaign
+):
+    closed(campaign)
+    finalize(operator_client, campaign)
+    exported = by_reference(manifest(operator_client, campaign))[participant.reference]
+    response = operator_client.get(exported["equipment_photo"]["url"])
+    assert response.status_code == 200
+    assert b"".join(response.streaming_content)[:2] == b"\xff\xd8"
+
+    listing = operator_client.get(export_url(campaign, "download-liste.txt")).content.decode()
+    assert f"  out={participant.reference}/equipment.jpg" in listing
+    assert photo.thumbnail_key.rsplit("/", 1)[-1] not in listing

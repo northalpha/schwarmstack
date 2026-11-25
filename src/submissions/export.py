@@ -78,7 +78,7 @@ def days_left(campaign: Campaign, now: datetime | None = None) -> int | None:
 
 
 def manifest(campaign: Campaign, *, links: bool = False) -> dict:
-    """Das Manifest: Aktion → Submissions → angenommene Master.
+    """Das Manifest: Aktion → Submissions → angenommene Master und Equipment-Foto.
 
     Mit `links` (nur nach dem endgültigen Export) bekommt jeder Master einen Download-Link,
     der 7 Tage gilt, höchstens bis zum Ablauf der Löschfrist.
@@ -92,14 +92,18 @@ def manifest(campaign: Campaign, *, links: bool = False) -> dict:
         if links
         else None
     )
-    submissions = Submission.objects.order_by("created_at").prefetch_related(
-        Prefetch("consents", queryset=Consent.objects.order_by("kind")),
-        Prefetch(
-            "masters",
-            queryset=Master.objects.filter(state=Master.State.ACCEPTED)
-            .select_related("submission", "duplicate_of__submission")
-            .order_by("created_at"),
-        ),
+    submissions = (
+        Submission.objects.order_by("created_at")
+        .select_related("equipment_photo")
+        .prefetch_related(
+            Prefetch("consents", queryset=Consent.objects.order_by("kind")),
+            Prefetch(
+                "masters",
+                queryset=Master.objects.filter(state=Master.State.ACCEPTED)
+                .select_related("submission", "duplicate_of__submission")
+                .order_by("created_at"),
+            ),
+        )
     )
     entries = []
     for submission in submissions:
@@ -134,6 +138,7 @@ def manifest(campaign: Campaign, *, links: bool = False) -> dict:
                     for c in consents
                 ],
                 "masters": [_master(m, storage, seconds) for m in submission.masters.all()],
+                "equipment_photo": _photo(submission, storage, seconds),
             }
         )
     return {
@@ -173,9 +178,22 @@ def _master(master: Master, storage, seconds: int | None) -> dict:
     return entry
 
 
+def _photo(submission: Submission, storage, seconds: int | None) -> dict | None:
+    """Das Equipment-Foto, ohne Thumbnail; Zielpfad wie bei den Mastern ohne Eingaben der
+    Teilnehmenden."""
+    photo = submission.photo
+    if photo is None:
+        return None
+    entry = {"path": f"{submission.reference}/equipment.jpg", "saved_at": _time(photo.saved_at)}
+    if storage is not None:
+        entry["url"] = storage.download_url(photo.key, seconds=seconds)
+    return entry
+
+
 def download_list(data: dict) -> str:
     """Download-Liste im Eingabeformat von `aria2c` (`aria2c -i liste.txt`): je Master Link,
-    Zielpfad und Prüfsumme, die aria2c nach dem Laden abgleicht."""
+    Zielpfad und Prüfsumme, die aria2c nach dem Laden abgleicht; dazu die Equipment-Fotos
+    (ohne Prüfsumme, der Browser meldet für sie keine)."""
     lines = []
     for submission in data["submissions"]:
         for master in submission.get("masters", []):
@@ -183,4 +201,8 @@ def download_list(data: dict) -> str:
             lines.append(f"  out={master['path']}")
             if master["sha256"]:
                 lines.append(f"  checksum=sha-256={master['sha256']}")
+        photo = submission.get("equipment_photo")
+        if photo:
+            lines.append(photo["url"])
+            lines.append(f"  out={photo['path']}")
     return "\n".join(lines) + "\n" if lines else ""

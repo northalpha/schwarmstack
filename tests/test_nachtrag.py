@@ -134,3 +134,31 @@ def test_nach_dem_export_belichtungsangaben_nur_noch_ansehen(operator_client, up
     operator_client.post(url, {"telescope": "geändert"})
     uploaded.refresh_from_db()
     assert uploaded.telescope != "geändert"
+
+
+def test_foto_loeschen_nach_dem_export_ist_ein_nachtrag(
+    operator_client, participant, uploaded, exported, mailoutbox, settings
+):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from photo_files import foto
+
+    settings.OPERATOR_EMAILS = ["betrieb@example.org"]
+    # Das Foto kam vor dem Export dazu.
+    exported.exported_at = None
+    exported.ends_at = timezone.now() + timedelta(days=1)
+    exported.save()
+    upload = SimpleUploadedFile("Garten.jpg", foto("jpeg"), content_type="image/jpeg")
+    participant.client.post(
+        f"/submission/{participant.reference}/aendern/foto/",
+        {"equipment_photo": upload, "consent_equipment_photo": "on"},
+    )
+    exported.ends_at = timezone.now() - timedelta(days=10)
+    exported.exported_at = timezone.now() - timedelta(days=2)
+    exported.save()
+
+    operator_client.post(submission_url(participant.submission, "foto/loeschen/"))
+    submission = Submission.objects.get(pk=participant.submission.pk)
+    assert submission.photo is None
+    assert submission.amended_at is not None
+    assert len(mailoutbox) == 1
+    assert "Equipment-Foto" in mailoutbox[0].body

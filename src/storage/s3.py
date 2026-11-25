@@ -1,8 +1,8 @@
 """Speicher im S3-kompatiblen Bucket (Hetzner in Produktion, Garage in CI).
 
-Der Server spricht S3 nur für Größe, Range Request, Löschen, Auflisten, Begleitdateien und
-Download-Links für Betreiber; die Master selbst lädt der Browser mit signierten Links direkt hoch
-(ADR 0005).
+Der Server spricht S3 nur für Größe, Range Request, Löschen, Auflisten, Begleitdateien,
+Equipment-Fotos (sie laufen durch den Server) und Download-Links für Betreiber; die Master selbst
+lädt der Browser mit signierten Links direkt hoch (ADR 0005).
 """
 
 import json
@@ -98,6 +98,12 @@ class S3Storage:
             Body=json.dumps(data, ensure_ascii=False, indent=2).encode(),
             ContentType="application/json",
         )
+
+    def put_bytes(self, key: str, data: bytes, content_type: str) -> None:
+        self.client.put_object(Bucket=self.bucket, Key=key, Body=data, ContentType=content_type)
+
+    def read(self, key: str) -> bytes:
+        return self.client.get_object(Bucket=self.bucket, Key=key)["Body"].read()
 
     def abort_multipart(self, key: str, upload_id: str) -> None:
         self.client.abort_multipart_upload(Bucket=self.bucket, Key=key, UploadId=upload_id)

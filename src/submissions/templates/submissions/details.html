@@ -9,4 +9,22 @@
   <button type="submit">Speichern</button>
   <a href="{% url 'submission' submission.reference %}" class="cancel">Abbrechen</a>
 </form>
+{% with photo=submission.photo %}
+<section class="photo-section" aria-labelledby="photo-heading">
+{% if photo %}
+  <h2 id="photo-heading">Equipment-Foto (freiwillig)</h2>
+  <p><img src="{% url 'photo_thumbnail' submission.reference %}" alt="Dein Equipment-Foto" class="photo-current"></p>
+  <p class="help">Gespeichert am {{ photo.saved_at|date:"j. F Y" }}. Standort und Gerätedaten wurden beim Hochladen entfernt.</p>
+  <p class="actions"><a href="{% url 'change_photo' submission.reference %}" class="button">Foto ersetzen …</a> <a href="{% url 'delete_photo' submission.reference %}" class="button danger">Foto löschen</a></p>
+  <p class="help">Löschen widerruft deine Einwilligung zur Nutzung des Fotos. Dein Foto und das Thumbnail sind danach sofort weg.</p>
+{% else %}
+  <h2 id="photo-heading">Equipment-Foto hinzufügen (freiwillig)</h2>
+  <form method="post" action="{% url 'change_photo' submission.reference %}" enctype="multipart/form-data" novalidate>{% csrf_token %}
+    {% for field in photo_form %}{% include "submissions/_field.html" with form=photo_form %}{% endfor %}
+    <button type="submit">Speichern</button>
+    <a href="{% url 'submission' submission.reference %}" class="cancel">Abbrechen</a>
+  </form>
+{% endif %}
+</section>
+{% endwith %}
 {% endblock %}

@@ -2,7 +2,7 @@
   gibt es jederzeit einen vorläufigen Export (nur Manifest, ohne Links) und nach Ende der Aktion
   plus Nachfrist genau einmal den endgültigen Export. Er friert alle Submissions ein, auch für
   Betreiber (Angaben, Belichtungsangaben, Master), und stellt bis zum Ablauf der Löschfrist auf Wunsch neue, 7 Tage gültige Links aus,
-  als Manifest und als Download-Liste für `aria2c` mit Prüfsummen. Widerruf und Löschung danach
+  als Manifest und als Download-Liste für `aria2c` mit Prüfsummen, samt Equipment-Fotos. Widerruf und Löschung danach
   sind Nachträge: im Admin gelistet, im Manifest markiert und per Betriebsmeldung gemeldet. 30 Tage
   nach dem endgültigen Export löscht `manage.py delete_after_export` (täglich per Cron) alle
   Master, Begleitdateien und Angaben, mit Betriebsmeldung sieben Tage vorher und danach. Der

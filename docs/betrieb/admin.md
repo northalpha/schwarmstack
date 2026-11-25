@@ -69,7 +69,8 @@ Unter *Aktion → Export* (ADR 0008):
 - **Manifest**: je Submission die Submission-ID, Namensnennung (nur bei gültiger Einwilligung zur Namensnennung),
   Setup, Anlagezeitpunkt, alle Einwilligungen mit Art, Zeitpunkt, Fassung und Widerruf; je
   angenommenem Master Kanal, Originalname, Größe, Prüfsumme, Dublettenverweis, Zielpfad und (nach
-  dem endgültigen Export) Link. Gelöschte Submissions nur mit Submission-ID und Zeitpunkt. Das Manifest
+  dem endgültigen Export) Link; dazu das Equipment-Foto als
+  `SW-7K3Q/equipment.jpg` (ohne Thumbnail, ohne Prüfsumme). Gelöschte Submissions nur mit Submission-ID und Zeitpunkt. Das Manifest
   ist nach der Löschung der einzige Nachweis der Einwilligungen: aufbewahren.
 - **Nachtrag**: Widerruf oder Löschung nach dem endgültigen Export wirkt sofort, wird an der
   Submission vermerkt (`amended_at` im Manifest, Filter „Nachtrag“ in der Liste der Submissions, Liste
