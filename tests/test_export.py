@@ -38,7 +38,7 @@ def by_reference(data):
 # -- vorläufiger Export ---------------------------------------------------------
 
 
-def test_vorlaeufiger_export_enthaelt_abgaben_und_master_ohne_links(
+def test_vorlaeufiger_export_enthaelt_submissions_und_master_ohne_links(
     operator_client, participant, campaign
 ):
     master = participant.upload(fits(), channel="Ha", filename="m101_ha.fits")
@@ -76,11 +76,11 @@ def test_manifest_enthaelt_alle_einwilligungen_mit_textversion_und_widerruf(
     assert consents["project_use"]["granted_at"]
     assert consents["project_use"]["revoked_at"] is None
     assert consents["publish_credit"]["revoked_at"] is not None
-    # Ohne gültige Einwilligung keine Nennung im Manifest.
+    # Ohne gültige Einwilligung keine Namensnennung im Manifest.
     assert entry["credit_name"] is None
 
 
-def test_anonyme_abgabe_hat_keine_nennung(operator_client, another, valid_form, campaign):
+def test_anonyme_submission_hat_keine_namensnennung(operator_client, another, valid_form, campaign):
     from uploads_helper import Participant
 
     anonymous = Participant({**valid_form, "consent_publish_credit": ""})
@@ -108,16 +108,16 @@ def test_manifest_nur_mit_angenommenen_mastern_und_dublettenverweis(
     assert duplicate.duplicate_of_id == original.pk
 
 
-def test_zurueckgezogene_abgabe_nur_mit_kennung_und_zeitpunkt(
+def test_geloeschte_submission_nur_mit_submission_id_und_zeitpunkt(
     operator_client, participant, campaign
 ):
     participant.upload(fits())
     from submissions import services
 
-    services.withdraw(participant.submission, by=Submission.WithdrawnBy.PARTICIPANT)
+    services.delete_submission(participant.submission, by=Submission.DeletedBy.PARTICIPANT)
     entry = by_reference(manifest(operator_client, campaign))[participant.reference]
-    assert entry.keys() == {"reference", "withdrawn_at", "amended_at"}
-    assert entry["withdrawn_at"]
+    assert entry.keys() == {"reference", "deleted_at", "amended_at"}
+    assert entry["deleted_at"]
     assert entry["amended_at"] is None
 
 

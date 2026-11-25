@@ -33,7 +33,7 @@ class Outcome(enum.Enum):
 
 def run() -> Outcome:
     campaign = Campaign.current()
-    if campaign is None or not campaign.is_exported or campaign.deleted_at is not None:
+    if campaign is None or not campaign.is_exported or campaign.data_deleted_at is not None:
         return Outcome.NOTHING
     now = timezone.now()
     if now >= campaign.deletes_at:
@@ -55,7 +55,7 @@ def run() -> Outcome:
 
 
 def _delete(campaign: Campaign) -> None:
-    """Erst der Speicher, dann die Datenbank. Bricht der Speicher ab, bleibt `deleted_at` leer,
+    """Erst der Speicher, dann die Datenbank. Bricht der Speicher ab, bleibt `data_deleted_at` leer,
     und der nächste Lauf fängt von vorn an."""
     storage = get_storage()
     deleted = 0
@@ -65,13 +65,13 @@ def _delete(campaign: Campaign) -> None:
             deleted += 1
     with transaction.atomic():
         Submission.objects.all().delete()  # mit Mastern und Einwilligungen
-        # Das Protokoll nennt Kennungen und Dateinamen. Was die Aktion betrifft (Export, Links),
-        # enthält keine Angaben von Teilnehmenden und bleibt.
+        # Das Protokoll nennt Submission-IDs und Dateinamen. Was die Aktion betrifft (Export,
+        # Links), enthält keine Angaben von Teilnehmenden und bleibt.
         LogEntry.objects.exclude(content_type=ContentType.objects.get_for_model(Campaign)).delete()
         LoginAttempt.objects.all().delete()
-        campaign.deleted_at = timezone.now()
-        campaign.save(update_fields=["deleted_at"])
-    log.info("Löschfrist abgelaufen: %d Objekte und alle Abgaben gelöscht", deleted)
+        campaign.data_deleted_at = timezone.now()
+        campaign.save(update_fields=["data_deleted_at"])
+    log.info("Löschfrist abgelaufen: %d Objekte und alle Submissions gelöscht", deleted)
     notices.send(
         "Daten gelöscht",
         "Die Löschfrist ist abgelaufen. Schwarmstack hat alle Master, Begleitdateien und Angaben "

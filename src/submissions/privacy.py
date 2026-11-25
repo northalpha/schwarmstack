@@ -42,7 +42,7 @@ def check_privacy_notice(app_configs, **kwargs):
         errors.append(
             checks.Error(
                 "PRIVACY_CONTACT ist nicht gesetzt; der Datenschutzhinweis braucht eine "
-                "Kontaktadresse für Widerruf und Rückzug.",
+                "Kontaktadresse für Widerruf und Löschung.",
                 id="submissions.E002",
             )
         )

@@ -32,15 +32,22 @@ Lokal ohne Docker: `uv run python src/manage.py createsuperuser`.
   und Gesamtgrenze stehen in GiB, die Höchstgröße je Master in MiB, wie bei `manage.py campaign`
   (Komma oder Punkt, z. B. `1,5`). Anlegen und Löschen gehen nur per `manage.py campaign` bzw.
   gar nicht (ADR 0004).
-- **Abgaben**: suchen nach Abgabe-Kennung oder Nennung, Nennung und Setup korrigieren (auch nach
-  dem Ende der Aktion), einzelne Master löschen, Abgabe zurückziehen, Widerruf vermerken. Eine
-  Nennung gibt es nur mit gültiger Einwilligung zur Veröffentlichung: Anonyme Abgaben zeigen
-  „anonym“ und bekommen auch nachträglich keinen Namen. Mit Einwilligung lässt sich die Nennung
-  nicht leeren; soll die Abgabe anonym werden, den Widerruf der Veröffentlichung vermerken. Er
-  löscht die Nennung samt Eintrag in den Begleitdateien.
+- **Submissions**: suchen nach Submission-ID oder Namensnennung, Namensnennung und Setup ändern
+  (auch nach dem Ende der Aktion), einzelne Master löschen, Submission löschen, Widerruf der
+  Namensnennung vermerken. Eine Namensnennung gibt es nur mit gültiger Einwilligung zur
+  Namensnennung: Anonyme Submissions zeigen „anonym“ und bekommen auch nachträglich keinen Namen.
+  Mit Einwilligung lässt sich die Namensnennung nicht leeren; soll die Submission anonym werden,
+  den Widerruf der Namensnennung vermerken. Er löscht die Namensnennung samt Eintrag in den
+  Begleitdateien. Die Einwilligung zur Nutzung im Projekt lässt sich nicht widerrufen: Wer sie
+  nicht mehr will, dessen Submission wird gelöscht; die Löschung ist der Nachweis.
+- **Belichtungsangaben**: je angenommenem Master über den Link „Belichtungsangaben“ in der
+  Submission ändern, auch nach dem Ende der Aktion. Geänderte Werte bekommen die Herkunft
+  `manuell`. Für Master, die vor dem Feature hochgeladen wurden, liest
+  `docker compose run --rm app python manage.py backfill_exposure` die Header einmal erneut;
+  Werte von Hand bleiben dabei unangetastet, und der Befehl lässt sich wiederholen (ADR 0010).
 - **Download zur Kontrolle**: einzelne angenommene Master über einen Link, der
   `UPLOAD_LINK_SECONDS` (Standard 15 Minuten) gilt.
-- **Protokoll**: jede Änderung, Löschung, jeder Rückzug, Widerruf und Download mit Betreiber und
+- **Protokoll**: jede Änderung, Löschung, jeder Widerruf und Download mit Betreiber und
   Zeitpunkt.
 
 ## Export und Löschfrist
@@ -50,28 +57,29 @@ Unter *Aktion → Export* (ADR 0008):
 - **Vorläufiger Export**: jederzeit das Manifest (`manifest-vorlaeufig.json`) nach heutigem Stand,
   ohne Download-Links. Stichproben weiter über den Download einzelner Master.
 - **Endgültiger Export**: genau einmal, frühestens nach Ende der Aktion plus Nachfrist, mit
-  Rückfrage. Danach ist alles eingefroren, auch für Betreiber: keine Korrektur von Nennung und
-  Setup, kein Master löschen, keine Änderung an der Aktion. Widerruf und Rückzug bleiben möglich.
+  Rückfrage. Danach ist alles eingefroren, auch für Betreiber: Angaben und Belichtungsangaben
+  lassen sich nicht mehr ändern, Master nicht mehr löschen, die Aktion nicht mehr ändern. Widerruf
+  und Löschung bleiben möglich.
 - **Links**: Nach dem endgültigen Export stellt jedes Herunterladen von Manifest oder
   Download-Liste neue Links aus, die 7 Tage gelten; jedes Ausstellen steht im Protokoll. Neue
   Links gibt es bis zum Ablauf der Löschfrist.
 - **Herunterladen**: `aria2c -i download-liste.txt -d <Ziel>`. Die Liste legt die Dateinamen fest
-  (`SW-7K3Q/Ha_3f9c1a2b.xisf`: Abgabe-Kennung als Ordner, Kanal, Anfang der Master-ID; der
+  (`SW-7K3Q/Ha_3f9c1a2b.xisf`: Submission-ID als Ordner, Kanal, Anfang der Master-ID; der
   Originalname steht nur im Manifest), und aria2c gleicht nach dem Laden die Prüfsumme ab.
-- **Manifest**: je Abgabe Kennung, Nennung (nur bei gültiger Einwilligung zur Veröffentlichung),
+- **Manifest**: je Submission die Submission-ID, Namensnennung (nur bei gültiger Einwilligung zur Namensnennung),
   Setup, Anlagezeitpunkt, alle Einwilligungen mit Art, Zeitpunkt, Fassung und Widerruf; je
   angenommenem Master Kanal, Originalname, Größe, Prüfsumme, Dublettenverweis, Zielpfad und (nach
-  dem endgültigen Export) Link. Zurückgezogene Abgaben nur mit Kennung und Zeitpunkt. Das Manifest
+  dem endgültigen Export) Link. Gelöschte Submissions nur mit Submission-ID und Zeitpunkt. Das Manifest
   ist nach der Löschung der einzige Nachweis der Einwilligungen: aufbewahren.
-- **Nachtrag**: Widerruf oder Rückzug nach dem endgültigen Export wirkt sofort, wird an der
-  Abgabe vermerkt (`amended_at` im Manifest, Filter „Nachtrag“ in der Liste der Abgaben, Liste
-  auf der Export-Seite) und per Betriebsmeldung gemeldet, nur mit der Abgabe-Kennung. Danach
+- **Nachtrag**: Widerruf oder Löschung nach dem endgültigen Export wirkt sofort, wird an der
+  Submission vermerkt (`amended_at` im Manifest, Filter „Nachtrag“ in der Liste der Submissions, Liste
+  auf der Export-Seite) und per Betriebsmeldung gemeldet, nur mit der Submission-ID. Danach
   lokale Kopien und die Credits-Liste anpassen.
 - **Löschfrist**: 30 Tage ab dem endgültigen Export; die restlichen Tage stehen auf der Statistik
   und der Export-Seite. Sieben Tage vorher und nach der Löschung kommt eine Betriebsmeldung. Die
   Löschung (`manage.py delete_after_export`, täglich per Cron) entfernt alle Objekte im Bucket
-  außer `sicherungen/`, alle Abgaben samt Mastern und Einwilligungen, die Fehlversuche der
-  Anmeldung und die Protokolleinträge zu Abgaben. Es bleiben die Aktion mit den Zeitpunkten von
+  außer `sicherungen/`, alle Submissions samt Mastern und Einwilligungen, die Fehlversuche der
+  Anmeldung und die Protokolleinträge zu Submissions. Es bleiben die Aktion mit den Zeitpunkten von
   Export und Löschung, ihre Protokolleinträge und die Betreiber-Konten. Den Abbau der Installation
   macht ihr danach von Hand.
 

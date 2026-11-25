@@ -36,7 +36,7 @@ def test_nachfrist_kommt_aus_der_aktion(aktion):
     assert aktion.phase(END + timedelta(hours=1)) is Phase.CLOSED
 
 
-def test_neue_abgaben_nur_waehrend_der_aktion(aktion):
+def test_neue_submissions_nur_waehrend_der_aktion(aktion):
     assert not aktion.phase(START - SECOND).accepts_new_submissions
     assert aktion.phase(START).accepts_new_submissions
     assert not aktion.phase(END).accepts_new_submissions

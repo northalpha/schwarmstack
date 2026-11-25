@@ -1,0 +1,41 @@
+{% with p=m.exposure_proposal %}{% url 'exposure' submission.reference m.public_id as exposure_url %}
+<details class="exposure" id="belichtung-{{ m.public_id }}"{% if open %} open{% endif %}>
+  <summary>Belichtungsangaben</summary>
+  {% for keyword, fits_value in p.conflicts %}<p class="hint"><code>{{ keyword }}</code>: Header widersprüchlich (FITS: {{ fits_value }})</p>{% endfor %}
+  {% for hint in p.hints %}<p class="hint">{{ hint }}</p>{% endfor %}
+  <p class="error" hidden></p>
+  {% if editable %}
+    {% if p.exptime_question is not None %}
+    <form method="post" action="{{ exposure_url }}" class="exposure-question">{% csrf_token %}
+      <fieldset>
+        <legend><code>EXPTIME</code> = {{ p.exptime_question_display }} s ist</legend>
+        <label><input type="radio" name="exptime_meaning" value="total_exposure" required> Gesamtzeit</label>
+        <label><input type="radio" name="exptime_meaning" value="exposure_per_light"> pro Light</label>
+        <button type="submit">Festlegen</button>
+      </fieldset>
+    </form>
+    {% endif %}
+    {% if p.suggestion %}
+    <form method="post" action="{{ exposure_url }}" class="exposure-suggestion">{% csrf_token %}
+      <input type="hidden" name="accept" value="{{ p.suggestion.field }}">
+      <span>{{ p.suggestion.explanation }}</span> <button type="submit">Übernehmen</button>
+    </form>
+    {% endif %}
+    <form method="post" action="{{ exposure_url }}" class="exposure-values">{% csrf_token %}
+      {% for row in p.rows %}
+      <div class="field">
+        <label for="{{ row.name }}-{{ m.public_id }}">{{ row.label }}{% if row.name == "exposure_per_light" or row.name == "total_exposure" %} (s){% endif %}</label>
+        <input id="{{ row.name }}-{{ m.public_id }}" name="{{ row.name }}" value="{{ row.input }}"{% if row.name == "light_count" %} inputmode="numeric"{% elif row.name == "instrument" or row.name == "telescope" %} maxlength="100"{% else %} inputmode="decimal"{% endif %}>
+        {% if row.source %}<span class="source">{{ row.source_label }}</span>{% endif %}
+      </div>
+      {% endfor %}
+      <button type="submit">Speichern</button>
+    </form>
+  {% else %}
+    <dl>
+      {% for row in p.rows %}<dt>{{ row.label }}</dt><dd>{{ row.display|default:"–" }}{% if row.source %} <span class="source">{{ row.source_label }}</span>{% endif %}</dd>{% endfor %}
+    </dl>
+  {% endif %}
+  {% if m.creator %}<p class="help">Erzeuger: {{ m.creator }}</p>{% endif %}
+</details>
+{% endwith %}

@@ -1,17 +1,20 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Abgabe anlegen – Schwarmstack{% endblock %}
+{% block title %}Submission anlegen – Schwarmstack{% endblock %}
+{% block mainclass %}page-new{% endblock %}
 {% block content %}
+<div class="head">
 <h1>Mitmachen bei {{ campaign.object_name }}</h1>
-<p>Lege eine Abgabe an. Danach lädst du deine Master hoch. Ein Konto brauchst du nicht; deine Abgabe ist nur in diesem Browser erreichbar.</p>
-<form method="post" novalidate>
+<p class="lead">Lege eine Submission an. Danach lädst du deine Master hoch. Ein Konto brauchst du nicht; deine Submission ist nur in diesem Browser erreichbar.</p>
+</div>
+<form method="post" novalidate class="card form">
   {% csrf_token %}
   {{ form.non_field_errors }}
   {% for field in form %}{% include "submissions/_field.html" %}{% endfor %}
   <p>Was mit deinen Angaben und Mastern geschieht und wie lange, steht im <a href="{% url 'privacy_notice_version' privacy_version %}">Datenschutzhinweis</a>. Deine Einwilligungen beziehen sich auf diese Fassung.</p>
-  <button type="submit">Abgabe anlegen</button>
+  <button type="submit">Submission anlegen</button>
 </form>
 {% endblock %}
 {% block scripts %}
-<script src="{% static 'submissions/nennung.js' %}" defer></script>
+<script src="{% static 'submissions/namensnennung.js' %}" defer></script>
 {% endblock %}

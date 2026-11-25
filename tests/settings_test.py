@@ -17,3 +17,9 @@ STORAGES = {
 }
 # WhiteNoise warnt sonst bei jeder Anfrage, dass das Verzeichnis fehlt.
 STATIC_ROOT.mkdir(parents=True, exist_ok=True)  # noqa: F405
+
+# Testdatenbank als Datei wie im Betrieb (WAL, busy timeout), nicht pytest-djangos In-Memory-
+# Datenbank mit geteiltem Cache: Dort sperrt SQLite je Tabelle und meldet „database table is
+# locked“ sofort, ohne zu warten, sobald Live-Server-Thread und Test-Thread gleichzeitig
+# zugreifen (E2E-Tests).
+DATABASES["default"]["TEST"] = {"NAME": DATA_DIR / "test-db.sqlite3"}  # noqa: F405

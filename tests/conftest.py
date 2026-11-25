@@ -42,7 +42,7 @@ def valid_form():
 
 @pytest.fixture
 def reference(client, campaign, valid_form, storage_dir):
-    """Eine angelegte Abgabe, deren Kennung im Cookie des Test-Clients steht."""
+    """Eine angelegte Submission, deren Submission-ID im Cookie des Test-Clients steht."""
     client.post("/", valid_form)
     return Submission.objects.get().reference
 

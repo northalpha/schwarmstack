@@ -24,14 +24,14 @@ def exported(campaign):
 
 @pytest.fixture
 def uploaded(participant, campaign):
-    """Eine Abgabe mit einem Master, hochgeladen vor dem Export."""
+    """Eine Submission mit einem Master, hochgeladen vor dem Export."""
     return participant.upload(fits())
 
 
 # -- Schreibschutz für Betreiber ---------------------------------------------------
 
 
-def test_nach_dem_export_keine_korrektur_von_nennung_und_setup(
+def test_nach_dem_export_keine_aenderung_von_namensnennung_und_setup(
     operator_client, participant, uploaded, exported
 ):
     url = submission_url(participant.submission)
@@ -55,36 +55,36 @@ def test_nach_dem_export_keine_aenderung_an_der_aktion(operator_client, exported
     assert set(form.fields) == set()
 
 
-def test_vor_dem_export_bleibt_korrektur_moeglich(operator_client, participant, uploaded):
+def test_vor_dem_export_bleibt_aendern_moeglich(operator_client, participant, uploaded):
     url = submission_url(participant.submission)
     data = change_form_data(operator_client.get(url), setup_description="geändert")
     operator_client.post(url, data)
     assert Submission.objects.get(pk=participant.submission.pk).setup_description == "geändert"
 
 
-# -- Nachtrag: Rückzug und Widerruf bleiben möglich --------------------------------
+# -- Nachtrag: Löschung und Widerruf bleiben möglich --------------------------------
 
 
-def test_rueckzug_nach_dem_export_ist_ein_nachtrag(
+def test_loeschung_nach_dem_export_ist_ein_nachtrag(
     operator_client, participant, uploaded, exported, mailoutbox, settings
 ):
     settings.OPERATOR_EMAILS = ["betrieb@example.org"]
-    operator_client.post(submission_url(participant.submission, "zurueckziehen/"))
+    operator_client.post(submission_url(participant.submission, "loeschen/"))
 
     submission = Submission.objects.get(pk=participant.submission.pk)
-    assert submission.is_withdrawn
+    assert submission.is_deleted
     assert submission.amended_at is not None
     assert not Master.objects.filter(submission=submission).exists()
     assert len(mailoutbox) == 1
     mail = mailoutbox[0]
     assert mail.to == ["betrieb@example.org"]
     assert participant.reference in mail.subject + mail.body
-    # Meldungen enthalten nur die Abgabe-Kennung, keine Angaben (ADR 0007).
+    # Meldungen enthalten nur die Submission-ID, keine Angaben (ADR 0007).
     assert "Ada" not in mail.subject + mail.body
     assert "RedCat" not in mail.subject + mail.body
 
 
-def test_widerruf_der_veroeffentlichung_nach_dem_export_ist_ein_nachtrag(
+def test_widerruf_der_namensnennung_nach_dem_export_ist_ein_nachtrag(
     operator_client, participant, uploaded, exported, mailoutbox, settings
 ):
     settings.OPERATOR_EMAILS = ["betrieb@example.org"]
@@ -116,11 +116,21 @@ def test_nachtrag_im_admin_und_im_manifest(operator_client, participant, uploade
     assert entry["credit_name"] is None
 
 
-def test_vor_dem_export_ist_ein_rueckzug_kein_nachtrag(
+def test_vor_dem_export_ist_eine_loeschung_kein_nachtrag(
     operator_client, participant, uploaded, mailoutbox
 ):
-    operator_client.post(submission_url(participant.submission, "zurueckziehen/"))
+    operator_client.post(submission_url(participant.submission, "loeschen/"))
     assert Submission.objects.get(pk=participant.submission.pk).amended_at is None
     assert mailoutbox == []
     assert Campaign.objects.get().exported_at is None
-    assert "Abgabe zurückgezogen" in log_messages(participant.submission)
+    assert "Submission gelöscht" in log_messages(participant.submission)
+
+
+def test_nach_dem_export_belichtungsangaben_nur_noch_ansehen(operator_client, uploaded, exported):
+    url = f"{ADMIN}submissions/master/{uploaded.pk}/change/"
+    response = operator_client.get(url)
+    assert response.status_code == 200
+    assert not response.context["has_change_permission"]
+    operator_client.post(url, {"telescope": "geändert"})
+    uploaded.refresh_from_db()
+    assert uploaded.telescope != "geändert"

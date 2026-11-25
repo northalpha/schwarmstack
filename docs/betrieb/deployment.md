@@ -87,7 +87,7 @@ Im Repo unter *Settings → Environments* das Environment `staging` anlegen (fü
 | `COMMUNITY_ORIGINS` | Ursprünge der Community-Seite für `/zahlen.json`, kommagetrennt, z. B. `https://community.example`; `*` nur auf Staging zum Testen; leer: kein CORS-Header (Standard) | nein |
 | `COMMUNITY_CACHE_SECONDS` | `10` (Standard); `0` schaltet den Cache von `/zahlen.json` ab | nein |
 | `CONSENT_TEXT_VERSION` | `2026-11` (Standard) | nein |
-| `PRIVACY_CONTACT` | Kontaktadresse im Datenschutzhinweis für Fragen, Widerruf und Rückzug, z. B. `datenschutz@dzvf.example` | ja |
+| `PRIVACY_CONTACT` | Kontaktadresse im Datenschutzhinweis für Fragen, Widerruf und Löschung, z. B. `datenschutz@dzvf.example` | ja |
 | `OPERATOR_EMAILS` | Empfänger der Betriebsmeldungen (ADR 0007), kommagetrennt; leer: Meldungen stehen nur im Log | nein, aber empfohlen |
 | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_USE_TLS` | SMTP für die Betriebsmeldungen; Standard `localhost`, `587`, leer, `1` | nein |
 | `DEFAULT_FROM_EMAIL` | Absender der Betriebsmeldungen | nein |

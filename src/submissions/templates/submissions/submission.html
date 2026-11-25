@@ -1,29 +1,53 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Abgabe {{ submission.reference }} – Schwarmstack{% endblock %}
+{% block title %}Submission {{ submission.reference }} – Schwarmstack{% endblock %}
+{% block mainclass %}page-main{% endblock %}
 {% block content %}
+<div class="head">
 {% include "submissions/_own.html" %}
 {% for message in messages %}<p class="notice">{{ message }}</p>{% endfor %}
-<h1>Deine Abgabe{% if campaign %} zu {{ campaign.object_name }}{% endif %}</h1>
-<p>Deine Abgabe-Kennung:</p>
+<h1>Deine Submission{% if campaign %} zu {{ campaign.object_name }}{% endif %}</h1>
+</div>
+<aside class="side">
+<section class="card">
+<p class="label-s">Deine Submission-ID:</p>
 <p class="reference">{{ submission.reference }}</p>
 <p class="help">Notiere sie dir. Nenne sie, wenn du dich beim Betreiber meldest. Du findest sie hier jederzeit wieder.</p>
-{% if submission.is_withdrawn %}
-<p class="notice">{% if submission.withdrawn_by_participant %}Du hast diese Abgabe am {{ submission.withdrawn_at|date:"j. F Y" }} zurückgezogen.{% else %}Diese Abgabe wurde am {{ submission.withdrawn_at|date:"j. F Y" }} durch den Betreiber zurückgezogen.{% endif %} Master, Angaben und Einwilligungen sind gelöscht.</p>
-{% else %}
-<h2>Angaben</h2>
-<dl>
-  <dt>Nennung</dt><dd>{% if submission.credit_name %}{{ submission.credit_name }}{% else %}anonym<br><span class="help">Ohne Einwilligung zur Veröffentlichung speichern wir keinen Namen.</span>{% endif %}</dd>
-  {% if submission.setup_description %}<dt>Setup</dt><dd>{{ submission.setup_description|linebreaksbr }}</dd>{% endif %}
-</dl>
-<h2>Master</h2>
+</section>
+{% if not submission.is_deleted %}
 {% if quota %}
+<section class="card">
 <p class="usage">
   <label for="usage">{% include "submissions/_usage_label.html" %}</label>
   <progress id="usage" max="100" value="{{ percent }}">{{ percent }} %</progress>
 </p>
+</section>
 {% endif %}
+<section class="card">
+<h2>Angaben</h2>
+<dl>
+  <dt>Namensnennung</dt><dd>{% if submission.credit_name %}{{ submission.credit_name }}{% if may_revoke %}<br><a href="{% url 'revoke_credit' submission.reference %}">Einwilligung zur Namensnennung widerrufen …</a>{% endif %}{% else %}anonym<br><span class="help">Ohne Einwilligung zur Namensnennung speichern wir keinen Namen.</span>{% endif %}</dd>
+  {% if submission.setup_description %}<dt>Setup</dt><dd>{{ submission.setup_description|linebreaksbr }}</dd>{% endif %}
+</dl>
+{% if may_change %}<p><a href="{% url 'change_details' submission.reference %}">Angaben ändern</a></p>{% endif %}
+</section>
+{% endif %}
+</aside>
+<div class="content">
+{% if submission.is_deleted %}
+<p class="notice">{% if submission.deleted_by_participant %}Du hast diese Submission am {{ submission.deleted_at|date:"j. F Y" }} gelöscht.{% else %}Diese Submission wurde am {{ submission.deleted_at|date:"j. F Y" }} durch den Betreiber gelöscht.{% endif %} Master, Angaben und Einwilligungen sind gelöscht.</p>
+{% else %}
+{% if phase == "grace" %}
+<p class="notice">Die Aktion ist beendet. {% if show_uploader %}In der Nachfrist bis {{ campaign.closes_at|date:"j. F Y, H:i" }} Uhr kannst du begonnene Uploads noch abschließen.{% else %}Neue Uploads sind nicht mehr möglich.{% endif %}</p>
+{% elif phase == "closed" %}
+<p class="notice">Die Aktion ist vorbei, deine Submission ist schreibgeschützt. Du kannst sie weiter ansehen.</p>
+{% elif phase == "before" %}
+<p class="notice">Die Aktion hat noch nicht begonnen.</p>
+{% endif %}
+<section class="card">
+<h2>Master</h2>
 {% if masters %}
+<div class="tbl">
 <table class="masters" data-csrf="{{ csrf_token }}">
   <thead><tr><th>Datei</th><th>Kanal</th><th>Größe</th><th>Zustand</th>{% if may_change %}<th><span class="visually-hidden">Löschen</span></th>{% endif %}</tr></thead>
   <tbody>
@@ -41,22 +65,19 @@
       {# Ein Master im Upload wird abgebrochen, nicht gelöscht: Das geht auch in der Nachfrist. #}
       {% if may_change %}<td>{% if m.pk in deletable_ids and m.pk not in abortable_ids %}<a href="{% url 'delete_master' submission.reference m.public_id %}" aria-label="{{ m.original_name }} löschen">Löschen</a>{% endif %}</td>{% endif %}
     </tr>
+    {% if m.state == "accepted" %}
+    <tr class="exposure-row"><td colspan="{% if may_change %}5{% else %}4{% endif %}">{% include "submissions/_exposure.html" with editable=may_change open=False %}</td></tr>
+    {% endif %}
   {% endfor %}
   </tbody>
 </table>
+</div>
 {% else %}
-<p>Noch keine Master.</p>
+<p class="empty">Noch keine Master.</p>
 {% endif %}
-
-{% if phase == "grace" %}
-<p class="notice">Die Aktion ist beendet. {% if show_uploader %}In der Nachfrist bis {{ campaign.closes_at|date:"j. F Y, H:i" }} Uhr kannst du begonnene Uploads noch abschließen.{% else %}Neue Uploads sind nicht mehr möglich.{% endif %}</p>
-{% elif phase == "closed" %}
-<p class="notice">Die Aktion ist vorbei, deine Abgabe ist schreibgeschützt. Du kannst sie weiter ansehen.</p>
-{% elif phase == "before" %}
-<p class="notice">Die Aktion hat noch nicht begonnen.</p>
-{% endif %}
+</section>
 {% if show_uploader %}
-<section id="uploader" class="uploader" hidden data-may-start="{{ may_start|yesno:"1,0" }}" data-base="{% url 'upload_start' submission.reference %}" data-csrf="{{ csrf_token }}" data-max-size="{{ max_master_size }}" data-sha-worker="{% static 'submissions/sha256-worker.js' %}">
+<section id="uploader" class="uploader card" hidden data-may-start="{{ may_start|yesno:"1,0" }}" data-base="{% url 'upload_start' submission.reference %}" data-csrf="{{ csrf_token }}" data-max-size="{{ max_master_size }}" data-sha-worker="{% static 'submissions/sha256-worker.js' %}">
   <h3>Master hochladen</h3>
   <p class="help">XISF oder FITS, 32 Bit, je Kanal eine Datei, höchstens {{ max_master_size|filesizeformat }}. Wähle für jede Datei den Kanal, dann starte den Upload.</p>
   <label for="files">Dateien auswählen</label>
@@ -68,17 +89,21 @@
 {% endif %}
 <noscript><p>Zum Hochladen der Master brauchst du JavaScript.</p></noscript>
 {% if may_change %}
-<h2>Abgabe zurückziehen</h2>
-<p class="help">Bis zum Ende der Aktion kannst du deine Abgabe ganz zurückziehen. Master, Angaben und Einwilligungen werden dann gelöscht.</p>
-<p><a href="{% url 'withdraw' submission.reference %}" class="danger">Abgabe zurückziehen …</a></p>
+<section class="danger-zone">
+<h2>Submission löschen</h2>
+<p class="help">Bis zum Ende der Aktion kannst du deine Submission ganz löschen. Master, Angaben und Einwilligungen werden dann gelöscht. Wenn deine Master nicht im Projekt verwendet werden sollen, lösche die Submission.</p>
+<p><a href="{% url 'delete_submission' submission.reference %}" class="danger">Submission löschen …</a></p>
+</section>
 {% endif %}
 {% endif %}
 
 {% if can_add %}
-<p><a href="{% url 'new_submission' %}">Weitere Abgabe anlegen</a> – für ein weiteres Setup.</p>
+<p><a href="{% url 'new_submission' %}">Weitere Submission anlegen</a> – für ein weiteres Setup.</p>
 {% endif %}
+</div>
 {% endblock %}
 {% block scripts %}
 <script src="{% static 'submissions/vendor/uppy/uppy.min.js' %}" defer></script>
 <script src="{% static 'submissions/upload.js' %}" defer></script>
+<script src="{% static 'submissions/belichtung.js' %}" defer></script>
 {% endblock %}

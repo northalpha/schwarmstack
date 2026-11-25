@@ -1,4 +1,4 @@
-// Die Nennung gibt es nur mit dem Häkchen zur Veröffentlichung (Ticket #33). Ohne Häkchen ist
+// Den Namen gibt es nur mit dem Häkchen zur Namensnennung (Ticket #33). Ohne Häkchen ist
 // das Feld gesperrt und wird nicht mitgeschickt; der Server verwirft einen Namen ohnehin.
 (() => {
   const consent = document.querySelector("[name=consent_publish_credit]");

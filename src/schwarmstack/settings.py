@@ -98,12 +98,12 @@ STORAGES = {
     "staticfiles": {"BACKEND": "schwarmstack.staticfiles.StaticFilesStorage"},
 }
 
-# Zugang zur Abgabe nur über ein signiertes Cookie (ADR 0002).
+# Zugang zur Submission nur über ein signiertes Cookie (ADR 0002).
 SUBMISSION_COOKIE_SECURE = env_bool("SUBMISSION_COOKIE_SECURE", not DEBUG)
 # Version des Hinweistextes, auf den sich eine Einwilligung bezieht.
 # Zu jeder Fassung gibt es einen Datenschutzhinweis (submissions/datenschutz/<Fassung>.html).
 CONSENT_TEXT_VERSION = os.environ.get("CONSENT_TEXT_VERSION", "2026-11")
-# Kontaktadresse im Datenschutzhinweis für Fragen, Widerruf und Rückzug; Pflicht in Produktion.
+# Kontaktadresse im Datenschutzhinweis für Fragen, Widerruf und Löschung; Pflicht in Produktion.
 PRIVACY_CONTACT = os.environ.get("PRIVACY_CONTACT", "")
 
 # Speicher für Master (ADR 0005): "local" (lokale Platte) oder später "s3".

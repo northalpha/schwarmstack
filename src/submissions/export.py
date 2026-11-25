@@ -41,7 +41,7 @@ def path(master: Master) -> str:
 def links_available(campaign: Campaign, now: datetime | None = None) -> bool:
     """Links gibt es nur nach dem endgültigen Export und bis zum Ablauf der Löschfrist."""
     now = now or timezone.now()
-    return campaign.is_exported and campaign.deleted_at is None and now < campaign.deletes_at
+    return campaign.is_exported and campaign.data_deleted_at is None and now < campaign.deletes_at
 
 
 def may_finalize(campaign: Campaign) -> str | None:
@@ -57,7 +57,7 @@ def may_finalize(campaign: Campaign) -> str | None:
 
 
 def finalize(campaign: Campaign) -> Campaign:
-    """Endgültiger Export: friert alle Abgaben ein, auch für Betreiber, und startet die
+    """Endgültiger Export: friert alle Submissions ein, auch für Betreiber, und startet die
     Löschfrist. Genau einmal möglich."""
     with transaction.atomic():
         campaign = Campaign.objects.select_for_update().get(pk=campaign.pk)
@@ -71,14 +71,14 @@ def finalize(campaign: Campaign) -> Campaign:
 
 def days_left(campaign: Campaign, now: datetime | None = None) -> int | None:
     """Wie viele Tage die Löschfrist noch läuft (angefangene Tage zählen), sonst None."""
-    if not campaign.is_exported or campaign.deleted_at is not None:
+    if not campaign.is_exported or campaign.data_deleted_at is not None:
         return None
     left = campaign.deletes_at - (now or timezone.now())
     return max(0, -(-left // timedelta(days=1)))
 
 
 def manifest(campaign: Campaign, *, links: bool = False) -> dict:
-    """Das Manifest: Aktion → Abgaben → angenommene Master.
+    """Das Manifest: Aktion → Submissions → angenommene Master.
 
     Mit `links` (nur nach dem endgültigen Export) bekommt jeder Master einen Download-Link,
     der 7 Tage gilt, höchstens bis zum Ablauf der Löschfrist.
@@ -103,12 +103,12 @@ def manifest(campaign: Campaign, *, links: bool = False) -> dict:
     )
     entries = []
     for submission in submissions:
-        if submission.is_withdrawn:
-            # Keine Kennung soll spurlos verschwinden.
+        if submission.is_deleted:
+            # Keine Submission-ID soll spurlos verschwinden.
             entries.append(
                 {
                     "reference": submission.reference,
-                    "withdrawn_at": _time(submission.withdrawn_at),
+                    "deleted_at": _time(submission.deleted_at),
                     "amended_at": _time(submission.amended_at),
                 }
             )

@@ -1,4 +1,4 @@
 {% if own %}
-<p>Deine Abgaben in diesem Browser:</p>
+<p>Deine Submissions in diesem Browser:</p>
 <ul>{% for s in own %}<li><a href="{% url 'submission' s.reference %}">{{ s.reference }}</a></li>{% endfor %}</ul>
 {% endif %}

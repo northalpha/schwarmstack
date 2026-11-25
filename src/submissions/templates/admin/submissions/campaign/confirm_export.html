@@ -1,7 +1,7 @@
 {% extends "admin/base_site.html" %}
 {% block breadcrumbs %}{% include "admin/submissions/campaign/_breadcrumbs.html" %}{% endblock %}
 {% block content %}
-<p>Den endgültigen Export gibt es genau einmal. Danach kann niemand mehr Abgaben korrigieren, Master löschen oder die Aktion ändern, auch kein Betreiber. Widerruf und Rückzug bleiben möglich und werden als Nachtrag gemeldet.</p>
+<p>Den endgültigen Export gibt es genau einmal. Danach kann niemand mehr Angaben ändern, Master löschen oder die Aktion ändern, auch kein Betreiber. Widerruf und Löschung bleiben möglich und werden als Nachtrag gemeldet.</p>
 <p>Die Löschfrist beginnt: In 30 Tagen löscht Schwarmstack alle Master, Begleitdateien und Angaben.</p>
 <form method="post">{% csrf_token %}
 <div>

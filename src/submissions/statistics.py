@@ -1,11 +1,13 @@
 """Statistik für die Betreiber: Stand der Aktion, bei jedem Aufruf frisch berechnet.
 
-Zählt Abgaben, nie Personen. Nicht öffentlich: Sie erscheint nur im Admin. Öffentlich sind nur
-die Community-Zahlen (`community_numbers`), reine Summen ohne Namen, Kennungen oder Abgaben.
+Zählt Submissions, nie Personen. Nicht öffentlich: Sie erscheint nur im Admin. Öffentlich sind nur
+die Community-Zahlen (`community_numbers`), reine Summen ohne Namen, Submission-IDs oder
+einzelne Submissions.
 """
 
 import datetime as dt
 from dataclasses import dataclass, field
+from decimal import ROUND_HALF_UP, Decimal
 from zoneinfo import ZoneInfo
 
 from django.db.models import Count, Q, Sum
@@ -39,13 +41,13 @@ class Day:
     day: dt.date
     new_submissions: int = 0
     accepted: int = 0
-    withdrawals: int = 0
+    deletions: int = 0
 
 
 @dataclass
 class Statistics:
     submissions_active: int
-    submissions_withdrawn: int
+    submissions_deleted: int
     masters_by_state: list[tuple[str, int]]
     channels: list[ChannelRow]
     accepted: int
@@ -75,8 +77,8 @@ def compute() -> Statistics:
     release_stale()
     campaign = Campaign.current()
     submissions = Submission.objects.aggregate(
-        active=Count("pk", filter=Q(withdrawn_at__isnull=True)),
-        withdrawn=Count("pk", filter=Q(withdrawn_at__isnull=False)),
+        active=Count("pk", filter=Q(deleted_at__isnull=True)),
+        deleted=Count("pk", filter=Q(deleted_at__isnull=False)),
     )
     by_state = dict(
         Master.objects.values_list("state").annotate(n=Count("pk")).values_list("state", "n")
@@ -85,7 +87,7 @@ def compute() -> Statistics:
     accepted_bytes, reserved_bytes = usage_parts(Master.objects.all())
     return Statistics(
         submissions_active=submissions["active"],
-        submissions_withdrawn=submissions["withdrawn"],
+        submissions_deleted=submissions["deleted"],
         masters_by_state=[(label, by_state.get(value, 0)) for value, label in Master.State.choices],
         channels=_channels(accepted),
         accepted=accepted_bytes,
@@ -101,14 +103,32 @@ def community_numbers() -> dict[str, int]:
     """Community-Zahlen: dieselben Regeln wie `compute()`, aber rein lesend (kein
     `release_stale()`), denn sie laufen im öffentlichen Pfad.
 
-    Abgaben: alle nicht zurückgezogenen, auch ohne Master. Master und Bytes: nur angenommene,
+    Submissions: alle nicht gelöschten, auch ohne Master. Master und Bytes: nur angenommene,
     Dubletten eingeschlossen; Reservierungen laufender Uploads zählen nicht.
+
+    Lights und Belichtung (ADR 0010): Summe über angenommene Master ohne Dubletten, damit dieselbe
+    Aufnahme nicht doppelt zählt. Master ohne Angaben fehlen in den Summen; `mastersWithExposure`
+    zählt die Master, die mindestens einen der beiden Werte haben. Sekunden ganzzahlig gerundet.
     """
     accepted_bytes, _ = usage_parts(Master.objects.all())
+    exposure = Master.objects.filter(
+        state=Master.State.ACCEPTED, duplicate_of__isnull=True
+    ).aggregate(
+        lights=Sum("light_count"),
+        seconds=Sum("total_exposure"),
+        with_exposure=Count(
+            "pk", filter=Q(light_count__isnull=False) | Q(total_exposure__isnull=False)
+        ),
+    )
     return {
-        "submissions": Submission.objects.filter(withdrawn_at__isnull=True).count(),
+        "submissions": Submission.objects.filter(deleted_at__isnull=True).count(),
         "masters": Master.objects.filter(state=Master.State.ACCEPTED).count(),
         "bytes": accepted_bytes,
+        "lights": exposure["lights"] or 0,
+        "exposureSeconds": int(
+            (exposure["seconds"] or Decimal(0)).to_integral_value(ROUND_HALF_UP)
+        ),
+        "mastersWithExposure": exposure["with_exposure"],
     }
 
 
@@ -143,15 +163,15 @@ def _rejections() -> list[RejectionRow]:
 
 
 def _days(accepted) -> list[Day]:
-    """Verlauf nach heutigem Stand: Zurückgezogene Abgaben und gelöschte Master fehlen,
-    die Zahl der Rückzüge steht getrennt daneben."""
+    """Verlauf nach heutigem Stand: Gelöschte Submissions und gelöschte Master fehlen,
+    die Zahl der Löschungen steht getrennt daneben."""
     days: dict[dt.date, Day] = {}
 
     def row(day: dt.date) -> Day:
         return days.setdefault(day, Day(day))
 
     for item in (
-        Submission.objects.filter(withdrawn_at__isnull=True)
+        Submission.objects.filter(deleted_at__isnull=True)
         .annotate(day=TruncDate("created_at", tzinfo=DAY_ZONE))
         .values("day")
         .annotate(n=Count("pk"))
@@ -164,10 +184,10 @@ def _days(accepted) -> list[Day]:
     ):
         row(item["day"]).accepted = item["size"] or 0
     for item in (
-        Submission.objects.filter(withdrawn_at__isnull=False)
-        .annotate(day=TruncDate("withdrawn_at", tzinfo=DAY_ZONE))
+        Submission.objects.filter(deleted_at__isnull=False)
+        .annotate(day=TruncDate("deleted_at", tzinfo=DAY_ZONE))
         .values("day")
         .annotate(n=Count("pk"))
     ):
-        row(item["day"]).withdrawals = item["n"]
+        row(item["day"]).deletions = item["n"]
     return sorted(days.values(), key=lambda d: d.day, reverse=True)

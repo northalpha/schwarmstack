@@ -1,6 +1,6 @@
 """Betriebsmeldungen per Mail an die Betreiber (ADR 0007).
 
-Meldungen enthalten keine Angaben von Teilnehmenden, höchstens die Abgabe-Kennung.
+Meldungen enthalten keine Angaben von Teilnehmenden, höchstens die Submission-ID.
 """
 
 import logging
