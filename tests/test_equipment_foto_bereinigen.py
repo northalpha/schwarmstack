@@ -204,3 +204,13 @@ def test_fehlermeldung_nennt_weder_dateinamen_noch_metadaten():
     text = str(fehler.value)
     assert "Musterstrasse" not in text
     assert not any(geheim.decode(errors="ignore") in text for geheim in GEHEIM_BYTES)
+
+
+def test_farben_mit_eingebettetem_profil_werden_nach_srgb_umgerechnet():
+    from PIL import ImageCms
+
+    breit = ImageCms.ImageCmsProfile(ImageCms.createProfile("LAB"))  # kein RGB-Profil: unbrauchbar
+    daten = io.BytesIO()
+    Image.new("RGB", (8, 8), (200, 40, 40)).save(daten, "PNG", icc_profile=breit.tobytes())
+    ergebnis = photos.clean(io.BytesIO(daten.getvalue()))  # darf nicht scheitern
+    assert_ohne_metadaten(ergebnis.photo)

@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from typing import BinaryIO
 
 import pillow_heif
-from PIL import Image, ImageOps
+from PIL import Image, ImageCms, ImageOps
 
 pillow_heif.register_heif_opener()
 
@@ -68,7 +68,7 @@ def clean(source: BinaryIO) -> CleanPhoto:
                 raise PhotoRejected("Das Foto hat zu viele Pixel.")
             image.draft("RGB", (MAX_EDGE, MAX_EDGE))  # JPEG: gleich verkleinert dekodieren
             image.load()  # nur das erste Bild
-            pixels = _pixels_only(ImageOps.exif_transpose(image))
+            pixels = _pixels_only(_to_srgb(ImageOps.exif_transpose(image)))
     except PhotoRejected:
         raise
     except _DECODE_ERRORS:
@@ -82,6 +82,21 @@ def clean(source: BinaryIO) -> CleanPhoto:
     thumbnail = pixels.copy()
     thumbnail.thumbnail((THUMBNAIL_EDGE, THUMBNAIL_EDGE), Image.Resampling.LANCZOS)
     return CleanPhoto(photo=_jpeg(pixels), thumbnail=_jpeg(thumbnail))
+
+
+def _to_srgb(image: Image.Image) -> Image.Image:
+    """Rechnet Farben mit eingebettetem Profil (z. B. Display P3 vom iPhone) nach sRGB um, damit
+    sie ohne das Profil richtig aussehen. Das Profil selbst wird nicht übernommen. Ist es
+    unbrauchbar, bleiben die Pixel, wie sie sind."""
+    profile = image.info.get("icc_profile")
+    if not profile or image.mode not in ("RGB", "L", "RGBA"):
+        return image
+    try:
+        source = ImageCms.ImageCmsProfile(io.BytesIO(profile))
+        target = ImageCms.createProfile("sRGB")
+        return ImageCms.profileToProfile(image, source, target, outputMode=image.mode)
+    except ImageCms.PyCMSError:
+        return image
 
 
 def _pixels_only(image: Image.Image) -> Image.Image:
