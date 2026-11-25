@@ -21,7 +21,7 @@ Staging bekommt einen eigenen Bucket und eigene Schlüssel.
 Das übernimmt jeder Deploy (`deploy/auf-dem-host.sh`) mit `--origin https://$DOMAIN` aus dem GitHub-Environment. Von Hand, mit denselben Umgebungsvariablen wie die App:
 
 ```bash
-uv run python src/manage.py s3_bucket_setup --origin https://upload.dzvf.de
+uv run python src/manage.py s3_bucket_setup --origin https://upload.example.com
 ```
 
 Der Befehl ersetzt die ganze CORS-Konfiguration des Buckets. Eine Herkunft mit Umlauten (etwa `https://bücher.example`) setzt er als Punycode (`https://xn--bcher-kva.example`), denn so schickt der Browser sie im `Origin`-Header, und S3 vergleicht zeichengenau. Er setzt:

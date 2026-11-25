@@ -5,7 +5,7 @@
 
 # Schwarmstack
 
-Upload-Dienst für ein gemeinsames Astrofotografie-Projekt der [DZVF-Community](https://community.dzvf.de): Teilnehmende laden ihre Master (XISF/FITS, 32 Bit) hoch, der Betreiber führt sie zu einem Bild zusammen.
+Upload-Dienst für ein gemeinsames Astrofotografie-Projekt der [DZVF-Community](https://community.example.com): Teilnehmende laden ihre Master (XISF/FITS, 32 Bit) hoch, der Betreiber führt sie zu einem Bild zusammen.
 
 **Stand:** Neuaufbau. Der erste Ansatz (A0/A1) wurde verworfen; Code entsteht neu, Ticket für Ticket und testgetrieben.
 
