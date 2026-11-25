@@ -178,7 +178,8 @@ class Consent(models.Model):
     kind = models.CharField("Art", max_length=32, choices=Kind.choices)
     granted_at = models.DateTimeField("erteilt am", auto_now_add=True)
     text_version = models.CharField("Fassung des Hinweistextes", max_length=32)
-    # Widerruf: Die Einwilligung bleibt stehen, damit nachweisbar ist, was wann galt.
+    # Widerruf: Die Einwilligung bleibt stehen, damit nachweisbar ist, was wann galt, bis die
+    # Submission gelöscht wird; dann verschwindet sie mit allen anderen.
     revoked_at = models.DateTimeField("widerrufen am", null=True, blank=True)
 
     class Meta:
