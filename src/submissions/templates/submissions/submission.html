@@ -26,7 +26,7 @@
 <section class="card">
 <h2>Angaben</h2>
 <dl>
-  <dt>Namensnennung</dt><dd>{% if submission.credit_name %}{{ submission.credit_name }}{% if may_revoke %}<br><a href="{% url 'revoke_credit' submission.reference %}">Einwilligung zur Namensnennung widerrufen …</a>{% endif %}{% else %}anonym<br><span class="help">Ohne Einwilligung zur Namensnennung speichern wir keinen Namen.</span>{% endif %}</dd>
+  <dt>Namensnennung</dt><dd>{% if submission.credit_name %}{{ submission.credit_name }}{% if may_revoke %}<br><a href="{% url 'revoke_credit' submission.reference %}">Einwilligung zur Namensnennung widerrufen …</a>{% endif %}{% else %}anonym<br><span class="help">Ohne Einwilligung zur Namensnennung speichern wir keinen Namen.</span>{% if may_grant %}<br><a href="{% url 'grant_credit' submission.reference %}">Namensnennung erlauben …</a>{% endif %}{% endif %}</dd>
   {% if submission.setup_description %}<dt>Setup</dt><dd>{{ submission.setup_description|linebreaksbr }}</dd>{% endif %}
   {% if submission.photo %}<dt>Equipment-Foto</dt><dd><a href="{% url 'photo' submission.reference %}" aria-label="Equipment-Foto in voller Größe öffnen" class="photo-link"><img src="{% url 'photo_thumbnail' submission.reference %}" alt="Dein Equipment-Foto (Vorschau)" class="photo-thumb"></a></dd>{% endif %}
 </dl>

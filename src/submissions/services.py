@@ -416,6 +416,50 @@ def consent_revocable_by_participant(submission: Submission) -> Consent | None:
     ).first()
 
 
+class CreditNotAllowed(Exception):
+    """Die Namensnennung lässt sich nicht erlauben: Die Aktion ist zu Ende oder die Submission
+    ist gelöscht."""
+
+
+def consent_grantable_by_participant(submission: Submission) -> bool:
+    """Ob Teilnehmende die Namensnennung (wieder) erlauben können: bis zum Ende der Aktion und
+    nicht nach einer Löschung, solange keine gültige Einwilligung zur Namensnennung vorliegt."""
+    return changeable_by_participant(submission) and not submission.publishes_credit
+
+
+def grant_credit(submission: Submission, credit_name: str) -> Consent | None:
+    """Namensnennung erlauben, erstmals oder nach einem Widerruf (Ticket #69).
+
+    Es entsteht immer eine neue Einwilligung mit eigenem Zeitpunkt und der aktuellen Fassung des
+    Hinweistextes; eine widerrufene bleibt als Nachweis stehen. Der Name ist Pflicht (`ValueError`).
+    Nach dem Ende der Aktion oder einer Löschung geht es nicht mehr (`CreditNotAllowed`). Gibt die
+    neue Einwilligung zurück, oder `None`, wenn schon eine gültige vorliegt (etwa weil ein anderer
+    Tab gleichzeitig erlaubt hat): Dann ändert sich nichts.
+    """
+    name = credit_name.strip()
+    if not name:
+        raise ValueError("Die Namensnennung braucht einen Namen.")
+    try:
+        with transaction.atomic():
+            submission = Submission.objects.select_for_update().get(pk=submission.pk)
+            if not changeable_by_participant(submission):
+                raise CreditNotAllowed
+            if submission.publishes_credit:
+                return None
+            consent = Consent.objects.create(
+                submission=submission,
+                kind=Consent.Kind.PUBLISH_CREDIT,
+                text_version=settings.CONSENT_TEXT_VERSION,
+            )
+            submission.credit_name = name
+            submission.save(update_fields=["credit_name"])
+    except IntegrityError:  # gleichzeitig erlaubt: je Zweck gilt höchstens eine gültige
+        return None
+    details_changed(submission)
+    log_participant_change(submission, "Namensnennung erlaubt (durch Teilnehmende)")
+    return consent
+
+
 # -- Belichtungsangaben (ADR 0010) ---------------------------------------------
 
 

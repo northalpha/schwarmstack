@@ -7,7 +7,7 @@ from django.views.decorators.http import require_http_methods
 from storage import get_storage
 
 from . import access, privacy, services
-from .forms import DetailsForm, PhotoForm, SubmissionForm
+from .forms import CreditForm, DetailsForm, PhotoForm, SubmissionForm
 from .models import Campaign, Master, Phase, Submission
 from .services import create_submission
 from .uploads import (
@@ -110,6 +110,7 @@ def submission(request, reference):
             "may_start": may_start(submission),
             "may_change": services.changeable_by_participant(submission),
             "may_revoke": services.consent_revocable_by_participant(submission) is not None,
+            "may_grant": services.consent_grantable_by_participant(submission),
             **quota_usage(submission),
             "max_master_size": campaign.max_master_size if campaign else 0,
             "channels": Master.Channel.choices,
@@ -280,6 +281,34 @@ def revoke_credit(request, reference):
         ),
         details=[f"Namensnennung: {submission.credit_name}"],
         button="Ja, widerrufen",
+    )
+
+
+@require_http_methods(["GET", "POST"])
+def grant_credit(request, reference):
+    """Namensnennung erlauben, erstmals oder nach einem Widerruf, bis zum Ende der Aktion
+    (Ticket #69)."""
+    submission = _own_submission(request, reference)
+    if not services.changeable_by_participant(submission):
+        return _not_changeable(request, submission)
+    if submission.publishes_credit:
+        return redirect("submission", submission.reference)
+    form = CreditForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        try:
+            services.grant_credit(submission, form.cleaned_data["credit_name"])
+        except services.CreditNotAllowed:
+            return _not_changeable(request, submission)
+        messages.info(request, "Deine Einwilligung zur Namensnennung ist erteilt.")
+        return redirect("submission", submission.reference)
+    return render(
+        request,
+        "submissions/credit.html",
+        {
+            "submission": submission,
+            "form": form,
+            "privacy_version": settings.CONSENT_TEXT_VERSION,
+        },
     )
 
 
