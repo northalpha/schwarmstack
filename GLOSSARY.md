@@ -81,7 +81,7 @@ Eine einzelne, ausdrücklich erteilte Erlaubnis der Teilnehmenden, z. B. zur Nut
 _Avoid_: Zustimmung, Opt-in
 
 **Widerruf** (`revoked_at`):
-Die Rücknahme der Einwilligung zur Namensnennung. Geht jederzeit, auch nach dem Ende der Aktion. Die Einwilligung bleibt mit dem Zeitpunkt des Widerrufs stehen, damit nachweisbar ist, was wann galt; die Namensnennung wird gelöscht und die Submission anonym.
+Die Rücknahme der Einwilligung zur Namensnennung oder zum Equipment-Foto. Die Namensnennung geht jederzeit, auch nach dem Ende der Aktion; das Foto widerrufen Teilnehmende, indem sie es löschen (bis zum Ende der Aktion), die Betreiber im Auftrag. Die Einwilligung bleibt mit dem Zeitpunkt des Widerrufs stehen, damit nachweisbar ist, was wann galt; die Namensnennung wird gelöscht und die Submission anonym, Foto und Thumbnail sind sofort weg.
 _Avoid_: Kündigung, Opt-out
 
 **Datenschutzhinweis**:
@@ -89,7 +89,7 @@ Der Text in Schwarmstack, der erklärt, wer was wie lange verarbeitet; Verantwor
 _Avoid_: Datenschutzerklärung, Privacy Policy
 
 **Equipment-Foto**:
-Ein optionales Foto der Ausrüstung, das Teilnehmende ihrer Submission beilegen können. Kein Master.
+Ein optionales Foto der Ausrüstung, das Teilnehmende ihrer Submission beilegen können, beim Anlegen oder jederzeit später in „Angaben ändern“ (bis zum Ende der Aktion). Kein Master. Es braucht eine eigene, aktiv erteilte Einwilligung; wer das Foto löscht, widerruft sie. Der Server dekodiert das Foto und schreibt nur die Pixel neu (JPEG): Alle Metadaten, vor allem der Standort, werden entfernt, das Original wird nie gespeichert. Aus dem bereinigten Foto entsteht ein **Thumbnail** für die Seitenleiste der Submission-Seite. Foto und Thumbnail liefert nur die App aus, nie ein öffentlicher Link; die Betreiber sehen sie im Admin, das Foto auch im Export.
 _Avoid_: Setup-Bild
 
 **Quote** (`quota`):
@@ -111,7 +111,7 @@ Die wenigen Summen zur Aktion, die Schwarmstack öffentlich als JSON ausgibt, da
 _Avoid_: öffentliche Statistik, Live-Zahlen
 
 **Export**:
-Die Übergabe aller Master an den Betreiber: ein Manifest und je Master ein zeitlich begrenzter Download-Link. Ein **vorläufiger Export** ist jederzeit möglich, enthält aber nur das Manifest ohne Links. Den **endgültigen Export** gibt es genau einmal, frühestens nach Ende der Aktion plus Nachfrist; er friert alle Submissions ein, auch für Betreiber, und startet die Löschfrist.
+Die Übergabe aller Master und Equipment-Fotos an den Betreiber: ein Manifest und je Master und je Foto ein zeitlich begrenzter Download-Link (das Thumbnail gehört nicht dazu). Ein **vorläufiger Export** ist jederzeit möglich, enthält aber nur das Manifest ohne Links. Den **endgültigen Export** gibt es genau einmal, frühestens nach Ende der Aktion plus Nachfrist; er friert alle Submissions ein, auch für Betreiber, und startet die Löschfrist.
 _Avoid_: Download (für den Gesamtvorgang), Archiv, Paket
 
 **Manifest**:

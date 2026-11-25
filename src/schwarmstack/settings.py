@@ -101,7 +101,7 @@ STORAGES = {
 # Zugang zur Submission nur über ein signiertes Cookie (ADR 0002).
 SUBMISSION_COOKIE_SECURE = env_bool("SUBMISSION_COOKIE_SECURE", not DEBUG)
 # Version des Hinweistextes, auf den sich eine Einwilligung bezieht.
-CONSENT_TEXT_VERSION = os.environ.get("CONSENT_TEXT_VERSION", "2026-11")
+CONSENT_TEXT_VERSION = os.environ.get("CONSENT_TEXT_VERSION", "2026-11-25")
 
 # Speicher für Master (ADR 0005): "local" (lokale Platte) oder später "s3".
 STORAGE_BACKEND = os.environ.get("STORAGE_BACKEND", "local")

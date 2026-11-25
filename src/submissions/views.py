@@ -1,10 +1,12 @@
 from django.contrib import messages
-from django.http import Http404, HttpResponsePermanentRedirect
+from django.http import Http404, HttpResponse, HttpResponsePermanentRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
+from storage import get_storage
+
 from . import access, services
-from .forms import DetailsForm, SubmissionForm
+from .forms import DetailsForm, PhotoForm, SubmissionForm
 from .models import Campaign, Master, Phase, Submission
 from .services import create_submission
 from .uploads import (
@@ -41,12 +43,14 @@ def new_submission(request):
         context["max_per_browser"] = access.MAX_PER_BROWSER
         return render(request, "submissions/limit.html", context)
 
-    form = SubmissionForm(request.POST or None)
+    form = SubmissionForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
         submission = create_submission(
             credit_name=form.cleaned_data["credit_name"],
             setup_description=form.cleaned_data["setup_description"],
             publish_credit=form.cleaned_data["consent_publish_credit"],
+            photo=form.photo,
+            photo_consent=form.cleaned_data["consent_equipment_photo"],
         )
         if form.cleaned_data["credit_name"] and not submission.credit_name:
             messages.info(
@@ -110,7 +114,84 @@ def change_details(request, reference):
         services.change_details(submission, **form.cleaned_data)
         messages.info(request, "Deine Angaben wurden geändert.")
         return redirect("submission", submission.reference)
-    return render(request, "submissions/details.html", {"submission": submission, "form": form})
+    context = {"submission": submission, "form": form}
+    if submission.photo is None:
+        context["photo_form"] = PhotoForm(submission=submission)
+    return render(request, "submissions/details.html", context)
+
+
+@require_http_methods(["GET", "POST"])
+def change_photo(request, reference):
+    """Equipment-Foto hinzufügen oder ersetzen, unabhängig von den übrigen Angaben (Ticket #82)."""
+    submission = _own_submission(request, reference)
+    if not services.changeable_by_participant(submission):
+        return _not_changeable(request, submission)
+    form = PhotoForm(request.POST or None, request.FILES or None, submission=submission)
+    if request.method == "POST" and form.is_valid():
+        try:
+            replaced = services.add_photo(
+                submission,
+                form.photo,
+                consent_given=form.cleaned_data.get("consent_equipment_photo", False),
+            )
+        except services.PhotoNotAllowed:
+            return _not_changeable(request, submission)
+        except services.PhotoConsentMissing:  # die Fassung des Hinweistextes wechselte eben
+            form.add_error("consent_equipment_photo", "Bitte erteile die Einwilligung erneut.")
+        else:
+            messages.info(
+                request,
+                "Dein Equipment-Foto wurde ersetzt."
+                if replaced
+                else "Dein Equipment-Foto wurde gespeichert.",
+            )
+            return redirect("submission", submission.reference)
+    return render(request, "submissions/photo.html", {"submission": submission, "form": form})
+
+
+@require_http_methods(["GET", "POST"])
+def delete_photo(request, reference):
+    submission = _own_submission(request, reference)
+    if not services.changeable_by_participant(submission):
+        return _not_changeable(request, submission)
+    if submission.photo is None:
+        return redirect("submission", submission.reference)
+    if request.method == "POST":
+        services.delete_photo_by_participant(submission)
+        messages.info(request, "Dein Equipment-Foto und das Thumbnail sind gelöscht.")
+        return redirect("submission", submission.reference)
+    return _confirm(
+        request,
+        submission,
+        title="Equipment-Foto löschen",
+        question=(
+            "Das Foto und das Thumbnail werden sofort und endgültig gelöscht. Damit widerrufst "
+            "du deine Einwilligung zur Nutzung des Fotos."
+        ),
+        button="Ja, löschen",
+    )
+
+
+@require_http_methods(["GET"])
+def photo(request, reference):
+    """Das bereinigte Foto in voller Größe; es gibt es nur über die App, nie über S3-Links."""
+    return _serve_photo(request, reference, thumbnail=False)
+
+
+@require_http_methods(["GET"])
+def photo_thumbnail(request, reference):
+    return _serve_photo(request, reference, thumbnail=True)
+
+
+def _serve_photo(request, reference, *, thumbnail):
+    submission = _own_submission(request, reference)
+    stored = submission.photo
+    if stored is None:
+        raise Http404
+    key = stored.thumbnail_key if thumbnail else stored.key
+    response = HttpResponse(get_storage().read(key), content_type="image/jpeg")
+    response["Cache-Control"] = "private, no-store"
+    return response
 
 
 @require_http_methods(["GET", "POST"])

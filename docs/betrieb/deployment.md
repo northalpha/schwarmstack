@@ -86,7 +86,7 @@ Im Repo unter *Settings → Environments* das Environment `staging` anlegen (fü
 | `LOGIN_ATTEMPTS_MAX`, `LOGIN_ATTEMPTS_WINDOW_SECONDS` | `5`, `900` (Standard) | nein |
 | `COMMUNITY_ORIGINS` | Ursprünge der Community-Seite für `/zahlen.json`, kommagetrennt, z. B. `https://community.example`; `*` nur auf Staging zum Testen; leer: kein CORS-Header (Standard) | nein |
 | `COMMUNITY_CACHE_SECONDS` | `10` (Standard); `0` schaltet den Cache von `/zahlen.json` ab | nein |
-| `CONSENT_TEXT_VERSION` | `2026-11` (Standard) | nein |
+| `CONSENT_TEXT_VERSION` | `2026-11-25` (Standard) | nein |
 
 `CONSENT_TEXT_VERSION` ist die Fassung des Hinweistextes zu den Einwilligungen (höchstens 32 Zeichen). Jede neue Einwilligung speichert sie, damit sich später zeigen lässt, auf welchen Text sie sich bezieht. Wird der Hinweistext geändert, im selben Deploy auch diesen Wert ändern; ältere Einwilligungen behalten ihre Fassung.
 
