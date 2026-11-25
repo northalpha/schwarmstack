@@ -13,10 +13,10 @@ Schwarmstack steht unter der [MIT-Lizenz](LICENSE). Diese Datei nennt fremden Co
   | classnames          | MIT          | 2018 Jed Watson            |
   | compressorjs 1.3.0  | MIT          | 2018-present Chen Fengyuan |
   | cropperjs 1.6.2     | MIT          | 2015-present Chen Fengyuan |
-  | regenerator-runtime | MIT          | 2014-present Facebook, Inc. |
-  | polyglot.js (Teil)  | siehe Bündel | Airbnb                     |
+  | tus-js-client (mit regenerator-runtime) | MIT | 2014-present Facebook, Inc. (regenerator-runtime) |
+  | polyglot.js (Teil)  | nur Verweis auf die LICENSE im Projekt `airbnb/polyglot.js` | – |
 
-  Die Tabelle gibt nur wieder, was das Bündel selbst nennt. Das Bündel setzt weitere npm-Pakete zusammen; deren Lizenzen stehen in den jeweiligen Paketen und im Paket `uppy`.
+  Die Tabelle gibt nur wieder, was das Bündel selbst nennt; die Kurzhinweise dort ersetzen nicht den vollen Lizenztext der jeweiligen Pakete, der in deren npm-Paketen steht. Das Bündel setzt weitere npm-Pakete zusammen; deren Lizenzen stehen in den jeweiligen Paketen und im Paket `uppy`.
 
 ## ALTCHA
 

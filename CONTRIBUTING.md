@@ -15,7 +15,6 @@ Wenn ihr euch einig seid:
 - Halte dich an [`CODING_STANDARDS.md`](CODING_STANDARDS.md) und die Begriffe in [`GLOSSARY.md`](GLOSSARY.md).
 - Prüfe lokal mit `scripts/pruefen.sh` (ohne Docker: `--schnell`), die CI macht dasselbe.
 - Lege einen Eintrag in `changelog.d/` an (siehe [`changelog.d/README.md`](changelog.d/README.md)), nicht in `CHANGELOG.md`.
-- Mit dem Pull Request stimmst du zu, dass dein Beitrag unter der [MIT-Lizenz](LICENSE) des Projekts steht.
 
 ## Verhalten
 
