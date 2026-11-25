@@ -87,6 +87,14 @@ class LocalStorage:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
 
+    def put_bytes(self, key: str, data: bytes, content_type: str) -> None:
+        path = self._object(key)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+
+    def read(self, key: str) -> bytes:
+        return self._object(key).read_bytes()
+
     def abort_multipart(self, key: str, upload_id: str) -> None:
         shutil.rmtree(self._checked_upload(key, upload_id), ignore_errors=True)
 
