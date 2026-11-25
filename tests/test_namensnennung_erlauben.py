@@ -66,7 +66,11 @@ def test_anonym_angelegt_erlaubt_die_namensnennung_nachtraeglich(anonymous, sett
     page = anonymous.page()
     assert "Ada Sternguck" in page
     assert grant_url(anonymous) not in page
-    assert revoke_url(anonymous) in page
+    # Der Widerruf steht jetzt unter „Angaben ändern“, nicht mehr als Link auf der Seite.
+    assert (
+        'name="revoke_credit"'
+        in anonymous.client.get(f"/submission/{anonymous.reference}/aendern/").content.decode()
+    )
 
 
 def test_erlauben_fragt_ausdruecklich_mit_haekchen_und_verweist_auf_den_hinweis(
