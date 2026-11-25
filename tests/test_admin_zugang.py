@@ -1,7 +1,7 @@
 """Zugang zum Admin: eigener Pfad, nur mit Konto, gebremste Anmeldung (Ticket #29)."""
 
 import pytest
-from admin_helper import ADMIN, PASSWORD
+from admin_helper import ADMIN
 from django.test import Client
 
 pytestmark = pytest.mark.django_db
@@ -25,26 +25,26 @@ def test_ohne_anmeldung_kein_zugang(client):
     assert response["Location"].startswith(f"{ADMIN}login/")
 
 
-def test_betreiber_meldet_sich_an(operator):
+def test_betreiber_meldet_sich_an(operator, operator_password):
     client = Client()
-    response = login(client, PASSWORD)
+    response = login(client, operator_password)
     assert response.status_code == 302
     assert client.get(ADMIN).status_code == 200
 
 
-def test_wiederholte_fehlversuche_werden_gebremst(operator):
+def test_wiederholte_fehlversuche_werden_gebremst(operator, operator_password):
     client = Client()
     for _ in range(5):
         assert login(client, "falsch").status_code == 200
-    response = login(client, PASSWORD)  # auch das richtige Passwort hilft jetzt nicht
+    response = login(client, operator_password)  # auch das richtige Passwort hilft jetzt nicht
     assert response.status_code == 429
     assert client.get(ADMIN).status_code == 302
 
 
-def test_bremse_gilt_je_ip(operator):
+def test_bremse_gilt_je_ip(operator, operator_password):
     for _ in range(5):
         login(Client(), "falsch", ip="203.0.113.7")
-    assert login(Client(), PASSWORD, ip="198.51.100.9").status_code == 302
+    assert login(Client(), operator_password, ip="198.51.100.9").status_code == 302
 
 
 def test_ip_wird_nur_als_hash_gespeichert(operator):
@@ -55,7 +55,7 @@ def test_ip_wird_nur_als_hash_gespeichert(operator):
     assert "203.0.113.7" not in stored.ip_hash
 
 
-def test_hinter_dem_proxy_zaehlt_die_ip_aus_x_forwarded_for(operator, settings):
+def test_hinter_dem_proxy_zaehlt_die_ip_aus_x_forwarded_for(operator, operator_password, settings):
     settings.TRUST_X_FORWARDED_FOR = True
 
     def via_proxy(password, forwarded):
@@ -69,8 +69,8 @@ def test_hinter_dem_proxy_zaehlt_die_ip_aus_x_forwarded_for(operator, settings):
     for _ in range(5):
         # Den vorderen Teil kann der Angreifer selbst setzen; zählen darf nur der letzte.
         via_proxy("falsch", f"10.0.0.{_}, 203.0.113.7")
-    assert via_proxy(PASSWORD, "203.0.113.7").status_code == 429
-    assert via_proxy(PASSWORD, "198.51.100.9").status_code == 302
+    assert via_proxy(operator_password, "203.0.113.7").status_code == 429
+    assert via_proxy(operator_password, "198.51.100.9").status_code == 302
 
 
 def test_ip_hashes_bleiben_hoechstens_eine_stunde(operator):
