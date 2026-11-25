@@ -81,7 +81,7 @@ Eine einzelne, ausdrücklich erteilte Erlaubnis der Teilnehmenden, z. B. zur Nut
 _Avoid_: Zustimmung, Opt-in
 
 **Widerruf** (`revoked_at`):
-Die Rücknahme der Einwilligung zur Namensnennung. Geht jederzeit, auch nach dem Ende der Aktion. Die Einwilligung bleibt mit dem Zeitpunkt des Widerrufs stehen, damit nachweisbar ist, was wann galt; die Namensnennung wird gelöscht und die Submission anonym.
+Die Rücknahme der Einwilligung zur Namensnennung oder zum Equipment-Foto. Die Namensnennung geht jederzeit, auch nach dem Ende der Aktion; das Foto widerrufen Teilnehmende, indem sie es löschen (bis zum Ende der Aktion), die Betreiber im Auftrag. Die Einwilligung bleibt mit dem Zeitpunkt des Widerrufs stehen, damit nachweisbar ist, was wann galt; die Namensnennung wird gelöscht und die Submission anonym, Foto und Thumbnail sind sofort weg.
 _Avoid_: Kündigung, Opt-out
 
 **Datenschutzhinweis**:

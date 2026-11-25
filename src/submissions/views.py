@@ -50,6 +50,7 @@ def new_submission(request):
             setup_description=form.cleaned_data["setup_description"],
             publish_credit=form.cleaned_data["consent_publish_credit"],
             photo=form.photo,
+            photo_consent=form.cleaned_data["consent_equipment_photo"],
         )
         if form.cleaned_data["credit_name"] and not submission.credit_name:
             messages.info(

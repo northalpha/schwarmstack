@@ -30,15 +30,22 @@ PARTICIPANT_USERNAME = "teilnehmende"
 
 
 def create_submission(
-    *, credit_name, setup_description, publish_credit, photo: CleanPhoto | None = None
+    *,
+    credit_name,
+    setup_description,
+    publish_credit,
+    photo: CleanPhoto | None = None,
+    photo_consent: bool = False,
 ) -> Submission:
     """Legt eine Submission samt Einwilligungen an und vergibt eine freie Submission-ID.
 
     Die Namensnennung gibt es nur mit der Einwilligung zur Namensnennung; ohne sie wird ein
     eingegebener Name verworfen und die Submission bleibt anonym. Ein bereinigtes
-    Equipment-Foto (`photo`) setzt die Einwilligung dazu voraus, die der Aufrufer geprüft hat;
-    sie wird hier mit angelegt.
+    Equipment-Foto (`photo`) gibt es nur mit der aktiv erteilten Einwilligung (`photo_consent`),
+    sonst `PhotoConsentMissing`; sie wird hier mit angelegt.
     """
+    if photo is not None and not photo_consent:
+        raise PhotoConsentMissing
     kinds = [Consent.Kind.PROJECT_USE]
     if publish_credit:
         kinds.append(Consent.Kind.PUBLISH_CREDIT)
@@ -216,8 +223,9 @@ def _store_photo(submission: Submission, photo: CleanPhoto) -> list[str]:
         if old:
             old.delete()
         EquipmentPhoto.objects.create(submission=submission, key=key, thumbnail_key=thumbnail_key)
-    except BaseException:
+    except Exception:
         # Aufräumen am Speicher; der eigentliche Fehler wird gleich weitergereicht.
+        logger.exception("Equipment-Foto der Submission %s nicht gespeichert", submission.reference)
         _delete_quietly([key, thumbnail_key])
         raise
     return old_keys
