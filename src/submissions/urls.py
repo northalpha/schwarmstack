@@ -8,6 +8,18 @@ urlpatterns = [
     path("neu/", views.new_submission, name="new_submission"),
     path("submission/<str:reference>/", views.submission, name="submission"),
     path("submission/<str:reference>/aendern/", views.change_details, name="change_details"),
+    path("submission/<str:reference>/aendern/foto/", views.change_photo, name="change_photo"),
+    path(
+        "submission/<str:reference>/aendern/foto/loeschen/",
+        views.delete_photo,
+        name="delete_photo",
+    ),
+    path("submission/<str:reference>/foto/", views.photo, name="photo"),
+    path(
+        "submission/<str:reference>/foto/vorschau/",
+        views.photo_thumbnail,
+        name="photo_thumbnail",
+    ),
     path(
         "submission/<str:reference>/loeschen/",
         views.delete_submission,
