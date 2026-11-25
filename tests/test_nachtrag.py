@@ -1,5 +1,6 @@
 """Schreibschutz nach dem endgültigen Export und Nachträge (Ticket #34)."""
 
+import json
 from datetime import timedelta
 
 import pytest
@@ -162,3 +163,217 @@ def test_foto_loeschen_nach_dem_export_ist_ein_nachtrag(
     assert submission.amended_at is not None
     assert len(mailoutbox) == 1
     assert "Equipment-Foto" in mailoutbox[0].body
+
+
+# -- Nachtrag auf allen Wegen (Ticket #78) ------------------------------------------
+
+
+@pytest.fixture
+def betrieb(settings):
+    settings.OPERATOR_EMAILS = ["betrieb@example.org"]
+
+
+def participant_revoke_url(participant):
+    return f"/submission/{participant.reference}/namensnennung/widerrufen/"
+
+
+def admin_revoke_url(participant):
+    consent = participant.submission.consents.get(kind=Consent.Kind.PUBLISH_CREDIT)
+    return submission_url(participant.submission, f"einwilligung/{consent.pk}/widerrufen/")
+
+
+def current(participant):
+    return Submission.objects.get(pk=participant.submission.pk)
+
+
+def assert_nur_submission_id(mail, participant):
+    text = mail.subject + mail.body
+    assert participant.reference in text
+    assert "Ada" not in text
+    assert "RedCat" not in text
+
+
+def test_widerruf_auf_der_submission_seite_nach_dem_export_ist_ein_nachtrag(
+    participant, uploaded, exported, mailoutbox, betrieb
+):
+    participant.client.post(participant_revoke_url(participant))
+
+    submission = current(participant)
+    assert submission.credit_name == ""
+    assert submission.amended_at is not None
+    assert len(mailoutbox) == 1
+    assert mailoutbox[0].to == ["betrieb@example.org"]
+    assert_nur_submission_id(mailoutbox[0], participant)
+
+
+def test_widerruf_auf_der_submission_seite_vor_dem_export_ist_kein_nachtrag(
+    participant, uploaded, mailoutbox, betrieb
+):
+    participant.client.post(participant_revoke_url(participant))
+
+    submission = current(participant)
+    assert submission.credit_name == ""
+    assert submission.amended_at is None
+    assert mailoutbox == []
+
+
+def test_wiederholter_widerruf_auf_der_submission_seite_ist_kein_zweiter_nachtrag(
+    participant, uploaded, exported, mailoutbox, betrieb
+):
+    participant.client.post(participant_revoke_url(participant))
+    first = current(participant).amended_at
+
+    participant.client.post(participant_revoke_url(participant))
+    assert current(participant).amended_at == first
+    assert len(mailoutbox) == 1
+
+
+def test_widerruf_im_admin_vor_dem_export_ist_kein_nachtrag(
+    operator_client, participant, uploaded, mailoutbox, betrieb
+):
+    operator_client.post(admin_revoke_url(participant))
+
+    submission = current(participant)
+    assert submission.credit_name == ""
+    assert submission.amended_at is None
+    assert mailoutbox == []
+
+
+def test_widerruf_im_admin_nach_dem_export_ist_ein_nachtrag(
+    operator_client, participant, uploaded, exported, mailoutbox, betrieb
+):
+    operator_client.post(admin_revoke_url(participant))
+
+    assert current(participant).amended_at is not None
+    assert len(mailoutbox) == 1
+    assert_nur_submission_id(mailoutbox[0], participant)
+
+
+def test_wiederholter_widerruf_im_admin_ist_kein_zweiter_nachtrag(
+    operator_client, participant, uploaded, exported, mailoutbox, betrieb
+):
+    operator_client.post(admin_revoke_url(participant))
+    first = current(participant).amended_at
+
+    operator_client.post(admin_revoke_url(participant))
+    assert current(participant).amended_at == first
+    assert len(mailoutbox) == 1
+
+
+def test_widerruf_im_admin_nach_dem_widerruf_auf_der_seite_ist_kein_zweiter_nachtrag(
+    operator_client, participant, uploaded, exported, mailoutbox, betrieb
+):
+    """Egal auf welchem Weg zuerst widerrufen wurde: Der zweite Widerruf ändert nichts."""
+    participant.client.post(participant_revoke_url(participant))
+    operator_client.post(admin_revoke_url(participant))
+    assert len(mailoutbox) == 1
+
+
+def test_loeschung_im_admin_nach_dem_export_erzeugt_genau_einen_nachtrag(
+    operator_client, participant, uploaded, exported, mailoutbox, betrieb
+):
+    url = submission_url(participant.submission, "loeschen/")
+    operator_client.post(url)
+    first = current(participant).amended_at
+    assert first is not None
+    assert len(mailoutbox) == 1
+    assert_nur_submission_id(mailoutbox[0], participant)
+
+    operator_client.post(url)
+    assert current(participant).amended_at == first
+    assert len(mailoutbox) == 1
+
+
+def test_widerruf_nach_der_loeschung_ist_kein_nachtrag(
+    operator_client, participant, uploaded, exported, mailoutbox, betrieb
+):
+    consent_url = admin_revoke_url(participant)
+    operator_client.post(submission_url(participant.submission, "loeschen/"))
+    first = current(participant).amended_at
+    assert len(mailoutbox) == 1
+
+    # Die Einwilligungen sind mit der Löschung verschwunden: Auf beiden Wegen ändert sich nichts.
+    assert operator_client.post(consent_url).status_code == 404
+    participant.client.post(participant_revoke_url(participant))
+    assert current(participant).amended_at == first
+    assert len(mailoutbox) == 1
+
+
+def test_widerruf_nach_dem_export_wirkt_wie_sonst(participant, uploaded, exported, storage_dir):
+    """Der Nachtrag ändert nichts an der Wirkung: Die Einwilligung bleibt mit Zeitpunkt stehen,
+    die Begleitdatei wird neu geschrieben."""
+    participant.client.post(participant_revoke_url(participant))
+
+    consent = participant.submission.consents.get(kind=Consent.Kind.PUBLISH_CREDIT)
+    assert consent.revoked_at is not None
+    sidecar = storage_dir / "objects" / uploaded.sidecar_key
+    assert json.loads(sidecar.read_bytes())["credit_name"] is None
+
+
+def test_manifest_mit_erneut_erlaubter_namensnennung_nach_dem_nachtrag(
+    operator_client, participant, campaign, uploaded, exported, mailoutbox, betrieb
+):
+    """Je Art kann es mehrere Einwilligungen geben (#69): Das Manifest führt sie nach dem
+    Zeitpunkt der Erteilung, und der Nachtrag trifft nur die gültige."""
+    # Vor dem Ende der Aktion: widerrufen und erneut erlaubt.
+    exported.exported_at = None
+    exported.ends_at = timezone.now() + timedelta(days=1)
+    exported.save()
+    participant.client.post(participant_revoke_url(participant))
+    participant.client.post(
+        f"/submission/{participant.reference}/namensnennung/erlauben/",
+        {"credit_name": "Ada Neu", "consent_publish_credit": "on"},
+    )
+    assert current(participant).credit_name == "Ada Neu"
+    assert current(participant).amended_at is None
+    assert mailoutbox == []
+    exported.ends_at = timezone.now() - timedelta(days=10)
+    exported.exported_at = timezone.now() - timedelta(days=2)
+    exported.save()
+
+    participant.client.post(participant_revoke_url(participant))
+    assert len(mailoutbox) == 1
+
+    export = f"{ADMIN}submissions/campaign/{exported.pk}/export/manifest.json"
+    entry = next(
+        s
+        for s in operator_client.get(export).json()["submissions"]
+        if s["reference"] == participant.reference
+    )
+    credits = [c for c in entry["consents"] if c["kind"] == Consent.Kind.PUBLISH_CREDIT]
+    assert len(credits) == 2
+    assert credits[0]["granted_at"] <= credits[1]["granted_at"]
+    assert all(c["revoked_at"] is not None for c in credits)
+    assert entry["credit_name"] is None
+    assert entry["amended_at"] is not None
+
+
+@pytest.fixture
+def other(another, uploaded):
+    """Eine zweite Submission, die vom Nachtrag nicht betroffen ist; vor dem Export angelegt."""
+    return another()
+
+
+def test_manifest_markiert_nur_betroffene_submissions(
+    operator_client, participant, other, uploaded, exported, betrieb
+):
+    participant.client.post(participant_revoke_url(participant))
+
+    export = f"{ADMIN}submissions/campaign/{exported.pk}/export/manifest.json"
+    entries = {s["reference"]: s for s in operator_client.get(export).json()["submissions"]}
+    assert entries[participant.reference]["amended_at"] is not None
+    assert entries[other.reference]["amended_at"] is None
+
+
+def test_nachtrag_der_submission_seite_steht_im_admin(
+    operator_client, participant, other, uploaded, exported, betrieb
+):
+    participant.client.post(participant_revoke_url(participant))
+
+    export = f"{ADMIN}submissions/campaign/{exported.pk}/export/"
+    page = operator_client.get(export).content.decode()
+    assert participant.reference in page
+    assert other.reference not in page
+    listing = operator_client.get(f"{ADMIN}submissions/submission/?nachtrag=ja").content.decode()
+    assert participant.reference in listing
+    assert other.reference not in listing
