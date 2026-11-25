@@ -361,3 +361,14 @@ a.danger { color: var(--error); font-weight: 600; }
   table.masters tr.exposure-row { border-top: 0; padding-top: 0; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Equipment-Foto (Ticket #82) */
+.note { margin-top: .6rem; padding: .7rem .9rem; border-radius: var(--radius-sm); background: var(--soft); border: 1px solid var(--border); font-size: .9rem; }
+.note p { margin: 0; }
+.photo-thumb { display: block; width: 100%; height: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.photo-link { display: block; }
+.photo-current { display: block; max-width: 240px; width: 100%; height: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.photo-section { margin-top: 2rem; padding-top: 1.2rem; border-top: 1px solid var(--border); }
+.photo-section .actions { display: flex; flex-wrap: wrap; gap: .8rem; margin: 1rem 0 0; }
+a.button { display: inline-flex; align-items: center; min-height: 44px; padding: 0 1.3rem; border-radius: var(--radius-sm); background: var(--grad); color: var(--accent-fg); font-weight: 600; text-decoration: none; }
+a.button.danger { background: var(--error-soft); color: var(--error); box-shadow: inset 0 0 0 1px var(--error); }
