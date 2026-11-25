@@ -83,6 +83,13 @@ Unter *Aktion → Export* (ADR 0008):
   Anmeldung und die Protokolleinträge zu Submissions. Es bleiben die Aktion mit den Zeitpunkten von
   Export und Löschung, ihre Protokolleinträge und die Betreiber-Konten. Den Abbau der Installation
   macht ihr danach von Hand.
+- **Standort- und Personendaten in den Mastern** (#62, ADR 0003): Die Master sind byte-genau, ihr
+  Dateikopf kann `SITELAT`, `SITELONG`, `OBSGEO-*` und `OBSERVER` enthalten. Schwarmstack liest sie
+  nicht (ADR 0010), entfernt sie nicht und erkennt sie nicht; es gibt nur den Hinweis im
+  Datenschutzhinweis (ab Fassung `2026-11-25-2`) und auf der Submission-Seite vor dem Upload. Mit
+  dem endgültigen Export liegen diese Angaben in euren Kopien; die Löschung nach der Löschfrist
+  erreicht sie dort nicht. Ihr gebt die Master also nur weiter, wenn ihr die Header vorher
+  bereinigt habt, und löscht Kopien, wenn eine Submission nach dem Export gelöscht wird (Nachtrag).
 
 ## Deployment
 

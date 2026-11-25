@@ -114,6 +114,7 @@ def submission(request, reference):
             **quota_usage(submission),
             "max_master_size": campaign.max_master_size if campaign else 0,
             "channels": Master.Channel.choices,
+            "privacy_version": settings.CONSENT_TEXT_VERSION,
         },
     )
 
