@@ -3,6 +3,7 @@
 - Wo was im Code liegt: `docs/agents/codebase.md`.
 - Prüfen wie in CI: `scripts/pruefen.sh` (mit Garage und Browser; `--schnell` ohne).
 - Changelog-Einträge: eine Datei je Änderung in `changelog.d/`, nicht in `CHANGELOG.md`.
+- Pull Requests: jede Session legt am Ende einen PR an, wartet auf die CI und mergt nicht selbst: `docs/agents/pull-requests.md`.
 
 ## Agent skills
 
