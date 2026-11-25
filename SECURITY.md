@@ -8,7 +8,7 @@ Bitte **kein öffentliches Issue** für Sicherheitslücken. Nutze stattdessen di
 2. Wähle **Report a vulnerability** („Private vulnerability reporting“).
 3. Beschreibe, was du gefunden hast, wie man es nachstellt und welche Version betroffen ist.
 
-Die Meldung sehen nur die Betreiber. Fehlt der Knopf, ist die Funktion in den Repo-Einstellungen noch nicht eingeschaltet; öffne dann ein Issue **ohne Einzelheiten** („Ich möchte eine Sicherheitslücke melden“), und wir melden uns auf anderem Weg.
+Die Meldung sehen nur die Betreiber. Fehlt der Knopf, ist die Funktion in den Repo-Einstellungen noch nicht eingeschaltet; öffne dann ein Issue **ohne Einzelheiten** („Ich möchte eine Sicherheitslücke melden“), und die Betreiber antworten dort, wie ihr vertraulich weiterschreibt.
 
 Schwarmstack ist ein Hobbyprojekt. Wir lesen Meldungen, so schnell wir können, und versprechen keine Antwortzeit.
 

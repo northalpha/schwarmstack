@@ -1,5 +1,5 @@
 name: Wunsch
-description: Eine Idee oder ein fehlendes Merkmal.
+description: Eine Idee oder eine fehlende Funktion.
 labels: [needs-triage]
 body:
   - type: markdown

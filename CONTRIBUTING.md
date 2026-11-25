@@ -13,7 +13,7 @@ Bitte öffne einen Pull Request erst, **nachdem du die Änderung in einem Issue 
 Wenn ihr euch einig seid:
 
 - Halte dich an [`CODING_STANDARDS.md`](CODING_STANDARDS.md) und die Begriffe in [`GLOSSARY.md`](GLOSSARY.md).
-- Prüfe lokal mit `scripts/pruefen.sh` (ohne Docker: `--schnell`), die CI macht dasselbe.
+- Prüfe lokal mit `scripts/pruefen.sh` (ohne Garage und Browser: `--schnell`), die CI macht dasselbe.
 - Lege einen Eintrag in `changelog.d/` an (siehe [`changelog.d/README.md`](changelog.d/README.md)), nicht in `CHANGELOG.md`.
 
 ## Verhalten
