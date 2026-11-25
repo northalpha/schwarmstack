@@ -55,3 +55,30 @@ def test_in_produktion_braucht_der_hinweis_einen_kontakt(settings):
     settings.PRIVACY_CONTACT = ""
     with pytest.raises(SystemCheckError, match="PRIVACY_CONTACT"):
         call_command("check")
+
+
+def test_hinweis_nennt_standort_und_personendaten_im_dateikopf_der_master(client):
+    page = client.get("/datenschutz/").content.decode()
+    for keyword in ("SITELAT", "SITELONG", "OBSGEO", "OBSERVER"):
+        assert keyword in page
+    assert "unverändert" in page  # ADR 0003: Schwarmstack entfernt nichts
+    assert "30 Tage" in page  # gelten bis zur Löschfrist, und danach bei den Betreibern (ADR 0008)
+
+
+def test_fruehere_fassung_bleibt_unveraendert_erreichbar(client, settings):
+    assert settings.CONSENT_TEXT_VERSION != "2026-11-25"
+    alt = client.get("/datenschutz/2026-11-25/")
+    assert alt.status_code == 200
+    assert "SITELAT" not in alt.content.decode()
+    assert "nicht mehr aktuell" in alt.content.decode()
+
+
+def test_upload_seite_erklaert_vor_dem_upload_wie_standortdaten_entfernt_werden(
+    client, reference, settings
+):
+    page = client.get(f"/submission/{reference}/").content.decode()
+    hinweis = page[page.index('id="header-hinweis"') :]
+    for text in ("SITELAT", "SITELONG", "OBSGEO", "OBSERVER", "Siril", "PixInsight", "NINA"):
+        assert text in hinweis
+    assert "unverändert" in hinweis  # wir ändern die Dateien nicht
+    assert f'href="/datenschutz/{settings.CONSENT_TEXT_VERSION}/"' in hinweis
