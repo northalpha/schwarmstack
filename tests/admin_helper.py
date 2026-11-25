@@ -1,8 +1,7 @@
 """Gemeinsames für die Tests des Admin (Ticket #29); die Fixtures `operator` und
-`operator_client` stehen in conftest.py."""
+`operator_client` (und `operator_password`) stehen in conftest.py."""
 
 ADMIN = "/betrieb-test/"
-PASSWORD = "sternenstaub-2026"
 
 
 def submission_url(submission, suffix="change/"):
