@@ -23,7 +23,6 @@ def credit_consent(participant):
 
 
 def test_widerruf_fragt_erst_nach(participant):
-    assert f'href="{revoke_url(participant)}"' in participant.page()
     response = participant.client.get(revoke_url(participant))
     assert response.status_code == 200
     content = response.content.decode()
@@ -63,7 +62,9 @@ def test_widerruf_geht_in_jeder_phase_der_aktion(participant, campaign, starts, 
     campaign.save()
     assert campaign.phase() is phase
 
-    assert f'href="{revoke_url(participant)}"' in participant.page()
+    # Solange Angaben änderbar sind, steht der Widerruf dort; sonst als Link auf der Seite.
+    changeable = phase.allows_changes_by_participants
+    assert (f'href="{revoke_url(participant)}"' in participant.page()) is not changeable
     assert participant.client.get(revoke_url(participant)).status_code == 200
     participant.client.post(revoke_url(participant))
     assert credit_consent(participant).revoked_at is not None
