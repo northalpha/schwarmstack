@@ -45,7 +45,7 @@ Ein kurzer, lesbarer Code (z. B. `SW-7K3Q`), der eine Submission eindeutig benen
 _Avoid_: Abgabe-Kennung, Kennung, ID (ohne Bezug), Ticketnummer, Token
 
 **Löschung** (`deleted_at`):
-Das endgültige Löschen einer ganzen Submission, durch die Teilnehmenden selbst oder in ihrem Auftrag durch einen Betreiber. Master, Foto, Angaben und Einwilligungen verschwinden; es bleiben die Submission-ID, der Zeitpunkt und wer gelöscht hat. Eine gelöschte Submission zählt nicht auf Quote oder Gesamtgrenze und öffnet nicht wieder. Wer die Nutzung im Projekt nicht mehr will, löscht die Submission.
+Das endgültige Löschen einer ganzen Submission, durch die Teilnehmenden selbst oder in ihrem Auftrag durch einen Betreiber. Master, Foto, Angaben und Einwilligungen samt Widerruf verschwinden, ohne dass ein Nachweis in Schwarmstack bleibt; es bleiben die Submission-ID, der Zeitpunkt und wer gelöscht hat. Eine gelöschte Submission zählt nicht auf Quote oder Gesamtgrenze und öffnet nicht wieder. Wer die Nutzung im Projekt nicht mehr will, löscht die Submission.
 _Avoid_: Rückzug, zurückziehen, Stornierung, Abmeldung
 
 **Ende der Aktion** (`ends_at`):
@@ -77,11 +77,11 @@ Der Name, unter dem Teilnehmende im Projekt genannt werden wollen. Gibt es nur z
 _Avoid_: Nennung, Anzeigename, Credit, Pseudonym, Bildnachweis
 
 **Einwilligung** (`Consent`):
-Eine einzelne, ausdrücklich erteilte Erlaubnis der Teilnehmenden, z. B. zur Nutzung im Projekt oder zur Namensnennung. Je Zweck gilt höchstens eine; nach einem Widerruf kann bis zum Ende der Aktion eine neue erteilt werden, die widerrufene bleibt als Nachweis stehen.
+Eine einzelne, ausdrücklich erteilte Erlaubnis der Teilnehmenden, z. B. zur Nutzung im Projekt oder zur Namensnennung. Je Zweck gilt höchstens eine; nach einem Widerruf kann bis zum Ende der Aktion eine neue erteilt werden, die widerrufene bleibt als Nachweis stehen, bis die Submission gelöscht wird (dann verschwinden alle Einwilligungen).
 _Avoid_: Zustimmung, Opt-in
 
 **Widerruf** (`revoked_at`):
-Die Rücknahme der Einwilligung zur Namensnennung oder zum Equipment-Foto. Die Namensnennung geht jederzeit, auch nach dem Ende der Aktion; das Foto widerrufen Teilnehmende, indem sie es löschen (bis zum Ende der Aktion), die Betreiber im Auftrag. Die Einwilligung bleibt mit dem Zeitpunkt des Widerrufs stehen, damit nachweisbar ist, was wann galt; die Namensnennung wird gelöscht und die Submission anonym, Foto und Thumbnail sind sofort weg.
+Die Rücknahme der Einwilligung zur Namensnennung oder zum Equipment-Foto. Die Namensnennung geht jederzeit, auch nach dem Ende der Aktion; das Foto widerrufen Teilnehmende, indem sie es löschen (bis zum Ende der Aktion), die Betreiber im Auftrag. Die Einwilligung bleibt mit dem Zeitpunkt des Widerrufs stehen, damit nachweisbar ist, was wann galt; die Namensnennung wird gelöscht und die Submission anonym, Foto und Thumbnail sind sofort weg. Die Nutzung im Projekt lässt sich nicht widerrufen: Wer sie nicht mehr will, löscht die Submission, und mit ihr verschwinden alle Einwilligungen samt Widerruf. Dauerhafter Nachweis ist dann allein das Manifest des Exports.
 _Avoid_: Kündigung, Opt-out
 
 **Datenschutzhinweis**:

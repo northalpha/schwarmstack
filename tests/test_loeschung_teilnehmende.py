@@ -7,7 +7,8 @@ from django.utils import timezone
 from files import fits
 from uploads_helper import finish, sign, start
 
-from submissions.models import Master, Submission
+from submissions import services
+from submissions.models import Consent, Master, Submission
 
 pytestmark = pytest.mark.django_db
 
@@ -183,3 +184,16 @@ def test_alte_abgabe_adressen_leiten_dauerhaft_um(participant, old, new):
     response = participant.client.get("/" + old.format(ref=ref) + "?x=1")
     assert response.status_code == 301
     assert response["Location"] == "/" + new.format(ref=ref) + "?x=1"
+
+
+def test_loeschung_loescht_auch_widerrufene_einwilligungen(participant):
+    """Ein Widerruf bleibt nur bis zur Löschung stehen; danach gibt es in der Datenbank keinen
+    Nachweis mehr (Glossar: Widerruf; Nachweis ist allein das Manifest, ADR 0008)."""
+    submission = participant.submission
+    consent = submission.consents.get(kind=Consent.Kind.PUBLISH_CREDIT)
+    assert services.revoke(consent)
+    assert submission.consents.filter(revoked_at__isnull=False).exists()
+
+    services.delete_submission(submission, by=Submission.DeletedBy.OPERATOR)
+
+    assert not Consent.objects.filter(submission=submission).exists()

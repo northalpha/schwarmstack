@@ -285,7 +285,8 @@ def add_photo(submission: Submission, photo: CleanPhoto, *, consent_given: bool)
         if needed and not consent_given:
             raise PhotoConsentMissing
         if needed:
-            # Eine Einwilligung zu einer älteren Fassung bleibt als Nachweis stehen.
+            # Eine Einwilligung zu einer älteren Fassung bleibt als Nachweis stehen, bis die
+            # Submission gelöscht wird.
             submission.consents.filter(
                 kind=Consent.Kind.EQUIPMENT_PHOTO, revoked_at__isnull=True
             ).update(revoked_at=timezone.now())
@@ -342,7 +343,8 @@ def delete_submission(submission: Submission, *, by: Submission.DeletedBy) -> Su
 
     Es bleiben die Submission-ID, der Zeitpunkt und wer gelöscht hat. Eine gelöschte
     Submission zählt nicht mehr auf Quote oder Gesamtgrenze und öffnet nicht wieder. Wer die
-    Nutzung im Projekt nicht mehr will, löscht die Submission; die Löschung ist der Nachweis.
+    Nutzung im Projekt nicht mehr will, löscht die Submission; die Löschung ist der Nachweis,
+    ein Nachweis des Widerrufs bleibt in der Datenbank nicht stehen (Manifest: ADR 0008).
     """
     with transaction.atomic():
         submission = Submission.objects.select_for_update().get(pk=submission.pk)
@@ -370,8 +372,10 @@ REVOCABLE = (Consent.Kind.PUBLISH_CREDIT, Consent.Kind.EQUIPMENT_PHOTO)
 
 
 def revoke(consent: Consent) -> bool:
-    """Widerruf einer Einwilligung: Sie bekommt einen Zeitpunkt und bleibt stehen. Bei der
-    Namensnennung wird sie gelöscht und die Begleitdateien neu geschrieben, beim Equipment-Foto
+    """Widerruf einer Einwilligung: Sie bekommt einen Zeitpunkt und bleibt als Nachweis stehen,
+    bis die Submission gelöscht wird (`delete_submission` löscht alle Einwilligungen samt
+    Widerruf; danach bleibt allein das Manifest des Exports, ADR 0008). Bei der Namensnennung
+    wird die Namensnennung gelöscht und die Begleitdateien neu geschrieben, beim Equipment-Foto
     werden Foto und Thumbnail sofort gelöscht.
 
     Gibt zurück, ob sich etwas geändert hat: Ein schon vermerkter Widerruf ändert nichts, und
