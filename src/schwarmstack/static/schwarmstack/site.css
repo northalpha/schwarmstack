@@ -190,6 +190,8 @@ select { width: auto; padding: .35rem .6rem; }
 }
 .check input { width: 1.15rem; height: 1.15rem; margin: .25rem 0 0; accent-color: var(--accent); }
 .check label { display: block; font-weight: 500; margin: 0; }
+.check-small label { font-size: .88rem; font-weight: 400; color: var(--muted); }
+.check-small input { width: 1rem; height: 1rem; margin-top: .2rem; }
 .check > .help, .check > .errorlist { grid-column: 2; }
 .errorlist { list-style: none; margin: .45rem 0 0; padding: .45rem .75rem; border-radius: var(--radius-sm); background: var(--error-soft); color: var(--error); font-size: .9rem; font-weight: 500; }
 .errorlist:empty, ul.errorlist:not(:has(li)) { display: none; }
