@@ -1,0 +1,1 @@
+- Tests laufen parallel und ohne Wartezeiten (Entwicklung, kein Einfluss auf den Betrieb): `pytest-xdist` verteilt die Tests auf die Kerne, der Ablauf der Download-Links des lokalen Adapters wird über die Uhr statt mit `sleep` geprüft, und die Tests nutzen einen schnellen Passwort-Hasher. Warum: Die Suite wächst mit dem Projekt, die CI soll trotzdem schnell bleiben.

@@ -29,3 +29,7 @@ STATIC_ROOT.mkdir(parents=True, exist_ok=True)  # noqa: F405
 # locked“ sofort, ohne zu warten, sobald Live-Server-Thread und Test-Thread gleichzeitig
 # zugreifen (E2E-Tests).
 DATABASES["default"]["TEST"] = {"NAME": DATA_DIR / "test-db.sqlite3"}  # noqa: F405
+
+# Der Passwort-Hash ist hier nicht Gegenstand der Tests; der schnelle Hasher spart bei jeder
+# Anmeldung (Admin-Tests, Anmeldebremse) viel Rechenzeit.
+PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
