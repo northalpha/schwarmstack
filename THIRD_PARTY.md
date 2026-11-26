@@ -17,7 +17,3 @@ Schwarmstack steht unter der [MIT-Lizenz](LICENSE). Diese Datei nennt fremden Co
   | polyglot.js (Teil)  | nur Verweis auf die LICENSE im Projekt `airbnb/polyglot.js` | – |
 
   Die Tabelle gibt nur wieder, was das Bündel selbst nennt; die Kurzhinweise dort ersetzen nicht den vollen Lizenztext der jeweiligen Pakete, der in deren npm-Paketen steht. Das Bündel setzt weitere npm-Pakete zusammen; deren Lizenzen stehen in den jeweiligen Paketen und im Paket `uppy`.
-
-## ALTCHA
-
-Das ALTCHA-Widget wird **derzeit nicht mitgeliefert**; im Repo liegt keine Widget-Datei. Die Python-Bibliothek `altcha` (MIT, Copyright (c) 2023 Daniel Regeci) ist als Abhängigkeit eingetragen und wird über ihr Paket mit Lizenz installiert. Wird das Widget später mitgeliefert, kommen Version, Lizenztext und Eintrag hierher, und zwar im selben Pull Request.
