@@ -4,7 +4,7 @@
 #   scripts/selbstbetrieb-test.sh              # Image bauen, setup.sh --lokal zweimal laufen lassen
 #   IMAGE=name:tag scripts/selbstbetrieb-test.sh   # ein schon gebautes Image nehmen
 #
-# Läuft in einer Kopie von deploy/selbst/ in einem Wegwerf-Ordner und fasst das Repo nicht an.
+# Läuft mit einem Arbeitsverzeichnis aus deploy/selbst/ in einem Wegwerf-Ordner und fasst das Repo nicht an.
 # Prüft: /healthz antwortet mit ok, der Bucket ist eingerichtet, CORS besteht den Preflight wie
 # im Browser, und ein zweiter Lauf von setup.sh ändert .env, garage.toml und die Datenbank nicht.
 # Braucht Docker und freie Ports 80 und 443. Ein vollständiger Upload-Test gehört nicht dazu.
@@ -53,6 +53,17 @@ lauf() {
 schritt "Erster Lauf von setup.sh --lokal"
 lauf
 
+# preflight HERKUNFT METHODE BUCKET [curl-Optionen]: OPTIONS wie der Browser, über Caddy.
+preflight() {
+  local herkunft=$1 methode=$2 bucket=$3
+  shift 3
+  curl -sS --max-time 10 --request OPTIONS --resolve s3.localhost:80:127.0.0.1 \
+    --header "Origin: $herkunft" \
+    --header "Access-Control-Request-Method: $methode" \
+    --header "Access-Control-Request-Headers: content-type" \
+    "$@" "http://s3.localhost/$bucket/cors-pruefung"
+}
+
 pruefen() {
   local healthz
   healthz=$(curl -fsS --max-time 10 http://localhost/healthz)
@@ -65,28 +76,19 @@ pruefen() {
   [[ -n $bucket ]] || fehler "S3_BUCKET fehlt in der .env."
   local methode kopf
   for methode in POST PUT GET DELETE; do
-    kopf=$(curl -sS --max-time 10 --include --request OPTIONS \
-      --resolve s3.localhost:80:127.0.0.1 \
-      --header "Origin: http://localhost" \
-      --header "Access-Control-Request-Method: $methode" \
-      --header "Access-Control-Request-Headers: content-type" \
-      "http://s3.localhost/$bucket/cors-pruefung")
+    kopf=$(preflight http://localhost "$methode" "$bucket" --include)
     grep -qi '^HTTP/[0-9.]* 200' <<<"$kopf" || fehler "Preflight $methode: $(head -n1 <<<"$kopf")"
     grep -qi '^access-control-allow-origin: http://localhost' <<<"$kopf" \
       || fehler "Preflight $methode: Access-Control-Allow-Origin fehlt oder passt nicht."
   done
   # Eine fremde Herkunft darf nicht durchkommen (Garage antwortet 403).
   local status
-  status=$(curl -sS --max-time 10 --output /dev/null --write-out '%{http_code}' --request OPTIONS \
-    --resolve s3.localhost:80:127.0.0.1 \
-    --header "Origin: http://fremd.example" \
-    --header "Access-Control-Request-Method: PUT" \
-    "http://s3.localhost/$bucket/cors-pruefung")
+  status=$(preflight http://fremd.example PUT "$bucket" --output /dev/null --write-out '%{http_code}')
   [[ $status == 403 ]] || fehler "Preflight einer fremden Herkunft: HTTP $status statt 403."
 
   # Der Bucket existiert und der Schlüssel der App darf ihn lesen.
   (cd "$selbst" && docker compose exec -T app python manage.py shell -c \
-    "from storage import get_storage; get_storage().client.head_bucket(Bucket=get_storage().bucket); print('bucket-ok')" \
+    "from storage import get_storage; get_storage().ensure_reachable(); print('bucket-ok')" \
     </dev/null | tail -n 1) | grep -qx bucket-ok || fehler "Bucket '$bucket' ist nicht erreichbar."
 }
 
