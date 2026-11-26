@@ -12,3 +12,5 @@ docs
 brand
 deploy
 *.whl
+.env
+.env.*

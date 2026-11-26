@@ -40,6 +40,7 @@ tests/
 deploy/                    # Compose, Caddy, Skripte für Host und Deploy (docs/betrieb/deployment.md)
 └── selbst/                # Selbstbetrieb: compose.yaml (App, Caddy, Garage), setup.sh (docs/betrieb/selbstbetrieb.md)
 scripts/                   # pruefen.sh (alle Prüfungen wie CI), garage.sh, glossar.py, changelog.py;
+                           # release.py + image-pruefen.sh: Release-Hilfen (Skill /release, release.yml);
                            # header_prototyp.py: Wegwerf-Prototyp, zeigt Header roh (Issue #49)
 ```
 
