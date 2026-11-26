@@ -32,3 +32,14 @@ def test_fehlermeldung_nennt_keine_internas():
     response = client.get(_url("GET", key, "gibt-es-nicht"))
     assert response.status_code == 400
     assert response.content.decode() == "Anfrage abgelehnt"
+
+
+def test_etag_in_anfuehrungszeichen_und_entities_wird_gelesen():
+    from storage.local_views import parse_parts
+
+    xml = (
+        "<Part><PartNumber> 1 </PartNumber><ETag>&quot;abc&quot;</ETag></Part>"
+        '<Part><PartNumber>2</PartNumber><ETag>"def"</ETag></Part>'
+        "<Part><PartNumber>3</PartNumber><ETag>&#34;ghi&#34;</ETag></Part>"
+    )
+    assert parse_parts(xml) == [(1, "abc"), (2, "def"), (3, "ghi")]

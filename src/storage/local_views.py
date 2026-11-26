@@ -1,5 +1,6 @@
 """Lokaler Endpunkt, der für Uppy die nötigen S3-Antworten nachbildet (nur lokaler Speicher)."""
 
+import html
 import logging
 import re
 from xml.sax.saxutils import escape
@@ -24,7 +25,11 @@ logger = logging.getLogger(__name__)
 _PART = re.compile(
     r"<PartNumber>\s{0,16}(\d{1,6})\s{0,16}</PartNumber>\s{0,16}<ETag>([^<]{0,200})</ETag>"
 )
-_QUOTES = re.compile(r'^(?:"|&quot;|&#34;)+|(?:"|&quot;|&#34;)+$')
+
+
+def parse_parts(body: str) -> list[tuple[int, str]]:
+    """Teilenummern und ETags aus dem Abschluss-Body; ETags ohne Anführungszeichen."""
+    return [(int(n), html.unescape(e).strip().strip('"')) for n, e in _PART.findall(body)]
 
 
 def _xml(body: str) -> HttpResponse:
@@ -73,7 +78,7 @@ def local_s3(request, token):
             )
         if request.method == "POST":
             body = request.body.decode("utf-8", "replace")
-            parts = [(int(n), _QUOTES.sub("", e.strip())) for n, e in _PART.findall(body)]
+            parts = parse_parts(body)
             etag = storage.complete_multipart(key, upload_id, parts)
             return _xml(
                 "<CompleteMultipartUploadResult>"
