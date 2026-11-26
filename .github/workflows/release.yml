@@ -50,11 +50,17 @@ jobs:
       - run: uv sync --frozen
       - name: Browser für den E2E-Test mit Uppy
         run: uv run playwright install --with-deps chromium
-      # Wie in ci.yml. Der Installer-Test kommt mit dem Issue „Installer-Test“ dazu.
+      # Wie in ci.yml; der Installer-Test läuft als eigener Job „selbstbetrieb“.
       - run: scripts/pruefen.sh
 
+  selbstbetrieb:
+    # Installer-Test (#105) vor dem Veröffentlichen.
+    needs: erkennen
+    if: needs.erkennen.outputs.release == 'true' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/selbstbetrieb.yml
+
   image:
-    needs: [erkennen, test]
+    needs: [erkennen, test, selbstbetrieb]
     runs-on: ubuntu-latest
     permissions:
       contents: read

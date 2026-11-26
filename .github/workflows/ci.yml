@@ -36,6 +36,36 @@ jobs:
       # Lint, Glossar, Changelog, Migrationen und Tests mit Garage und Browser; lokal genauso.
       - run: scripts/pruefen.sh
 
+  # Der Installer-Test läuft nur, wenn sich etwas am Selbstbetrieb ändert (deploy/, also auch
+  # setup.sh); der Release-Workflow ruft selbstbetrieb.yml selbst auf (ADR 0011).
+  aenderungen:
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      selbstbetrieb: ${{ steps.pfade.outputs.selbstbetrieb }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Pfade vergleichen
+        id: pfade
+        env:
+          BASIS: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if ! git cat-file -e "$BASIS^{commit}" 2>/dev/null; then
+            echo "selbstbetrieb=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$BASIS" "$GITHUB_SHA" \
+            | grep -qE '^(deploy/|scripts/selbstbetrieb-test\.sh$|\.github/workflows/selbstbetrieb\.yml$)'; then
+            echo "selbstbetrieb=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "selbstbetrieb=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  selbstbetrieb:
+    needs: aenderungen
+    if: needs.aenderungen.outputs.selbstbetrieb == 'true'
+    uses: ./.github/workflows/selbstbetrieb.yml
+
   image:
     needs: test
     runs-on: ubuntu-latest
