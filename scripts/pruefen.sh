@@ -5,6 +5,7 @@
 #   scripts/pruefen.sh --schnell  # ohne Garage: S3- und Browser-Tests werden übersprungen
 #   scripts/pruefen.sh -- -k admin   # alles nach "--" geht an pytest
 #
+# CodeQL (scripts/codeql.sh) läuft lokal mit, nicht in CI und nicht mit --schnell.
 # Braucht Docker für Garage und Chromium für Playwright (in CI vorher installiert).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -66,6 +67,11 @@ uv run python scripts/glossar.py pruefen
 uv run python scripts/changelog.py pruefen
 schritt Migrationen vollständig
 DEBUG=1 DATA_DIR="$(mktemp -d)" uv run python src/manage.py makemigrations --check --dry-run
+# CI führt CodeQL als eigenen Job (codeql.yml) aus; lokal fängt dies Funde vor dem Push ab.
+if [[ -z $schnell && -z ${GITHUB_ACTIONS:-} ]]; then
+  schritt CodeQL
+  scripts/codeql.sh
+fi
 
 if [[ -n $schnell ]]; then
   schritt "pytest (ohne Garage)"

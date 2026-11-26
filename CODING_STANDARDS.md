@@ -1,7 +1,7 @@
 # Coding Standards
 
 Für das Review: Regeln, die ein Urteil brauchen. Alles Mechanische prüft `scripts/pruefen.sh`
-(ruff, shellcheck, actionlint, zizmor, pip-audit, Sicherheitsausnahmen, doppelte Glossar-Begriffe, Changelog-Ort, Migrationen, Schreibzugriffe in Views); was dort
+(ruff, CodeQL, shellcheck, actionlint, zizmor, pip-audit, Sicherheitsausnahmen, doppelte Glossar-Begriffe, Changelog-Ort, Migrationen, Schreibzugriffe in Views); was dort
 grün ist, wird im Review nicht wiederholt.
 
 ## Sprache des Fachgebiets
