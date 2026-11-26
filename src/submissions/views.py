@@ -74,11 +74,10 @@ def privacy_notice(request, version=None):
     name = privacy.template_name(version)
     if name is None:
         raise Http404
-    return render(
-        request,
-        name,
-        {"version": version, "current": current, "contact": settings.PRIVACY_CONTACT},
-    )
+    if privacy.missing_details():
+        # Lieber kein Hinweis als einer mit leeren Stellen (ADR 0011); der Admin warnt.
+        return render(request, "submissions/datenschutz/unvollstaendig.html", status=503)
+    return render(request, name, {"version": version, "current": current, **privacy.context()})
 
 
 @require_http_methods(["GET"])
