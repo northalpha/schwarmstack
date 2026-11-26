@@ -19,3 +19,7 @@ Sicherheitskorrekturen gibt es nur für den **letzten Release** (siehe [Releases
 ## Was dazugehört
 
 Schwachstellen in Schwarmstack selbst: Zugriff auf Daten anderer Teilnehmender, Umgehen der Quote oder des Zugangs zum Admin, Schwächen beim Upload, Offenlegen von Zugangsdaten. Nicht dazu gehören Fehler in der Einrichtung eines einzelnen Betreibers (Server, Domain, S3-Speicher) und Lücken in Drittsoftware ohne Bezug zu Schwarmstack; melde diese bei den jeweiligen Projekten.
+
+## Automatische Prüfungen
+
+Abhängigkeiten, Docker-Image und Workflows werden in CI automatisch auf bekannte Schwachstellen geprüft (Dependabot, `pip-audit`, Trivy, CodeQL, `zizmor`; siehe [ADR 0012](docs/adr/0012-sicherheitspruefungen-in-ci.md)). Funde ohne Fix und alles unterhalb von High erscheinen im Security-Tab, ohne den Build zu stoppen. Das ersetzt keine Meldung: Wenn du etwas findest, melde es wie oben beschrieben.

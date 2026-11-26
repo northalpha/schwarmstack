@@ -1,0 +1,9 @@
+# Ausnahmen für Sicherheitsfunde von pip-audit und Trivy (ADR 0012).
+# Jeder Eintrag braucht eine Begründung und ein Ablaufdatum; scripts/pruefen.sh prüft beides.
+# Nach dem Ablauf scheitert die Prüfung, bis der Fund behoben oder die Ausnahme begründet
+# verlängert ist.
+#
+# [[ausnahme]]
+# id = "CVE-2026-12345"          # CVE oder GHSA, wie der Scanner sie meldet
+# grund = "Betrifft nur …, im Image nicht erreichbar."
+# bis = 2027-03-01

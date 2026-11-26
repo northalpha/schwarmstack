@@ -1,0 +1,6 @@
+rules:
+  secrets-inherit:
+    # Die Aufrufe von deploy.yml reichen die Deploy-Geheimnisse (SSH, Django, S3, Mail) weiter;
+    # die Liste wäre zweimal dieselbe lange Aufzählung. Beide Aufrufer sind eigene Workflows.
+    ignore:
+      - ci.yml
