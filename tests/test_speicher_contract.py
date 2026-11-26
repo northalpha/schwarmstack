@@ -250,29 +250,43 @@ def signing_backend(request, settings, tmp_path, client):
     return garage_storage(link_seconds=1), HttpBrowser()
 
 
-def test_abgelaufener_link_wird_abgewiesen(signing_backend):
+@pytest.fixture
+def warte_auf_ablauf(signing_backend, monkeypatch):
+    """Lässt die Links ablaufen: lokal verschiebt sie die Uhr, Garage prüft nach der echten Zeit."""
+    storage, _ = signing_backend
+    if isinstance(storage, LocalStorage):
+
+        def uhr_vorstellen():
+            jetzt = time.time()
+            monkeypatch.setattr("storage.local.time.time", lambda: jetzt + 3)
+
+        return uhr_vorstellen
+    return lambda: time.sleep(2.1)
+
+
+def test_abgelaufener_link_wird_abgewiesen(signing_backend, warte_auf_ablauf):
     storage, browser = signing_backend
     url = storage.presign(S3Request("POST", key()))
-    time.sleep(2.1)
+    warte_auf_ablauf()
     # AWS und der lokale Adapter antworten 403, Garage 400 ("Date is too old").
     assert browser.send("POST", url).status in (400, 403)
 
 
-def test_abgelaufener_download_link_wird_abgewiesen(signing_backend):
+def test_abgelaufener_download_link_wird_abgewiesen(signing_backend, warte_auf_ablauf):
     storage, browser = signing_backend
     k = key().replace(".fits", ".json")
     storage.put_json(k, {"a": 1})
     url = storage.download_url(k)
-    time.sleep(2.1)
+    warte_auf_ablauf()
     assert browser.send("GET", url).status in (400, 403)
 
 
-def test_download_link_mit_eigener_gueltigkeit_laeuft_ab(signing_backend):
+def test_download_link_mit_eigener_gueltigkeit_laeuft_ab(signing_backend, warte_auf_ablauf):
     storage, browser = signing_backend
     k = key().replace(".fits", ".json")
     storage.put_json(k, {"a": 1})
     url = storage.download_url(k, seconds=1)
-    time.sleep(2.1)
+    warte_auf_ablauf()
     assert browser.send("GET", url).status in (400, 403)
 
 

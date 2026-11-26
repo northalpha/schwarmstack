@@ -75,7 +75,7 @@ fi
 
 if [[ -n $schnell ]]; then
   schritt "pytest (ohne Garage)"
-  uv run pytest -q "${pytest_args[@]}"
+  uv run pytest -q -n auto "${pytest_args[@]}"
   exit 0
 fi
 
@@ -95,4 +95,8 @@ while IFS='=' read -r name wert; do
   export "$name=$wert"
 done <<<"$garage_env"
 schritt "pytest (mit Garage und Browser)"
-REQUIRE_GARAGE=1 uv run pytest -q "${pytest_args[@]}"
+# Alles außer dem Browser-Test läuft parallel (jeder Test hat eigene Schlüssel und Datenbank);
+# der E2E-Test startet einen Live-Server und läuft danach allein. Exit 5 = nichts gesammelt
+# (z. B. bei `-- -k admin`), das ist hier kein Fehler.
+REQUIRE_GARAGE=1 uv run pytest -q -n auto -m "not e2e" "${pytest_args[@]}"
+REQUIRE_GARAGE=1 uv run pytest -q -m e2e "${pytest_args[@]}" || [[ $? -eq 5 ]]
