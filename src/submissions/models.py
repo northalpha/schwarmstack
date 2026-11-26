@@ -248,6 +248,12 @@ class Master(models.Model):
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name="masters")
     public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     channel = models.CharField("Kanal", max_length=8, choices=Channel.choices)
+    # Herkunft des Kanals: `manuell` (beim Upload gewählt), `header` (vom Header bestätigt).
+    channel_source = _source_field()
+    # Kanal, den der Filter im Header nahelegt; leer ohne eindeutigen Treffer (#95).
+    header_channel = models.CharField(
+        "Kanal laut Header", max_length=8, choices=Channel.choices, blank=True
+    )
     original_name = models.CharField("Dateiname", max_length=255)
     declared_size = models.PositiveBigIntegerField("angemeldete Größe")
     size = models.PositiveBigIntegerField("Größe", null=True, blank=True)

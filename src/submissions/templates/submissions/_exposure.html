@@ -15,6 +15,12 @@
       </fieldset>
     </form>
     {% endif %}
+    {% if p.channel_suggestion %}
+    <form method="post" action="{{ exposure_url }}" class="exposure-suggestion">{% csrf_token %}
+      <input type="hidden" name="accept" value="channel">
+      <span>Der Header nennt den Kanal {{ m.get_header_channel_display }}, gewählt ist {{ m.get_channel_display }}.</span> <button type="submit">Übernehmen</button>
+    </form>
+    {% endif %}
     {% if p.suggestion %}
     <form method="post" action="{{ exposure_url }}" class="exposure-suggestion">{% csrf_token %}
       <input type="hidden" name="accept" value="{{ p.suggestion.field }}">

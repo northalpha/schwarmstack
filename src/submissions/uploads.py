@@ -205,6 +205,7 @@ def start(submission: Submission, *, channel, filename, size) -> tuple[Master, s
         master = Master(
             submission=submission,
             channel=channel,
+            channel_source=exposure.Source.MANUAL,
             original_name=filename.strip()[:255],
             declared_size=size,
             last_activity_at=timezone.now(),
