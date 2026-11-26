@@ -1,0 +1,7 @@
+# Ausnahmen für CodeQL-Funde, die scripts/codeql.sh meldet. Jeder Eintrag braucht eine Begründung.
+# Ein Eintrag gilt für eine Regel in einer Datei, nicht für eine Zeile.
+
+[[ausnahme]]
+regel = "py/stack-trace-exposure"
+datei = "src/submissions/api.py"
+grund = "UploadError trägt eine für Teilnehmende geschriebene Meldung, keinen Stack-Trace."

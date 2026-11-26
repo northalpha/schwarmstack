@@ -40,7 +40,7 @@ tests/
 └── e2e/                   # E2E-Test im echten Browser gegen Garage
 deploy/                    # Compose, Caddy, Skripte für Host und Deploy (docs/betrieb/deployment.md)
 └── self-hosting/          # Self-Hosting: compose.yaml (App, Caddy, Garage), setup.sh (docs/betrieb/self-hosting.md)
-scripts/                   # pruefen.sh (alle Prüfungen wie CI), ausnahmen.py (liest `sicherheit-ausnahmen.toml` im Repo-Root: Ausnahmen für Sicherheitsfunde, ADR 0012; `.github/`: Workflows, dependabot.yml, zizmor.yml), installer-test.sh (Installer-Test), garage.sh, glossar.py, changelog.py;
+scripts/                   # pruefen.sh (alle Prüfungen wie CI), ausnahmen.py (liest `sicherheit-ausnahmen.toml` im Repo-Root: Ausnahmen für Sicherheitsfunde, ADR 0012; `.github/`: Workflows, dependabot.yml, zizmor.yml), installer-test.sh (Installer-Test), garage.sh, glossar.py, changelog.py, codeql.sh (CodeQL lokal wie der CI-Job, ~20 s; Ausnahmen mit Begründung in `codeql-ausnahmen.toml` im Repo-Root);
                            # release.py + image-pruefen.sh: Release-Hilfen (Skill /release, release.yml); image-pruefen.sh prüft auch die Fotobereinigung im Image (image_foto_pruefen.py, ADR 0014);
                            # header_prototyp.py: Wegwerf-Prototyp, zeigt Header roh (Issue #49)
 ```
