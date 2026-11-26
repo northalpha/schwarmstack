@@ -46,7 +46,7 @@ def local_s3(request, token):
                 "</InitiateMultipartUploadResult>"
             )
         if request.method == "PUT" and signed.part_number is not None:
-            etag = storage.upload_part(key, upload_id, signed.part_number, request)
+            etag = storage.upload_part(key, upload_id, signed.part_number, request, signed.max_size)
             response = HttpResponse(status=200)
             response["ETag"] = f'"{etag}"'
             return response

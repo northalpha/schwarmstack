@@ -270,7 +270,9 @@ def sign(master: Master, *, method, key, upload_id=None, part_number=None) -> st
     master.upload_id = upload_id
     master.last_activity_at = timezone.now()
     master.save(update_fields=["upload_id", "last_activity_at"])
-    return get_storage().presign(S3Request(method, key, upload_id, part_number))
+    return get_storage().presign(
+        S3Request(method, key, upload_id, part_number, max_size=master.declared_size)
+    )
 
 
 def finish(master: Master, *, sha256) -> Master:

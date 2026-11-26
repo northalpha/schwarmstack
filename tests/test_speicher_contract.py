@@ -16,7 +16,7 @@ from storage_backends import (
 )
 
 from storage import S3Request
-from storage.local import LocalStorage
+from storage.local import LocalStorage, StorageError
 
 MB = 1024 * 1024
 FIRST = bytes(range(256)) * (5 * MB // 256 + 1)  # S3 verlangt mind. 5 MB außer im letzten Teil
@@ -302,3 +302,48 @@ def test_s3_adapter_verweigert_unbekannte_anfragen(moto_endpoint):
         storage.presign(S3Request("PUT", key()))  # einfacher PUT ohne Multipart
     with pytest.raises(ValueError):
         storage.presign(S3Request("PUT", key(), "u"))  # Teil ohne Nummer
+
+
+# -- Teilgröße ist durch die angemeldete Größe begrenzt (#135, nur lokaler Adapter) ----------
+
+
+def test_lokal_teil_ueber_angemeldete_groesse_wird_abgelehnt(tmp_path, client, settings):
+    settings.STORAGE_LOCAL_DIR = tmp_path
+    storage, browser, k = LocalStorage(tmp_path), DjangoBrowser(client), key()
+    upload_id = create(storage, browser, k)
+    url = storage.presign(S3Request("PUT", k, upload_id, 1, max_size=10))
+    assert browser.send("PUT", url, b"x" * 11).status == 400
+    assert storage.list_parts(k, upload_id) == []
+
+
+def test_lokal_teile_zusammen_nicht_ueber_angemeldete_groesse(tmp_path, client, settings):
+    settings.STORAGE_LOCAL_DIR = tmp_path
+    storage, browser, k = LocalStorage(tmp_path), DjangoBrowser(client), key()
+    upload_id = create(storage, browser, k)
+    first = storage.presign(S3Request("PUT", k, upload_id, 1, max_size=10))
+    second = storage.presign(S3Request("PUT", k, upload_id, 2, max_size=10))
+    assert browser.send("PUT", first, b"x" * 6).status == 200
+    assert browser.send("PUT", second, b"x" * 5).status == 400
+    assert browser.send("PUT", second, b"x" * 4).status == 200
+    assert [n for n, _, _ in storage.list_parts(k, upload_id)] == [1, 2]
+
+
+def test_lokal_teil_ersetzen_zaehlt_nur_einmal(tmp_path, client, settings):
+    settings.STORAGE_LOCAL_DIR = tmp_path
+    storage, browser, k = LocalStorage(tmp_path), DjangoBrowser(client), key()
+    upload_id = create(storage, browser, k)
+    url = storage.presign(S3Request("PUT", k, upload_id, 1, max_size=10))
+    assert browser.send("PUT", url, b"x" * 10).status == 200
+    assert browser.send("PUT", url, b"y" * 10).status == 200  # Wiederholung desselben Teils
+    assert storage.list_parts(k, upload_id)[0][2] == 10
+
+
+def test_lokal_upload_part_begrenzt_den_datenstrom(tmp_path):
+    import io
+
+    storage = LocalStorage(tmp_path)
+    k = key()
+    upload_id = storage.create_multipart(k)
+    with pytest.raises(StorageError):
+        storage.upload_part(k, upload_id, 1, io.BytesIO(b"x" * 11), max_size=10)
+    assert storage.list_parts(k, upload_id) == []
