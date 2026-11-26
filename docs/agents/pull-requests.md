@@ -6,7 +6,7 @@ Jede Session, die Code oder Doku ändert, legt am Ende einen Pull Request an und
 
 1. **Vorher prüfen:** `scripts/pruefen.sh` (Cloud: ggf. `dockerd &>/tmp/dockerd.log &`, sonst `--schnell` und im Bericht sagen, dass es so war).
 2. **Pushen** auf den eigenen Branch, nie auf `main`.
-3. **PR gegen `main` anlegen.** Der Text folgt dem Skill `pr`. `Closes #<Issue>` steht nur drin, wenn das Issue damit ganz erledigt ist. Bleibt ein Rest offen, steht er im PR-Text, und das Issue bleibt offen.
+3. **PR gegen `main` anlegen.** Der Text folgt dem Skill `pr`. Wenn die Session ein Issue ganz erledigt (auch bei `/implement`), steht immer `Closes #<Issue>` im PR-Text (bei einem Bug `Fixes #<Issue>`), in einer eigenen Zeile; fehlt es, schließt der Merge das Issue nicht. Bleibt ein Rest offen, steht er im PR-Text, und das Issue bleibt offen.
 4. **PR abonnieren** (`subscribe_pr_activity`) und den Turn beenden. Nicht pollen, nicht schlafen: Ein Ereignis weckt die Session.
 5. **Auf die CI warten** und jedes Ergebnis prüfen: `test` und `image` müssen grün sein, ebenso `installer`, wenn er läuft (nur bei Änderungen an `deploy/` und am `Dockerfile`). Übersprungene Jobs (`staging`, `production`, `von-hand`, ggf. `installer`) sind in Ordnung.
 6. **Melden**, sobald die CI grün und der PR konfliktfrei ist: Link, was geändert wurde, was nur lokal und was in der CI lief. Danach nicht mergen und auf das Review warten.

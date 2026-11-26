@@ -1,0 +1,1 @@
+- Pull Requests aus `/implement` (Entwicklung, kein Einfluss auf den Betrieb): Löst der PR ein Issue ganz, steht immer `Closes #<Issue>` im Text. Warum: Sonst bleibt das Issue nach dem Merge offen.
