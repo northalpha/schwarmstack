@@ -1,1 +1,0 @@
-- Namensnennung widerrufen: Auf der Seite „Angaben ändern“ gibt es jetzt unter dem Namen ein Häkchen zum Widerruf. Der Link auf der Submission-Seite erscheint nur noch, wenn sich Angaben nicht mehr ändern lassen (nach dem Ende der Aktion). Warum: Der Widerruf gehört zu den Angaben zum Namen.
