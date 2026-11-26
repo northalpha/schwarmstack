@@ -24,7 +24,7 @@ Lokal gebaut, `linux/amd64`, gleiche Quellen und `uv.lock`:
 
 Die Speicher-Spitze enthält das Erzeugen des Testbilds im selben Prozess; sie taugt nur zum Vergleich. Unter musl zeigte sich kein spürbarer Nachteil bei großen Fotos.
 
-**Nicht gemessen:** Der Trivy-Bericht beider Images und der Stand nach `apk upgrade`. Die Sandbox, in der der Umbau entstand, sperrt `dl-cdn.alpinelinux.org`; gebaut und gemessen wurde ohne `apk upgrade`. Beides liefert die CI (Trivy im `image`-Job, Größe im Build-Log) und steht im PR. Das Gate und die Schwellen (ADR 0012) bleiben unverändert. `linux/arm64`: Für `pillow` und `pillow-heif` gibt es laut `uv.lock` `musllinux`-Wheels für `aarch64`, gebaut wurde nur `amd64`; der Release-Workflow baut beide Plattformen.
+**CI (Alpine 3.24, mit `apk upgrade`):** Trivy meldet im `image`-Job 0 Funde bei 29 Systempaketen und in allen Python-Paketen. Einen Trivy-Vergleich mit dem alten Debian-Image gibt es nicht; die lokalen Größen oben entstanden ohne `apk upgrade`, weil die Sandbox `dl-cdn.alpinelinux.org` sperrt. Das Gate und die Schwellen (ADR 0012) bleiben unverändert. `linux/arm64`: Für `pillow` und `pillow-heif` gibt es laut `uv.lock` `musllinux`-Wheels für `aarch64`, gebaut wurde nur `amd64`; der Release-Workflow baut beide Plattformen.
 
 ## Distroless (bewertet, nicht umgesetzt)
 
