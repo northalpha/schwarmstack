@@ -161,7 +161,7 @@ class LocalStorage:
         written = 0
         try:
             with temp.open("wb") as out:
-                while chunk := stream.read(1024 * 1024):
+                while chunk := stream.read(self._read_size(remaining, written)):
                     written += len(chunk)
                     if remaining is not None and written > remaining:
                         raise StorageError("Teil größer als die angemeldete Größe")
@@ -171,6 +171,12 @@ class LocalStorage:
         finally:
             temp.unlink(missing_ok=True)
         return digest.hexdigest()
+
+    @staticmethod
+    def _read_size(remaining: int | None, written: int) -> int:
+        """Liest höchstens ein Byte über die Grenze hinaus, damit der Abbruch früh kommt."""
+        chunk = 1024 * 1024
+        return chunk if remaining is None else min(chunk, remaining - written + 1)
 
     def list_parts(self, key: str, upload_id: str) -> list[tuple[int, str, int]]:
         directory = self._checked_upload(key, upload_id)
