@@ -43,9 +43,10 @@ def pruefen(eintraege: list[dict], heute: date) -> list[str]:
             fehler.append(f"{name}: bis muss ein Datum sein, nicht {e['bis']!r}")
         elif _abgelaufen(e, heute):
             fehler.append(f"{name}: abgelaufen am {e['bis']}; beheben oder begründet verlängern")
-        if e.get("id") in gesehen:
+        kennung = str(e.get("id", "")).strip()
+        if kennung and kennung in gesehen:
             fehler.append(f"{name}: id doppelt")
-        gesehen.add(e.get("id"))
+        gesehen.add(kennung)
     return fehler
 
 
