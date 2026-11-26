@@ -24,6 +24,13 @@ OPTIONAL=(
   DEFAULT_FROM_EMAIL
 )
 
+# Releases (vX.Y.Z) liegen im Release-Package, Stände von main (sha-…) in schwarmstack-ci.
+if [[ $IMAGE_TAG == v* ]]; then
+  IMAGE=ghcr.io/northalpha/schwarmstack
+else
+  IMAGE=ghcr.io/northalpha/schwarmstack-ci
+fi
+
 fehlend=()
 for name in "${PFLICHT[@]}"; do
   [[ -n ${!name:-} ]] || fehlend+=("$name")
@@ -60,6 +67,7 @@ zeile() {
 }
 
 {
+  zeile IMAGE "$IMAGE"
   zeile IMAGE_TAG "$IMAGE_TAG"
   zeile DOMAIN "$DOMAIN"
   zeile ADMIN_PATH "$ADMIN_PATH"
@@ -100,4 +108,4 @@ scp -q "${ssh_optionen[@]}" compose.yaml Caddyfile auf-dem-host.sh "$arbeit/.env
 # Der Token geht über stdin, nie über die Kommandozeile des Hosts.
 # shellcheck disable=SC2029  # Werte werden hier mit %q für die Gegenseite maskiert.
 printf '%s\n' "$REGISTRY_TOKEN" | ssh "${ssh_optionen[@]}" "$ziel" \
-  "bash /opt/schwarmstack/neu/auf-dem-host.sh $(printf '%q ' "$IMAGE_TAG" "$DOMAIN" "$REGISTRY_USER")"
+  "bash /opt/schwarmstack/neu/auf-dem-host.sh $(printf '%q ' "$IMAGE" "$IMAGE_TAG" "$DOMAIN" "$REGISTRY_USER")"

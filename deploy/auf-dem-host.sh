@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
 # Teil des Deploys, der als `deploy` auf dem Host läuft; deploy.sh kopiert das Skript per SSH.
 #
-#   auf-dem-host.sh <image-tag> <domain> <registry-benutzer>   (Registry-Token auf stdin)
+#   auf-dem-host.sh <image> <image-tag> <domain> <registry-benutzer>   (Registry-Token auf stdin)
 #
 # Schlagen Bucket-Einrichtung oder Migration fehl, bleiben die alten Dateien und die alte
 # Version laufen.
 set -euo pipefail
 
-IMAGE_TAG=${1:?Image-Tag fehlt}
-DOMAIN=${2:?Domain fehlt}
-REGISTRY_USER=${3:?Registry-Benutzer fehlt}
+IMAGE=${1:?Image fehlt}
+IMAGE_TAG=${2:?Image-Tag fehlt}
+DOMAIN=${3:?Domain fehlt}
+REGISTRY_USER=${4:?Registry-Benutzer fehlt}
 IFS= read -r REGISTRY_TOKEN
 # Danach liest nichts mehr von stdin (docker compose run würde sonst darauf warten).
 exec </dev/null
-IMAGE=ghcr.io/northalpha/schwarmstack:$IMAGE_TAG
+IMAGE=$IMAGE:$IMAGE_TAG
 DATEIEN=(compose.yaml Caddyfile .env)
 
 cd /opt/schwarmstack
