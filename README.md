@@ -1,3 +1,5 @@
+[![Deploy](https://github.com/northalpha/schwarmstack/actions/workflows/deploy.yml/badge.svg)](https://github.com/northalpha/schwarmstack/actions/workflows/deploy.yml)
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="brand/schwarmstack-logo-dark-bg.svg">
   <img alt="Schwarmstack – Viele Teleskope, ein Stack." src="brand/schwarmstack-logo.svg" width="480">
