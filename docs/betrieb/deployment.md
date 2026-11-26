@@ -4,7 +4,7 @@ Schwarmstack läuft als Container-Image mit Docker Compose (App mit gunicorn, Ca
 
 | Was | Wo |
 |---|---|
-| Image | `Dockerfile`, Releases (`vX.Y.Z`) nach `ghcr.io/northalpha/schwarmstack` (privat, bis das Repo öffentlich ist), Stände von `main` (`sha-<commit>`) nach `ghcr.io/northalpha/schwarmstack-ci` |
+| Image | `Dockerfile`, Releases (`vX.Y.Z`) nach `ghcr.io/northalpha/schwarmstack` (öffentlich), Stände von `main` (`sha-<commit>`) nach `ghcr.io/northalpha/schwarmstack-ci` |
 | Compose-Datei, Caddyfile | `deploy/compose.yaml`, `deploy/Caddyfile` (für beide Umgebungen gleich) |
 | Einrichtung des Hosts | `deploy/host-einrichten.sh` (cloud-init oder per SSH) |
 | Deploy | `.github/workflows/ci.yml` → `deploy.yml` → `deploy/deploy.sh` → `deploy/auf-dem-host.sh` |
