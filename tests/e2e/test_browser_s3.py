@@ -58,6 +58,16 @@ def campaign(transactional_db):
     )
 
 
+def csp_violations(page):
+    """Meldungen, mit denen der Browser Verstöße gegen die Content-Security-Policy anzeigt."""
+    verstoesse = []
+    page.on(
+        "console",
+        lambda msg: verstoesse.append(msg.text) if "Content Security Policy" in msg.text else None,
+    )
+    return verstoesse
+
+
 def test_master_geht_direkt_in_s3(live_server, campaign, s3_settings, browser, tmp_path):
     data = fits(width=2000, height=1500)  # 12 MB, also zwei Teile à 8 MB
     path = tmp_path / "m101_L.fits"
@@ -66,6 +76,7 @@ def test_master_geht_direkt_in_s3(live_server, campaign, s3_settings, browser, t
     page = browser.new_page()
     errors = []
     page.on("pageerror", lambda exc: errors.append(str(exc)))
+    verstoesse = csp_violations(page)
     page.goto(live_server.url)
     # Der Name hängt am Häkchen zur Namensnennung (Ticket #33).
     assert page.is_disabled("[name=credit_name]")
@@ -82,6 +93,9 @@ def test_master_geht_direkt_in_s3(live_server, campaign, s3_settings, browser, t
     page.click(".uploader button.start")
     page.wait_for_selector("table.masters td:has-text('angenommen')", timeout=60_000)
     assert errors == []
+    # Die scharfe Policy (schwarmstack/security_headers.py) hat nichts blockiert: weder Uppy noch
+    # der Worker für die Prüfsumme noch der direkte Upload zu S3.
+    assert verstoesse == []
 
     master = Master.objects.get()
     assert master.state == Master.State.ACCEPTED

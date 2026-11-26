@@ -1,12 +1,7 @@
 {% extends "admin/index.html" %}
+{% load static %}
 {% block extrastyle %}{{ block.super }}
-<style>
-  .statistik { margin-bottom: 2em; }
-  .statistik section { margin-bottom: 1.5em; }
-  .statistik table { min-width: 24em; }
-  .statistik td.zahl, .statistik th.zahl { text-align: right; font-variant-numeric: tabular-nums; }
-  .statistik progress { width: 24em; max-width: 100%; height: 1em; }
-</style>
+<link rel="stylesheet" href="{% static 'schwarmstack/statistik.css' %}">
 {% endblock %}
 {% block content %}
 {% with s=statistik %}

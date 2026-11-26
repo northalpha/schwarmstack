@@ -11,6 +11,7 @@ Schwarmstack ist ein Hobbyprojekt. Ziel ist ein gesundes Maß an Sicherheit ohne
 - **Code:** CodeQL für Python und die Workflows, bei PRs, bei Pushes auf `main` und wöchentlich.
 - **Ausnahmen:** Eine Datei, `sicherheit-ausnahmen.toml`. Jeder Eintrag hat `id`, `grund` und `bis`. `scripts/pruefen.sh` prüft Pflichtfelder und Ablauf (`scripts/ausnahmen.py`); abgelaufene Ausnahmen gelten nicht mehr und lassen die Prüfung scheitern. `pip-audit` und Trivy lesen dieselben IDs.
 - **Bewusst weggelassen:** OWASP ZAP. Es braucht eine laufende Instanz mit Testdaten und liefert für den Aufwand vorerst zu wenig; das Review der Anwendung (Teil 3 der Sicherheitsüberprüfung) deckt das Wichtige ab.
+- **Header und Deploy-Prüfung (#122):** Eine eigene Middleware (`schwarmstack/security_headers.py`) setzt die Content-Security-Policy, `X-Frame-Options: DENY` und die `Permissions-Policy`, ganz außen, damit auch Fehlerantworten sie tragen. Sie liegt in Django statt in Caddy, weil der E2E-Test gegen `live_server` ohne Caddy läuft und der echte Browser die Policy nur so mitprüft; außerdem gilt sie dann bei beiden Caddyfiles und bei eigenen Proxys im Selbstbetrieb. Die Policy kennt kein `unsafe-inline`; `connect-src` enthält den S3-Ursprung aus den Settings, weil Uppy direkt zu S3 hochlädt. Skripte und Styles liegen deshalb nur als statische Dateien vor. `CSP_REPORT_ONLY=true` stellt die Policy im Notfall auf „nur melden“. `manage.py check --deploy` läuft in `scripts/pruefen.sh` und lässt jede Warnung scheitern; die Ausnahmen (`W004`, `W008`, `W021`) stehen mit Grund in den Settings.
 
 ## Consequences
 
@@ -18,3 +19,4 @@ Schwarmstack ist ein Hobbyprojekt. Ziel ist ein gesundes Maß an Sicherheit ohne
 - Lokal prüft `zizmor` ohne GitHub-Token nur offline; in CI läuft es mit Token vollständig.
 - Neue Funde ohne Fix erscheinen nur im Security-Tab und brauchen dort einen Blick der Betreiber.
 - Repo-Einstellungen (Secret-Scanning, Push-Protection, Private Vulnerability Reporting, Branch-Schutz) macht der Betreiber von Hand; sie sind nicht Teil dieser Entscheidung.
+- Neue Seiten dürfen kein Inline-`<script>` oder `<style>` und kein `style=`-Attribut enthalten; der E2E-Test meldet Verstöße gegen die Policy.
