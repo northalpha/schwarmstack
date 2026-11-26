@@ -1,1 +1,0 @@
-- Das Release-Image `ghcr.io/northalpha/schwarmstack` ist öffentlich, wie das Repo. Warum: Selbstbetreiber (ADR 0011) ziehen es ohne Anmeldung; `docs/betrieb/deployment.md` und ADR 0011 sagten noch „privat“.

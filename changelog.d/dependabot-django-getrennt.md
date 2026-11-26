@@ -1,1 +1,0 @@
-- Dependabot (#132): Django kommt in einem eigenen PR statt im Sammel-PR der Python-Abhängigkeiten, Major-Sprünge schlägt Dependabot nicht mehr vor. Warum: Feature-Releases entfernen Deprecations und brauchen Planung; sie sollen nicht zwischen Bumps von Pillow oder boto3 untergehen.
