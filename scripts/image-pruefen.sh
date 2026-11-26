@@ -7,9 +7,10 @@ set -euo pipefail
 image=${1:?Aufruf: scripts/image-pruefen.sh <image>}
 
 # Das Image enthält nur Python und die App; Funde außerhalb von Systempfaden sind Fehler.
+# `cacert.pem` ist das öffentliche CA-Bündel von certifi (pip, botocore), kein privater Schlüssel.
 fund=$(docker run --rm --entrypoint sh "$image" -c '
   find / -xdev \( -path /proc -o -path /sys -o -path /usr/share -o -path /etc/ssl \) -prune -o \
-    -type f \( -name ".env" -o -name ".env.*" -o -name "*.pem" -o -name "*.key" \
+    -type f ! -name cacert.pem \( -name ".env" -o -name ".env.*" -o -name "*.pem" -o -name "*.key" \
                -o -name "id_rsa*" -o -name "id_ed25519*" -o -name "credentials" \
                -o -name ".netrc" -o -name "*.sqlite3" \) -print 2>/dev/null
   grep -rIlE "ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY" \
