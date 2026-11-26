@@ -1,1 +1,0 @@
-- Release-Image-Prüfung (#99): `scripts/image-pruefen.sh` meldet das öffentliche CA-Bündel `cacert.pem` (certifi in pip und botocore) nicht mehr als Schlüsseldatei. Warum: Der Probelauf von `release.yml` brach daran im Schritt „Keine .env und keine Zugangsdaten im Image“ ab, obwohl nichts Geheimes im Image lag.
