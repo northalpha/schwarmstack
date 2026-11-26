@@ -1,4 +1,4 @@
-[![Deploy](https://github.com/northalpha/schwarmstack/actions/workflows/deploy.yml/badge.svg)](https://github.com/northalpha/schwarmstack/actions/workflows/deploy.yml)
+[![Deploy](https://github.com/northalpha/schwarmstack/actions/workflows/deploy.yml/badge.svg)](https://github.com/northalpha/schwarmstack/actions/workflows/deploy.yml)[![CI](https://github.com/northalpha/schwarmstack/actions/workflows/ci.yml/badge.svg)](https://github.com/northalpha/schwarmstack/actions/workflows/ci.yml)[![CodeQL](https://github.com/northalpha/schwarmstack/actions/workflows/codeql.yml/badge.svg)](https://github.com/northalpha/schwarmstack/actions/workflows/codeql.yml)[![Dependabot Updates](https://github.com/northalpha/schwarmstack/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/northalpha/schwarmstack/actions/workflows/dependabot/dependabot-updates)[![Release](https://github.com/northalpha/schwarmstack/actions/workflows/release.yml/badge.svg)](https://github.com/northalpha/schwarmstack/actions/workflows/release.yml)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="brand/schwarmstack-logo-dark-bg.svg">
