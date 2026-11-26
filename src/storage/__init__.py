@@ -25,6 +25,8 @@ class S3Request:
     key: str
     upload_id: str | None = None
     part_number: int | None = None
+    # Angemeldete Gesamtgröße; der lokale Adapter begrenzt damit die Teile (#135). S3 ignoriert sie.
+    max_size: int | None = None
 
 
 class Storage(Protocol):

@@ -36,6 +36,8 @@ def sign_token(request: S3Request, seconds: int | None = None) -> str:
         payload["u"] = request.upload_id
     if request.part_number is not None:
         payload["p"] = request.part_number
+    if request.max_size is not None:
+        payload["s"] = request.max_size
     return signing.dumps(payload, salt=_SALT, compress=True)
 
 
@@ -44,7 +46,9 @@ def read_token(token: str) -> S3Request:
     payload = signing.loads(token, salt=_SALT)
     if time.time() >= payload["e"]:
         raise signing.SignatureExpired("Link abgelaufen")
-    return S3Request(payload["m"], payload["k"], payload.get("u"), payload.get("p"))
+    return S3Request(
+        payload["m"], payload["k"], payload.get("u"), payload.get("p"), payload.get("s")
+    )
 
 
 class LocalStorage:
@@ -138,15 +142,41 @@ class LocalStorage:
         (directory / "key").write_text(key)
         return upload_id
 
-    def upload_part(self, key: str, upload_id: str, part_number: int, stream) -> str:
-        """Schreibt einen Teil als Datenstrom; gibt den ETag (MD5) zurück."""
+    def upload_part(
+        self, key: str, upload_id: str, part_number: int, stream, max_size: int | None = None
+    ) -> str:
+        """Schreibt einen Teil als Datenstrom; gibt den ETag (MD5) zurück.
+
+        Mit `max_size` dürfen alle Teile zusammen die angemeldete Größe nicht überschreiten
+        (ein neu gesendeter Teil ersetzt den alten); sonst StorageError und es bleibt nichts liegen.
+        """
         directory = self._checked_upload(key, upload_id)
+        target = directory / f"part-{part_number:05d}"
+        remaining = None
+        if max_size is not None:
+            others = sum(path.stat().st_size for path in directory.glob("part-*") if path != target)
+            remaining = max(max_size - others, 0)
+        temp = directory / f"tmp-{uuid.uuid4().hex}"
         digest = hashlib.md5(usedforsecurity=False)
-        with (directory / f"part-{part_number:05d}").open("wb") as out:
-            while chunk := stream.read(1024 * 1024):
-                digest.update(chunk)
-                out.write(chunk)
+        written = 0
+        try:
+            with temp.open("wb") as out:
+                while chunk := stream.read(self._read_size(remaining, written)):
+                    written += len(chunk)
+                    if remaining is not None and written > remaining:
+                        raise StorageError("Teil größer als die angemeldete Größe")
+                    digest.update(chunk)
+                    out.write(chunk)
+            temp.replace(target)
+        finally:
+            temp.unlink(missing_ok=True)
         return digest.hexdigest()
+
+    @staticmethod
+    def _read_size(remaining: int | None, written: int) -> int:
+        """Liest höchstens ein Byte über die Grenze hinaus, damit der Abbruch früh kommt."""
+        chunk = 1024 * 1024
+        return chunk if remaining is None else min(chunk, remaining - written + 1)
 
     def list_parts(self, key: str, upload_id: str) -> list[tuple[int, str, int]]:
         directory = self._checked_upload(key, upload_id)
