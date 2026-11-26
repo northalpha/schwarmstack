@@ -10,6 +10,10 @@
 # und Betreiber-Konto bleiben, wie sie sind. Ein Versionswechsel ist
 # `git fetch --tags && git checkout vX.Y.Z && ./setup.sh`.
 #
+# Läuft unter Linux und auf dem Mac (macOS mit Apple Silicon, Docker Desktop oder OrbStack): nur
+# POSIX-Werkzeuge mit Optionen, die auch die BSD-Varianten kennen, und bash 3.2 (Standard auf dem Mac).
+# Der echte Betrieb mit Zertifikat ist für einen Linux-Server gedacht, auf dem Mac gilt --lokal.
+#
 # Nur für Entwicklung und den Installer-Test der CI:
 #   IMAGE_TAG=<tag>  nimmt dieses Image statt der Version aus pyproject.toml (kein Tag nötig)
 #   IMAGE=<name>     nimmt ein anderes Image (z. B. ein lokal gebautes)
@@ -35,7 +39,9 @@ for arg in "$@"; do
 done
 
 # --- Version ----------------------------------------------------------------------------------
-version=$(sed -n '/^version = "/{s/^version = "\(.*\)"$/\1/;p;q}' "$wurzel/pyproject.toml")
+version=$(grep -m1 '^version = "' "$wurzel/pyproject.toml" || true)
+version=${version#version = \"}
+version=${version%\"}
 [[ -n $version ]] || fehler "Keine Version in pyproject.toml gefunden."
 if [[ -z ${IMAGE_TAG:-} ]]; then
   tag=$(git -C "$wurzel" describe --exact-match --tags HEAD 2>/dev/null || true)
@@ -52,7 +58,10 @@ fi
 # variable geht vor.
 alt() {
   [[ -f .env ]] || return 0
-  sed -n "/^$1='/{s/^$1='\\(.*\\)'\$/\\1/;p;q}" .env
+  local zeile
+  zeile=$(grep -m1 "^$1='" .env || true)
+  zeile=${zeile#*=\'}
+  printf '%s\n' "${zeile%\'}"
 }
 
 modus_alt=$(alt MODUS)
@@ -125,7 +134,10 @@ if [[ ! $DOMAIN =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]]; then
   fehler "DOMAIN ist keine Domain ohne Schema und Pfad: '$DOMAIN'"
 fi
 
-if [[ -z $lokal && ${DNS_PRUEFEN:-ja} != nein ]]; then
+if [[ -z $lokal && ${DNS_PRUEFEN:-ja} != nein ]] && ! command -v getent >/dev/null; then
+  # Auf dem Mac gibt es weder getent noch hostname -I.
+  echo "Hinweis: Die DNS-Prüfung gibt es nur unter Linux (getent fehlt) und wird übersprungen." >&2
+elif [[ -z $lokal && ${DNS_PRUEFEN:-ja} != nein ]]; then
   schritt "DNS prüfen"
   eigene=" $(hostname -I 2>/dev/null || true) "
   erste=${eigene# }
@@ -158,7 +170,7 @@ for programm in docker curl; do
   command -v "$programm" >/dev/null || fehler "$programm fehlt. Siehe docs/betrieb/selbstbetrieb.md."
 done
 docker compose version >/dev/null 2>&1 || fehler "Docker Compose (Plugin) fehlt."
-docker info >/dev/null 2>&1 || fehler "Docker antwortet nicht. Läuft der Dienst, und darf dieser Benutzer ihn nutzen?"
+docker info >/dev/null 2>&1 || fehler "Docker antwortet nicht. Läuft der Dienst (auf dem Mac: Docker Desktop oder OrbStack gestartet?), und darf dieser Benutzer ihn nutzen?"
 
 # --- Geheimnisse -------------------------------------------------------------------------------
 zufall() { od -An -tx1 -N"$1" /dev/urandom | tr -d ' \n'; }
@@ -186,7 +198,7 @@ ersetzen() { # ersetzen ZIEL TEMP: nur austauschen, wenn sich etwas ändert
   if [[ -f $1 ]] && cmp -s "$1" "$2"; then rm -f "$2"; else mv "$2" "$1"; fi
 }
 
-temp=$(mktemp -p data)
+temp=$(mktemp data/.tmp.XXXXXX)
 cat >"$temp" <<TOML
 metadata_dir = "/var/lib/garage/meta"
 data_dir = "/var/lib/garage/data"
@@ -212,7 +224,7 @@ zeile() {
   fi
   printf "%s='%s'\n" "$1" "$2"
 }
-temp=$(mktemp -p data)
+temp=$(mktemp data/.tmp.XXXXXX)
 {
   zeile MODUS "$modus"
   zeile IMAGE_TAG "$IMAGE_TAG"

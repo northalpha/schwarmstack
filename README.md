@@ -76,7 +76,7 @@ Danach ist die Teilnahmeseite unter <http://localhost:8000/> erreichbar, der Adm
 
 ## Selbst betreiben
 
-Ein Compose mit App, Caddy (TLS) und S3-kompatiblem Speicher (Garage), eingerichtet von einem Skript, ist geplant ([ADR 0011](docs/adr/0011-release-und-selbstbetrieb.md), Umsetzung in den Issues zu Release, Selbstbetrieb und Installer-Test). Bis dahin beschreibt [`docs/betrieb/deployment.md`](docs/betrieb/deployment.md), wie die Betreiber der DZVF-Aktion Schwarmstack ausrollen: Container-Image, Docker Compose, Caddy, ein eigener S3-Speicher, Deploy per GitHub Actions. Das lässt sich auf eine eigene Installation übertragen, ist aber kein Einzeiler.
+Ein Skript richtet App, Caddy (TLS) und S3-kompatiblen Speicher (Garage) mit Docker Compose ein: `deploy/selbst/setup.sh`, beschrieben in [`docs/betrieb/selbstbetrieb.md`](docs/betrieb/selbstbetrieb.md) ([ADR 0011](docs/adr/0011-release-und-selbstbetrieb.md)). Zum Ausprobieren mit Docker, auch auf dem Mac mit Apple Silicon, startet `./setup.sh --lokal` alles auf `localhost` ohne Zertifikat. Wie die Betreiber der DZVF-Aktion ausrollen (GitHub Actions, eigener S3-Speicher), steht in [`docs/betrieb/deployment.md`](docs/betrieb/deployment.md).
 
 Wichtig für jeden Betreiber: Der mitgelieferte Datenschutzhinweis ist auf die DZVF-Aktion zugeschnitten. Wer Schwarmstack selbst betreibt, braucht einen eigenen Hinweis und ist selbst dafür verantwortlich. Das hier ist keine Rechtsberatung.
 

@@ -55,6 +55,40 @@ Fehlt eine Angabe und gibt es kein Terminal, bricht das Skript ab und nennt die 
 
 startet alles auf `localhost` ohne Zertifikat und mit Probe-Angaben (Ports 80 und 443 müssen frei sein). **Nur zum Ausprobieren, nicht für Teilnehmerdaten.** Probemodus und echter Betrieb lassen sich nicht in derselben `.env` mischen.
 
+### Ausprobieren auf dem Mac (Apple Silicon)
+
+Der Probemodus läuft auch auf einem Mac mit Apple Silicon (macOS 26 und neuer), ohne Rosetta: Das Image gibt es für `linux/arm64`, Docker holt die passende Variante von selbst. Nötig sind:
+
+- Docker Desktop oder OrbStack, gestartet (`docker info` antwortet), mit dem Compose-Plugin.
+- `git` und `curl` (beides bringen die Xcode Command Line Tools mit: `xcode-select --install`).
+- Die Ports 80 und 443 frei. Läuft dort schon etwas (zum Beispiel ein lokaler Webserver), bricht Docker beim Start ab.
+
+Dann wie oben, immer von einem Release-Tag aus:
+
+```bash
+git clone --branch vX.Y.Z https://github.com/northalpha/schwarmstack.git
+```
+
+```bash
+cd schwarmstack/deploy/selbst && ./setup.sh --lokal
+```
+
+Das Skript läuft mit der bash 3.2 des Macs. Am Ende nennt es die Adressen: die Teilnahmeseite unter <http://localhost/> und den Speicher unter `http://s3.localhost`. Der Browser lädt direkt zu diesem Namen hoch. Chrome, Firefox und Safari lösen `*.localhost` selbst auf, bei anderen Programmen kann der Name unbekannt sein. Das Passwort des Betreiber-Kontos steht nur in der Ausgabe von `setup.sh`.
+
+Aufräumen, wenn alles wieder weg soll:
+
+```bash
+docker compose down --volumes
+```
+
+```bash
+rm -rf .env data
+```
+
+`data/` gehört nach dem Lauf dem Benutzer im Image. Lässt es sich nicht löschen, hilft `docker run --rm --user root --entrypoint rm --volume "$PWD:/arbeit" ghcr.io/northalpha/schwarmstack:vX.Y.Z -rf /arbeit/data`.
+
+Der echte Betrieb mit Zertifikat ist für einen Linux-Server gedacht. Die DNS-Prüfung gibt es nur unter Linux; auf dem Mac überspringt `setup.sh` sie.
+
 ## Wiederholen und Versionswechsel
 
 `./setup.sh` darf beliebig oft laufen. Geheimnisse, Daten, Aktion und Betreiber-Konto bleiben; geändert wird nur, was sich geändert hat. Ein Versionswechsel ist:
