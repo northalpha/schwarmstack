@@ -1,1 +1,0 @@
-- Image auf Alpine (#127): Das Release-Image baut auf `python:3.13-alpine` statt `slim-trixie`, rund ein Viertel kleiner und mit weniger Systempaketen. Warum: weniger Angriffsfläche und weniger Funde im Image-Scan (ADR 0014). Die Fotobereinigung (JPEG, PNG, WebP, HEIC) wird jetzt im gebauten Image geprüft, nicht nur in der CI auf glibc.

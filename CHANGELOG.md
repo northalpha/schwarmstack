@@ -4,6 +4,17 @@
 
 Neue Einträge stehen bis zum Release je Änderung in [`changelog.d/`](changelog.d/README.md).
 
+## 0.3.0
+
+- Sicherheitsprüfungen in CI (#121): Dependabot (uv, Actions, Docker), `pip-audit` und `zizmor` in `scripts/pruefen.sh`, Trivy über das gebaute Image, CodeQL für Python und die Workflows; alle Actions sind auf Commit-SHAs gepinnt. Beim Image wird nur bei High/Critical mit Fix rot, `pip-audit` meldet jeden bekannten Fund; Ausnahmen stehen mit Grund und Ablaufdatum in `sicherheit-ausnahmen.toml` (ADR 0012). Warum: grobe Lücken in Abhängigkeiten, Image und Workflows sollen auffallen, ohne ein Hobbyprojekt mit Alarmen zu überlasten. Das Image enthält dafür kein `pip` mehr und zieht Sicherheitskorrekturen des Basisimages beim Bauen nach.
+- Sicherheits-Header (#122): Alle Antworten tragen eine strenge Content-Security-Policy ohne `unsafe-inline` (Skripte und Styles nur von der eigenen Domain, Uploads nur zum eigenen S3-Host), `X-Frame-Options: DENY` und eine `Permissions-Policy`. `manage.py check --deploy` läuft jetzt in `scripts/pruefen.sh`. Warum: Ein eingeschleustes Skript oder eine eingebettete Seite soll im Browser nichts ausrichten können. Das Inline-Stylesheet der Statistik liegt dafür in einer statischen Datei. `CSP_REPORT_ONLY=true` stellt die Policy im Notfall auf „nur melden“.
+- Sicherheitsreview gegen die OWASP Top 10 (#123): Passwörter der Betreiber müssen mindestens 12 Zeichen haben und dürfen nicht häufig oder rein numerisch sein (`AUTH_PASSWORD_VALIDATORS`). Die ungenutzte Abhängigkeit `django-otp` ist entfernt, der Admin hatte nie einen Zweitfaktor (ADR 0013). Neue Regressionstests (`tests/test_sicherheit_review.py`) halten Zugriff über das Cookie, Signaturen für Uploads, Header-Prüfung von XISF/FITS, sichere Voreinstellungen der Settings und Logs ohne Zugangsdaten fest. Warum: Jede Sicherheitsannahme soll auch nach späteren Änderungen gelten.
+- Image auf Alpine (#127): Das Release-Image baut auf `python:3.13-alpine` statt `slim-trixie`, rund ein Viertel kleiner und mit weniger Systempaketen. Warum: weniger Angriffsfläche und weniger Funde im Image-Scan (ADR 0014). Die Fotobereinigung (JPEG, PNG, WebP, HEIC) wird jetzt im gebauten Image geprüft, nicht nur in der CI auf glibc.
+- Lokaler Adapter: Teile eines Uploads dürfen zusammen die angemeldete Größe nicht überschreiten; `upload_part` bricht größere Teile ab (400) und lässt nichts liegen (#135). Warum: Die Gesamtgrenze der Aktion soll nicht durch zu große Teile umgangen werden. Bei S3 bleibt es bei der Lifecycle-Regel.
+- Die `sha-…`-Images von `main` liegen jetzt in `ghcr.io/northalpha/schwarmstack-ci`; `ghcr.io/northalpha/schwarmstack` enthält nur noch Releases (`vX.Y.Z`, `vX.Y`). Beim Deploy wählt `deploy.sh` das Package nach dem Image-Tag (`v…` = Release, sonst `main`-Stand) und schreibt `IMAGE` in die `.env`. Warum: Die Package-Seite zeigte sonst immer das zuletzt gebaute `sha-…` als „Latest“.
+- Dependabot (#132): Django kommt in einem eigenen PR statt im Sammel-PR der Python-Abhängigkeiten, Major-Sprünge schlägt Dependabot nicht mehr vor. Warum: Feature-Releases entfernen Deprecations und brauchen Planung; sie sollen nicht zwischen Bumps von Pillow oder boto3 untergehen.
+- Das Release-Image `ghcr.io/northalpha/schwarmstack` ist öffentlich, wie das Repo. Warum: Selbstbetreiber (ADR 0011) ziehen es ohne Anmeldung; `docs/betrieb/deployment.md` und ADR 0011 sagten noch „privat“.
+
 ## 0.2.0
 
 - Neuaufbau, Abgabe anlegen (#9): Django-Gerüst, die Aktion als genau ein Datensatz

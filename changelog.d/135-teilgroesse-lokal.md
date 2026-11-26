@@ -1,1 +1,0 @@
-- Lokaler Adapter: Teile eines Uploads dürfen zusammen die angemeldete Größe nicht überschreiten; `upload_part` bricht größere Teile ab (400) und lässt nichts liegen (#135). Warum: Die Gesamtgrenze der Aktion soll nicht durch zu große Teile umgangen werden. Bei S3 bleibt es bei der Lifecycle-Regel.
