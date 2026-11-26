@@ -83,6 +83,7 @@ Im Repo unter *Settings → Environments* das Environment `staging` anlegen (fü
 | `S3_ADDRESSING_STYLE` | `virtual` (Standard) | nein |
 | `UPLOAD_LINK_SECONDS` | `900` (Standard) | nein |
 | `HSTS_SECONDS` | `0` (Standard); in Produktion z. B. `31536000` | nein |
+| `CSP_REPORT_ONLY` | `false` (Standard); `true` meldet Verstöße gegen die Content-Security-Policy nur in der Browser-Konsole, statt sie zu blockieren; nur zum Zurückstellen | nein |
 | `LOG_LEVEL` | `INFO` (Standard) | nein |
 | `LOGIN_ATTEMPTS_MAX`, `LOGIN_ATTEMPTS_WINDOW_SECONDS` | `5`, `900` (Standard); das Zeitfenster höchstens `3600`, weil IP-Hashes nur eine Stunde bleiben (Datenschutzhinweis) | nein |
 | `COMMUNITY_ORIGINS` | Ursprünge der Community-Seite für `/zahlen.json`, kommagetrennt, z. B. `https://community.example`; `*` nur auf Staging zum Testen; leer: kein CORS-Header (Standard) | nein |

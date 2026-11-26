@@ -53,6 +53,14 @@ while IFS= read -r id; do
 done < <(uv run python scripts/ausnahmen.py ids)
 uv export --frozen --no-emit-project --format requirements-txt --quiet \
   | uv run pip-audit --disable-pip --no-deps --progress-spinner off "${audit_args[@]}" -r /dev/stdin
+schritt "Django check --deploy"
+# Wie in Produktion (DEBUG aus, HSTS an); jede Warnung lässt die Prüfung scheitern. Begründete
+# Ausnahmen stehen als SILENCED_SYSTEM_CHECKS in den Settings.
+DJANGO_SECRET_KEY="$(uv run python -c 'import secrets; print(secrets.token_urlsafe(64))')" \
+  ADMIN_PATH=pruefung ALLOWED_HOSTS=example.org HSTS_SECONDS=31536000 \
+  PRIVACY_CONTACT=datenschutz@example.org OPERATOR_NAME=DZVF OPERATOR_ADDRESS=Beispielstrasse \
+  HOSTER_NAME=Hoster HOSTER_ADDRESS=Hosterweg DATA_DIR="$(mktemp -d)" \
+  uv run python src/manage.py check --deploy --fail-level WARNING
 schritt Glossar und Changelog
 uv run python scripts/glossar.py pruefen
 uv run python scripts/changelog.py pruefen

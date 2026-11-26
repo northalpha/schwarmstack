@@ -7,6 +7,7 @@ src/
 ├── schwarmstack/          # Projekt: Settings (alles aus der Umgebung), URLs, /healthz
 │   ├── operator_site.py   # Admin-Site der Betreiber, Startseite = Statistik
 │   ├── login_limit.py     # gebremste Anmeldung (Fehlversuche je IP-Hash, höchstens 1 Stunde)
+│   ├── security_headers.py # Middleware: strenger CSP, X-Frame-Options, Permissions-Policy (#122)
 │   ├── notices.py         # Betriebsmeldungen per Mail an die Betreiber (ADR 0007)
 │   └── staticfiles.py     # WhiteNoise-Storage
 ├── submissions/           # Fachmodul: Aktion, Submission, Master, Einwilligung

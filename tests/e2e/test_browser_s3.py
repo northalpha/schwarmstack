@@ -58,6 +58,16 @@ def campaign(transactional_db):
     )
 
 
+def csp_violations(page):
+    """Meldungen, mit denen der Browser Verstöße gegen die Content-Security-Policy anzeigt."""
+    verstoesse = []
+    page.on(
+        "console",
+        lambda msg: verstoesse.append(msg.text) if "Content Security Policy" in msg.text else None,
+    )
+    return verstoesse
+
+
 def test_master_geht_direkt_in_s3(live_server, campaign, s3_settings, browser, tmp_path):
     data = fits(width=2000, height=1500)  # 12 MB, also zwei Teile à 8 MB
     path = tmp_path / "m101_L.fits"
@@ -66,6 +76,7 @@ def test_master_geht_direkt_in_s3(live_server, campaign, s3_settings, browser, t
     page = browser.new_page()
     errors = []
     page.on("pageerror", lambda exc: errors.append(str(exc)))
+    verstoesse = csp_violations(page)
     page.goto(live_server.url)
     # Der Name hängt am Häkchen zur Namensnennung (Ticket #33).
     assert page.is_disabled("[name=credit_name]")
@@ -82,6 +93,9 @@ def test_master_geht_direkt_in_s3(live_server, campaign, s3_settings, browser, t
     page.click(".uploader button.start")
     page.wait_for_selector("table.masters td:has-text('angenommen')", timeout=60_000)
     assert errors == []
+    # Die scharfe Policy (schwarmstack/security_headers.py) hat nichts blockiert: weder Uppy noch
+    # der Worker für die Prüfsumme noch der direkte Upload zu S3.
+    assert verstoesse == []
 
     master = Master.objects.get()
     assert master.state == Master.State.ACCEPTED
@@ -145,4 +159,23 @@ def test_nach_neuladen_unterbrochenen_upload_abbrechen(
 
     page.reload()
     assert page.locator("table.masters").count() == 0  # Reservierung frei, Master weg
+    assert errors == []
+
+
+def test_admin_laeuft_unter_scharfem_csp(live_server, campaign, operator, client, browser):
+    """Statistik und Änderungsseiten laden ihre Skripte und Styles ohne Verstoß."""
+    client.force_login(operator)
+    session = client.cookies["sessionid"].value
+    context = browser.new_context()
+    context.add_cookies([{"name": "sessionid", "value": session, "url": live_server.url}])
+    page = context.new_page()
+    verstoesse = csp_violations(page)
+    errors = []
+    page.on("pageerror", lambda exc: errors.append(str(exc)))
+    page.goto(live_server.url + "/betrieb-test/")
+    page.wait_for_load_state("networkidle")
+    assert page.locator("div.statistik").count() == 1
+    page.goto(live_server.url + "/betrieb-test/submissions/campaign/")
+    page.wait_for_load_state("networkidle")
+    assert verstoesse == []
     assert errors == []

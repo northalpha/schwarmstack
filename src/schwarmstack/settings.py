@@ -43,6 +43,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # Ganz außen: CSP, X-Frame-Options und Permissions-Policy auch auf Fehlerantworten.
+    "schwarmstack.security_headers.SecurityHeadersMiddleware",
     "django.middleware.security.SecurityMiddleware",
     # Statische Dateien aus der App selbst, ohne eigenen Webserver im Container.
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -167,12 +169,19 @@ SESSION_COOKIE_HTTPONLY = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
+# Content-Security-Policy nur melden statt durchsetzen (schwarmstack/security_headers.py); nur
+# zum Zurückstellen, falls eine neue Seite die Policy verletzt.
+CSP_REPORT_ONLY = env_bool("CSP_REPORT_ONLY")
 CSRF_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_HTTPONLY = True
 SECURE_HSTS_SECONDS = int(os.environ.get("HSTS_SECONDS", "0"))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = SECURE_HSTS_SECONDS > 0
 SECURE_SSL_REDIRECT = False  # Weiterleitung macht der Proxy
-SILENCED_SYSTEM_CHECKS = ["security.W008"] + (["security.W004"] if SECURE_HSTS_SECONDS == 0 else [])
+# W008: die Weiterleitung auf HTTPS macht der Proxy. W004: HSTS ist ohne HSTS_SECONDS aus (lokal,
+# Staging). W021: Preload lässt sich kaum zurücknehmen; das entscheiden die Betreiber bewusst.
+SILENCED_SYSTEM_CHECKS = ["security.W008", "security.W021"] + (
+    ["security.W004"] if SECURE_HSTS_SECONDS == 0 else []
+)
 
 LOGGING = {
     "version": 1,
