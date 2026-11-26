@@ -101,6 +101,27 @@ def test_connect_src_enthaelt_den_s3_host(settings, endpunkt, stil, bucket, erwa
     assert direktiven(content_security_policy())["connect-src"] == ["'self'", erwartet]
 
 
+@pytest.mark.parametrize("stil", ["virtual", "path"])
+def test_connect_src_passt_zum_signierten_link(settings, stil):
+    """Der Browser lädt zu der Adresse, die boto signiert; die Policy muss genau sie erlauben."""
+    from urllib.parse import urlsplit
+
+    from storage import S3Request, get_storage
+
+    settings.STORAGE_BACKEND = "s3"
+    settings.S3_ENDPOINT_URL = "https://s3.example.org"
+    settings.S3_REGION = "eu"
+    settings.S3_ACCESS_KEY_ID = settings.S3_SECRET_ACCESS_KEY = "x"
+    settings.S3_ADDRESSING_STYLE = stil
+    settings.S3_BUCKET = "master"
+    link = get_storage().presign(S3Request(method="POST", key="a/b"))
+    teile = urlsplit(link)
+    assert (
+        f"{teile.scheme}://{teile.netloc}"
+        == direktiven(content_security_policy())["connect-src"][1]
+    )
+
+
 def test_connect_src_ohne_s3_nur_eigener_ursprung(settings):
     settings.STORAGE_BACKEND = "local"
     assert direktiven(content_security_policy())["connect-src"] == ["'self'"]

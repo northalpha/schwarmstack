@@ -160,3 +160,22 @@ def test_nach_neuladen_unterbrochenen_upload_abbrechen(
     page.reload()
     assert page.locator("table.masters").count() == 0  # Reservierung frei, Master weg
     assert errors == []
+
+
+def test_admin_laeuft_unter_scharfem_csp(live_server, campaign, operator, client, browser):
+    """Statistik und Änderungsseiten laden ihre Skripte und Styles ohne Verstoß."""
+    client.force_login(operator)
+    session = client.cookies["sessionid"].value
+    context = browser.new_context()
+    context.add_cookies([{"name": "sessionid", "value": session, "url": live_server.url}])
+    page = context.new_page()
+    verstoesse = csp_violations(page)
+    errors = []
+    page.on("pageerror", lambda exc: errors.append(str(exc)))
+    page.goto(live_server.url + "/betrieb-test/")
+    page.wait_for_load_state("networkidle")
+    assert page.locator("div.statistik").count() == 1
+    page.goto(live_server.url + "/betrieb-test/submissions/campaign/")
+    page.wait_for_load_state("networkidle")
+    assert verstoesse == []
+    assert errors == []
