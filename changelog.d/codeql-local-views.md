@@ -1,0 +1,1 @@
+- Lokaler Speicher (CodeQL #2, #4): Die Teileliste beim Abschluss eines Uploads wird mit begrenzten Mustern gelesen (kein ReDoS durch manipulierte Anfragen), und Fehler des Speichers erscheinen nur noch im Protokoll statt in der Antwort. Warum: Anfragen mit Zugriff auf den signierten Link sollten weder den Server ausbremsen noch interne Meldungen sehen.
