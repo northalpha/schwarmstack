@@ -29,7 +29,8 @@ TOTAL = "total_exposure"
 INSTRUMENT = "instrument"
 TELESCOPE = "telescope"
 NUMBERS = (PER_LIGHT, COUNT, TOTAL)
-FIELDS = (*NUMBERS, INSTRUMENT, TELESCOPE)
+TEXTS = (INSTRUMENT, TELESCOPE)
+FIELDS = (*NUMBERS, *TEXTS)
 
 
 class Source(models.TextChoices):
@@ -279,8 +280,8 @@ class FromHeader:
     creator: str
     unknown_exptime: Decimal | None
     conflicts: dict[str, str]
-    # Kanal laut Filtername (`channel_for_filter`), sonst leer.
-    channel: str = ""
+    # Kanal laut Filtername (`channel_for_filter`), sonst None.
+    channel: str | None = None
 
 
 def interpret(header: HeaderValues) -> FromHeader:
@@ -313,10 +314,10 @@ def interpret(header: HeaderValues) -> FromHeader:
     )
 
 
-def _channel_from(keywords: dict[str, str]) -> str:
-    """Der Kanal zum ersten Filterschlüssel, der gesetzt ist; leer ohne eindeutigen Treffer."""
+def _channel_from(keywords: dict[str, str]) -> str | None:
+    """Der Kanal zum ersten Filterschlüssel, der gesetzt ist; None ohne eindeutigen Treffer."""
     name = next((keywords[k] for k in _FILTER_KEYS if keywords.get(k, "").strip()), "")
-    return channel_for_filter(name) or ""
+    return channel_for_filter(name)
 
 
 def _any_manual(master, names) -> bool:
@@ -340,7 +341,7 @@ def apply_header(master, header: HeaderValues, *, keep_manual: bool = False) -> 
         master.header_exptime = found.unknown_exptime
     master.header_conflicts = found.conflicts
     # Drei Ebenen (RGB) legen den Kanal fest; nur bei einer Ebene schlägt der Filter einen vor.
-    master.header_channel = "" if master.channel == "RGB" else found.channel
+    master.header_channel = (None if master.channel == "RGB" else found.channel) or ""
     return [*changed, "creator", "header_exptime", "header_conflicts", "header_channel"]
 
 
@@ -357,6 +358,16 @@ LABELS = {
     INSTRUMENT: "Instrument",
     TELESCOPE: "Teleskop",
 }
+
+
+def _read(master, name: str):
+    """Wert eines Felds; „kein Wert“ ist immer `None` (die Textspalten speichern dafür `""`)."""
+    return getattr(master, name) or None if name in TEXTS else getattr(master, name)
+
+
+def _write(master, name: str, value) -> None:
+    """Gegenstück zu `_read`: `None` wird in den Textspalten als `""` gespeichert."""
+    setattr(master, name, (value or "") if name in TEXTS else value)
 
 
 def show(value) -> str:
@@ -408,7 +419,7 @@ class Proposal:
     exptime_question: Decimal | None = None
     conflicts: tuple[tuple[str, str], ...] = ()
     # Kanal laut Header, wenn er vom gewählten abweicht (`Master.Channel`-Wert).
-    channel_suggestion: str = ""
+    channel_suggestion: str | None = None
 
     @property
     def exptime_question_display(self) -> str:
@@ -454,16 +465,16 @@ def _compute(per_light, count, total) -> tuple[Suggestion | None, str | None]:
     return None, None
 
 
-def _channel_suggestion(master) -> str:
-    header = master.header_channel
-    return header if header and header != master.channel else ""
+def _channel_suggestion(master) -> str | None:
+    header = master.header_channel or None
+    return header if header != master.channel else None
 
 
 def proposal(master) -> Proposal:
     """Was die Submission-Seite zu den Belichtungsangaben zeigt: Werte mit Herkunft, ein Vorschlag
     für einen fehlenden Wert, Hinweise und gegebenenfalls die Frage nach EXPTIME."""
     rows = tuple(
-        Row(name, LABELS[name], getattr(master, name), getattr(master, f"{name}_source"))
+        Row(name, LABELS[name], _read(master, name), getattr(master, f"{name}_source"))
         for name in FIELDS
     )
     suggestion, hint = _compute(
@@ -496,7 +507,7 @@ class InvalidInput(ValueError):
 def parse(name: str, raw) -> object:
     """Formularwert -> Modellwert; leer heißt „kein Wert“."""
     if raw is None or (isinstance(raw, str) and not raw.strip()):
-        return "" if name in (INSTRUMENT, TELESCOPE) else None
+        return None
     if name == COUNT:
         if isinstance(raw, bool) or (value := light_count(str(raw))) is None:
             raise InvalidInput(f"{LABELS[name]}: bitte eine ganze Zahl ab 1.")
@@ -519,10 +530,10 @@ def set_by_hand(master, changes: dict) -> list[str]:
     parsed = {name: parse(name, raw) for name, raw in changes.items() if name in FIELDS}
     changed = []
     for name, value in parsed.items():
-        if value == getattr(master, name):
+        if value == _read(master, name):
             continue
-        setattr(master, name, value)
-        setattr(master, f"{name}_source", Source.MANUAL if value not in (None, "") else "")
+        _write(master, name, value)
+        setattr(master, f"{name}_source", Source.MANUAL if value is not None else "")
         changed += [name, f"{name}_source"]
     return changed + _set_channel(master, changes.get("channel"))
 
@@ -578,11 +589,11 @@ def manifest_values(master) -> dict:
     lesen. In der Begleitdatei stehen sie bewusst nicht (ADR 0010)."""
     entry: dict[str, object] = {}
     for name in FIELDS:
-        value = getattr(master, name)
+        value = _read(master, name)
         if isinstance(value, Decimal):
             value = f"{value.normalize():f}"
         entry[name] = {
-            "value": value if value != "" else None,
+            "value": value,
             "source": getattr(master, f"{name}_source"),
         }
     entry["creator"] = master.creator
