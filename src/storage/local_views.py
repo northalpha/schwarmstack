@@ -1,5 +1,7 @@
 """Lokaler Endpunkt, der für Uppy die nötigen S3-Antworten nachbildet (nur lokaler Speicher)."""
 
+import html
+import logging
 import re
 from xml.sax.saxutils import escape
 
@@ -16,8 +18,18 @@ from django.views.decorators.csrf import csrf_exempt
 from . import get_storage
 from .local import StorageError, read_token
 
-_PART = re.compile(r"<PartNumber>\s*(\d+)\s*</PartNumber>\s*<ETag>(.*?)</ETag>", re.S)
-_QUOTES = re.compile(r'^(?:"|&quot;|&#34;)+|(?:"|&quot;|&#34;)+$')
+logger = logging.getLogger(__name__)
+
+# Alle Wiederholungen sind begrenzt, damit die Auswertung linear bleibt (kein ReDoS, CodeQL
+# py/polynomial-redos). Ein S3-Teil hat höchstens 10 000 Nummern; ein ETag ist ein MD5-Hex.
+_PART = re.compile(
+    r"<PartNumber>\s{0,16}(\d{1,6})\s{0,16}</PartNumber>\s{0,16}<ETag>([^<]{0,200})</ETag>"
+)
+
+
+def parse_parts(body: str) -> list[tuple[int, str]]:
+    """Teilenummern und ETags aus dem Abschluss-Body; ETags ohne Anführungszeichen."""
+    return [(int(n), html.unescape(e).strip().strip('"')) for n, e in _PART.findall(body)]
 
 
 def _xml(body: str) -> HttpResponse:
@@ -66,7 +78,7 @@ def local_s3(request, token):
             )
         if request.method == "POST":
             body = request.body.decode("utf-8", "replace")
-            parts = [(int(n), _QUOTES.sub("", e.strip())) for n, e in _PART.findall(body)]
+            parts = parse_parts(body)
             etag = storage.complete_multipart(key, upload_id, parts)
             return _xml(
                 "<CompleteMultipartUploadResult>"
@@ -77,6 +89,8 @@ def local_s3(request, token):
         if request.method == "DELETE" and upload_id is not None:
             storage.abort_multipart(key, upload_id)
             return HttpResponse(status=204)
-    except StorageError as exc:
-        return HttpResponseBadRequest(str(exc))
+    except StorageError:
+        # Die Meldung (Schlüssel, Pfade) gehört ins Protokoll, nicht in die Antwort.
+        logger.warning("Lokaler Speicher lehnt %s ab", request.method, exc_info=True)
+        return HttpResponseBadRequest("Anfrage abgelehnt")
     return HttpResponseBadRequest("Nicht unterstützt")
