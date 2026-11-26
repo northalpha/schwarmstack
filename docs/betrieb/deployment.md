@@ -88,11 +88,19 @@ Im Repo unter *Settings → Environments* das Environment `staging` anlegen (fü
 | `COMMUNITY_CACHE_SECONDS` | `10` (Standard); `0` schaltet den Cache von `/zahlen.json` ab | nein |
 | `CONSENT_TEXT_VERSION` | `2026-11-25-2` (Standard) | nein |
 | `PRIVACY_CONTACT` | Kontaktadresse im Datenschutzhinweis für Fragen, Widerruf und Löschung, z. B. `datenschutz@dzvf.example` | ja |
+| `OPERATOR_NAME` | Verantwortliche Stelle im Datenschutzhinweis, ohne Artikel, z. B. `DZVF`; der Text sagt „Verantwortlich ist der …“ und „beim …“ | ja |
+| `OPERATOR_ADDRESS` | Anschrift der verantwortlichen Stelle (noch nicht im Wortlaut der heutigen Fassungen, aber Pflicht für spätere) | ja |
+| `HOSTER_NAME` | Hoster (Auftragsverarbeiter) im Datenschutzhinweis, ohne Artikel, z. B. `Hetzner Online GmbH`; der Text sagt „Schwarmstack läuft bei der …“ | ja |
+| `HOSTER_ADDRESS` | Anschrift des Hosters (wie `OPERATOR_ADDRESS`) | ja |
 | `OPERATOR_EMAILS` | Empfänger der Betriebsmeldungen (ADR 0007), kommagetrennt; leer: Meldungen stehen nur im Log | nein, aber empfohlen |
 | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_USE_TLS` | SMTP für die Betriebsmeldungen; Standard `localhost`, `587`, leer, `1` | nein |
 | `DEFAULT_FROM_EMAIL` | Absender der Betriebsmeldungen | nein |
 
 `CONSENT_TEXT_VERSION` ist die Fassung des Hinweistextes zu den Einwilligungen (höchstens 32 Zeichen). Jede neue Einwilligung speichert sie, damit sich später zeigen lässt, auf welchen Text sie sich bezieht. Wird der Hinweistext geändert, im selben Deploy auch diesen Wert ändern; ältere Einwilligungen behalten ihre Fassung. Zu jeder Fassung gehört ein Datenschutzhinweis unter `src/submissions/templates/submissions/datenschutz/<Fassung>.html` (öffentlich unter `/datenschutz/<Fassung>/`); fehlt er, oder fehlt `PRIVACY_CONTACT`, bricht der Deploy bei der Migration ab und die bisherige Version läuft weiter. Eine Fassung wird nie nachträglich geändert, sondern durch eine neue Datei ersetzt.
+
+**Verantwortliche Stelle und Hoster im Datenschutzhinweis.** Den Rest des Textes schreibt Schwarmstack vor; er beschreibt, was die Software tut. Fehlt eine der Angaben (`PRIVACY_CONTACT`, `OPERATOR_*`, `HOSTER_*`), zeigt der Admin eine Warnung, `/datenschutz/` antwortet mit „noch nicht vollständig“ (503) statt mit einem Text mit leeren Stellen, und beim Start steht die Warnung `submissions.W001` im Log; `deploy.sh` bricht außerdem vor dem Deploy ab. Die Artikel stehen fest im Text („der …, der …“, „beim …“, „bei der …“) und passen zu einer männlichen Einzahl bzw. einem Hoster mit weiblichem Artikel. Passt das nicht zu deiner Stelle, braucht es eine neue Fassung des Hinweises mit eigenem Wortlaut.
+
+> **Keine Rechtsberatung.** Der Hinweistext und diese Anleitung sind eine technische Hilfe, keine Rechtsberatung. Jeder Betreiber ist selbst für seinen Datenschutzhinweis, den Auftragsverarbeitungsvertrag mit dem Hoster und die Einhaltung der DSGVO verantwortlich und sollte den Text vor dem Start prüfen (lassen).
 
 **Secrets**
 

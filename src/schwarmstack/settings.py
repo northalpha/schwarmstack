@@ -106,6 +106,13 @@ SUBMISSION_COOKIE_SECURE = env_bool("SUBMISSION_COOKIE_SECURE", not DEBUG)
 CONSENT_TEXT_VERSION = os.environ.get("CONSENT_TEXT_VERSION", "2026-11-25-2")
 # Kontaktadresse im Datenschutzhinweis für Fragen, Widerruf und Löschung; Pflicht in Produktion.
 PRIVACY_CONTACT = os.environ.get("PRIVACY_CONTACT", "")
+# Verantwortliche Stelle und Hoster im Datenschutzhinweis (ADR 0011). Die Namen stehen so, wie sie
+# in den Satz passen, ohne Artikel (z. B. "DZVF", "Hetzner Online GmbH"); der Text setzt ihn.
+# Fehlt eine Angabe, warnt der Admin und der Hinweis erscheint nicht (submissions/privacy.py).
+OPERATOR_NAME = os.environ.get("OPERATOR_NAME", "")
+OPERATOR_ADDRESS = os.environ.get("OPERATOR_ADDRESS", "")
+HOSTER_NAME = os.environ.get("HOSTER_NAME", "")
+HOSTER_ADDRESS = os.environ.get("HOSTER_ADDRESS", "")
 
 # Speicher für Master (ADR 0005): "local" (lokale Platte) oder später "s3".
 STORAGE_BACKEND = os.environ.get("STORAGE_BACKEND", "local")

@@ -11,6 +11,16 @@ from django.core import checks
 from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
 
+# Einstellung -> Schlüssel im Kontext der Vorlagen. Adressen stehen im heutigen Wortlaut nicht;
+# sie sind trotzdem Pflicht, damit spätere Fassungen sie nennen können.
+_DETAILS = {
+    "PRIVACY_CONTACT": "contact",
+    "OPERATOR_NAME": "operator_name",
+    "OPERATOR_ADDRESS": "operator_address",
+    "HOSTER_NAME": "hoster_name",
+    "HOSTER_ADDRESS": "hoster_address",
+}
+
 _VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
@@ -24,6 +34,20 @@ def template_name(version: str) -> str | None:
     except TemplateDoesNotExist:
         return None
     return name
+
+
+def missing_details() -> list[str]:
+    """Einstellungen, die dem Datenschutzhinweis noch fehlen."""
+    return [name for name in _DETAILS if not getattr(settings, name, "").strip()]
+
+
+def missing_message(names: list[str]) -> str:
+    return f"Dem Datenschutzhinweis fehlen Angaben: {', '.join(names)}."
+
+
+def context() -> dict[str, str]:
+    """Angaben für die Vorlagen; fehlt eine, ist `missing_details()` nicht leer."""
+    return {key: getattr(settings, name, "").strip() for name, key in _DETAILS.items()}
 
 
 @checks.register()
@@ -44,6 +68,15 @@ def check_privacy_notice(app_configs, **kwargs):
                 "PRIVACY_CONTACT ist nicht gesetzt; der Datenschutzhinweis braucht eine "
                 "Kontaktadresse für Widerruf und Löschung.",
                 id="submissions.E002",
+            )
+        )
+    missing = [name for name in missing_details() if name != "PRIVACY_CONTACT"]
+    if missing and not settings.DEBUG:
+        errors.append(
+            checks.Warning(
+                f"{missing_message(missing)} Er erscheint erst, wenn sie gesetzt sind.",
+                hint="Siehe docs/betrieb/deployment.md.",
+                id="submissions.W001",
             )
         )
     return errors
