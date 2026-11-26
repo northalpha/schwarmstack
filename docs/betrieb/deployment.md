@@ -4,7 +4,7 @@ Schwarmstack läuft als Container-Image mit Docker Compose (App mit gunicorn, Ca
 
 | Was | Wo |
 |---|---|
-| Image | `Dockerfile`, gebaut nach `ghcr.io/northalpha/schwarmstack` (privat) |
+| Image | `Dockerfile`, gebaut nach `ghcr.io/northalpha/schwarmstack` (privat, bis das Repo öffentlich ist) |
 | Compose-Datei, Caddyfile | `deploy/compose.yaml`, `deploy/Caddyfile` (für beide Umgebungen gleich) |
 | Einrichtung des Hosts | `deploy/host-einrichten.sh` (cloud-init oder per SSH) |
 | Deploy | `.github/workflows/ci.yml` → `deploy.yml` → `deploy/deploy.sh` → `deploy/auf-dem-host.sh` |
@@ -12,12 +12,13 @@ Schwarmstack läuft als Container-Image mit Docker Compose (App mit gunicorn, Ca
 ## Wann was deployt wird
 
 - **Push auf `main`:** Tests → Image `sha-<commit>` bauen, im Container `/healthz` prüfen, pushen → nach **Staging**.
-- **Tag `vX.Y.Z`:** dasselbe mit Image `vX.Y.Z` → nach **Produktion**, erst nach Freigabe im Environment `production`. Fehlen dort Pflichtwerte, bricht der Job mit einer Liste ab, bevor er den Host anfasst.
-- **Von Hand** (Actions → CI → *Run workflow*): Umgebung und Image-Tag wählen; so wird auch zurückgerollt.
+- **Release (`vX.Y.Z`):** Der Merge eines PR „Release vX.Y.Z“ (Skill `/release`) startet `release.yml`: Tests, Image für `linux/amd64` und `linux/arm64` nach GHCR (`vX.Y.Z`, `vX.Y`), Prüfsummen, Attestation, dann Tag und GitHub Release. Das deployt **nichts**; der Tag stößt keinen Deploy an (ADR 0011).
+- **Produktion:** nur von Hand (Actions → CI → *Run workflow*): Umgebung `production` und Image-Tag `vX.Y.Z`, erst nach Freigabe im Environment `production`. Fehlen dort Pflichtwerte, bricht der Job mit einer Liste ab, bevor er den Host anfasst.
+- **Von Hand sonst:** Umgebung und Image-Tag wählen; so wird auch zurückgerollt.
 
 Ein Deploy schreibt die `.env` aus dem GitHub-Environment, kopiert sie mit `compose.yaml` und `Caddyfile` nach `/opt/schwarmstack`, holt das Image mit dem kurzlebigen `GITHUB_TOKEN` (danach `docker logout`), führt `migrate` aus und startet mit `docker compose up -d`. Schlägt die Migration fehl, bleiben die alten Dateien und die alte Version laufen und der Job wird rot; schon angewendete Migrationen derselben Version bleiben allerdings stehen. Danach wartet er bis zu 60 s auf `/healthz` über Caddy; antwortet es nicht mit `ok`, ist der Job rot. Während des Neustarts ist die Seite einige Sekunden nicht erreichbar.
 
-Images werden nie als `latest` getaggt; welcher Stand läuft, steht in `/opt/schwarmstack/.env` (`IMAGE_TAG`) und im Deploy-Verlauf des Environments.
+Images werden nie als `latest` getaggt (`sha-<commit>` für Staging, `vX.Y.Z` und `vX.Y` für Releases); welcher Stand läuft, steht in `/opt/schwarmstack/.env` (`IMAGE_TAG`) und im Deploy-Verlauf des Environments.
 
 ## 1. Schlüssel für den Deploy-Job
 
