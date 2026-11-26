@@ -5,7 +5,7 @@ und Benutzerverwaltung gibt es hier bewusst nicht.
 """
 
 from django.conf import settings
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.template.response import TemplateResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
@@ -21,9 +21,17 @@ class OperatorSite(admin.AdminSite):
 
     def index(self, request, extra_context=None):
         """Startseite ist die Statistik, frisch berechnet bei jedem Aufruf."""
-        from submissions import export, statistics
+        from submissions import export, privacy, statistics
         from submissions.models import Campaign
 
+        missing = privacy.missing_details()
+        if missing:
+            messages.warning(
+                request,
+                "Dem Datenschutzhinweis fehlen Angaben (" + ", ".join(missing) + "). Solange sie "
+                "fehlen, zeigt /datenschutz/ keinen Hinweis. "
+                "Siehe docs/betrieb/deployment.md.",
+            )
         campaign = Campaign.current()
         context = {
             "statistik": statistics.compute(),

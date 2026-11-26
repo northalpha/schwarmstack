@@ -72,6 +72,12 @@ def start_app(data_dir: Path, port: int):
         "STORAGE_BACKEND": "local",
         "DJANGO_SUPERUSER_PASSWORD": secrets.token_urlsafe(16),
         "PRIVACY_CONTACT": "datenschutz@example.org",
+        "OPERATOR_NAME": "der Beispielverein",
+        "OPERATOR_BEI": "beim Beispielverein",
+        "OPERATOR_ADDRESS": "Beispielstraße 1, 12345 Beispielstadt",
+        "HOSTER_NAME": "der Beispiel-Hoster",
+        "HOSTER_BEI": "bei dem Beispiel-Hoster",
+        "HOSTER_ADDRESS": "Hosterweg 2, 54321 Hosterstadt",
     }
     py = [sys.executable, "manage.py"]
     run(*py, "migrate", "-v", "0", env=env)

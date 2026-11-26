@@ -50,6 +50,12 @@ jobs:
           COMMUNITY_ORIGINS: ${{ vars.COMMUNITY_ORIGINS }}
           COMMUNITY_CACHE_SECONDS: ${{ vars.COMMUNITY_CACHE_SECONDS }}
           PRIVACY_CONTACT: ${{ vars.PRIVACY_CONTACT }}
+          OPERATOR_NAME: ${{ vars.OPERATOR_NAME }}
+          OPERATOR_BEI: ${{ vars.OPERATOR_BEI }}
+          OPERATOR_ADDRESS: ${{ vars.OPERATOR_ADDRESS }}
+          HOSTER_NAME: ${{ vars.HOSTER_NAME }}
+          HOSTER_BEI: ${{ vars.HOSTER_BEI }}
+          HOSTER_ADDRESS: ${{ vars.HOSTER_ADDRESS }}
           OPERATOR_EMAILS: ${{ vars.OPERATOR_EMAILS }}
           EMAIL_HOST: ${{ vars.EMAIL_HOST }}
           EMAIL_PORT: ${{ vars.EMAIL_PORT }}

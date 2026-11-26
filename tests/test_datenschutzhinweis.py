@@ -1,6 +1,9 @@
 """Datenschutzhinweis, versioniert passend zu `CONSENT_TEXT_VERSION` (Ticket #34)."""
 
+from pathlib import Path
+
 import pytest
+from admin_helper import ADMIN
 from django.core.management import call_command
 from django.core.management.base import SystemCheckError
 
@@ -82,3 +85,74 @@ def test_upload_seite_erklaert_vor_dem_upload_wie_standortdaten_entfernt_werden(
         assert text in hinweis
     assert "unverändert" in hinweis  # wir ändern die Dateien nicht
     assert f'href="/datenschutz/{settings.CONSENT_TEXT_VERSION}/"' in hinweis
+
+
+# --- Verantwortliche Stelle und Hoster aus der Umgebung (#101, ADR 0011) ---
+
+GOLDEN = Path(__file__).parent / "golden"
+DZVF = {
+    "OPERATOR_NAME": "der DZVF",
+    "OPERATOR_BEI": "beim DZVF",
+    "HOSTER_NAME": "die Hetzner Online GmbH",
+    "HOSTER_BEI": "bei der Hetzner Online GmbH",
+}
+
+
+@pytest.mark.parametrize("version", ["2026-11-25", "2026-11-25-2"])
+def test_wortlaut_fuer_die_dzvf_bleibt_zeichengenau_wie_vorher(client, settings, version):
+    """Ändert sich dieser Text, wechselt die Fassung, und alle müssten neu einwilligen."""
+    settings.PRIVACY_CONTACT = "datenschutz@example.org"
+    for name, value in DZVF.items():
+        setattr(settings, name, value)
+    page = client.get(f"/datenschutz/{version}/").content
+    assert page == (GOLDEN / f"datenschutz-{version}.html").read_bytes()
+
+
+def test_andere_betreiber_erscheinen_im_hinweis_und_werden_maskiert(client, settings):
+    settings.OPERATOR_NAME = "der Verein <b>Sternfreunde</b>"
+    settings.OPERATOR_BEI = "beim Verein Sternfreunde"
+    settings.HOSTER_BEI = "bei der Beispiel AG"
+    page = client.get("/datenschutz/").content.decode()
+    assert "Verantwortlich ist der Verein &lt;b&gt;Sternfreunde&lt;/b&gt;, der" in page
+    assert "Projekts beim Verein Sternfreunde." in page
+    assert "läuft bei der Beispiel AG (" in page
+    assert "DZVF" not in page
+    assert "Hetzner" not in page
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "OPERATOR_NAME",
+        "OPERATOR_BEI",
+        "OPERATOR_ADDRESS",
+        "HOSTER_NAME",
+        "HOSTER_BEI",
+        "HOSTER_ADDRESS",
+    ],
+)
+def test_fehlt_eine_angabe_erscheint_kein_hinweis_mit_leeren_stellen(client, settings, name):
+    setattr(settings, name, "  ")
+    for url in ("/datenschutz/", f"/datenschutz/{settings.CONSENT_TEXT_VERSION}/"):
+        response = client.get(url)
+        assert response.status_code == 503
+        assert "noch nicht vollständig" in response.content.decode()
+        assert "Verantwortlich ist" not in response.content.decode()
+
+
+def test_admin_warnt_wenn_angaben_fehlen(operator_client, settings):
+    settings.HOSTER_ADDRESS = ""
+    page = operator_client.get(ADMIN).content.decode()
+    assert "Dem Datenschutzhinweis fehlen Angaben (HOSTER_ADDRESS)" in page
+
+
+def test_admin_warnt_nicht_wenn_alles_gesetzt_ist(operator_client, settings):
+    page = operator_client.get(ADMIN).content.decode()
+    assert "Datenschutzhinweis fehlen" not in page
+
+
+def test_fehlende_angaben_sind_in_produktion_eine_warnung_beim_start(settings, capsys):
+    settings.DEBUG = False
+    settings.OPERATOR_ADDRESS = ""
+    call_command("check")  # Warnung, kein Fehler: der Deploy bricht nicht ab
+    assert "submissions.W001" in capsys.readouterr().err
