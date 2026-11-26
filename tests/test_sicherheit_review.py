@@ -269,6 +269,7 @@ def test_ohne_debug_gelten_die_sicheren_voreinstellungen():
 
 def test_ohne_debug_und_ohne_hosts_erlaubt_django_keinen_host():
     result = _settings_with({"DJANGO_SECRET_KEY": "k", "ADMIN_PATH": "x"})
+    assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout)["hosts"] == []
 
 
@@ -277,15 +278,26 @@ def test_unbekannter_host_wird_abgewiesen(settings):
     assert Client().get("/healthz", HTTP_HOST="boese.example").status_code == 400
 
 
-def test_s3_endpunkt_kommt_nur_aus_der_umgebung_nie_aus_einer_anfrage(participant, settings):
-    """Kein Wert aus Anfragen der Teilnehmenden fließt in die S3-Adresse (SSRF)."""
-    from storage import S3Request
-    from storage.s3 import S3Storage
-
-    storage = S3Storage(bucket="b", endpoint_url="https://s3.example", access_key_id="k",
-                        secret_access_key="s", region="r", addressing_style="path")  # fmt: skip
-    url = storage.presign(S3Request("POST", "SW-ABCD/x.fits"))
-    assert url.startswith("https://s3.example/b/SW-ABCD/x.fits")
+def test_s3_adresse_im_upload_link_kommt_nie_aus_der_anfrage(participant, settings):
+    """Host-Header, X-Forwarded-Host und Dateiname der Teilnehmenden ändern die S3-Adresse nicht."""
+    settings.STORAGE_BACKEND = "s3"
+    settings.S3_ENDPOINT_URL = "https://s3.example"
+    settings.S3_BUCKET = "bucket"
+    settings.S3_REGION = "us-east-1"
+    settings.S3_ACCESS_KEY_ID = "k"
+    settings.S3_SECRET_ACCESS_KEY = "s"  # noqa: S105
+    settings.S3_ADDRESSING_STYLE = "path"
+    settings.ALLOWED_HOSTS = ["testserver", "boese.example"]
+    response = participant.client.post(
+        f"/submission/{participant.reference}/master/",
+        json.dumps({"channel": "L", "filename": "https://boese.example/x.fits", "size": 10}),
+        content_type="application/json",
+        HTTP_HOST="boese.example",
+        HTTP_X_FORWARDED_HOST="boese.example",
+    )
+    assert response.status_code == 201
+    assert response.json()["url"].startswith("https://s3.example/bucket/")
+    assert "boese.example" not in response.json()["url"]
 
 
 # -- Logging und Meldungen ------------------------------------------------------------------------
@@ -325,7 +337,7 @@ def test_weder_cookie_noch_passwort_stehen_im_log(participant, operator, caplog)
 # -- Dateien verarbeiten: Header von XISF und FITS ------------------------------------------------
 
 
-def _check(data, suffix, channel="L"):
+def _pruefe(data, suffix, channel="L"):
     return validation.check(
         data, suffix=suffix, channel=channel, channel_label=channel, size=len(data)
     )
@@ -343,7 +355,7 @@ def _check(data, suffix, channel="L"):
     ids=["externe-datei", "externe-url", "entity-expansion", "externe-dtd"],
 )
 def test_xisf_mit_entitaeten_oder_dtd_wird_abgelehnt_ohne_sie_aufzuloesen(xml):
-    result = _check(xisf(xml=xml), ".xisf")
+    result = _pruefe(xisf(xml=xml), ".xisf")
     assert not result.ok
     assert result.category is validation.Category.DAMAGED
     assert "passwd" not in result.reason
@@ -352,7 +364,7 @@ def test_xisf_mit_entitaeten_oder_dtd_wird_abgelehnt_ohne_sie_aufzuloesen(xml):
 def test_xisf_mit_riesiger_geometrie_braucht_entsprechend_viel_datei():
     """Eine Datei, die riesige Maße nur behauptet, ist kürzer als ihr Header angibt."""
     data = xisf(width=2000, height=2000, truncate=100)
-    result = _check(data, ".xisf")
+    result = _pruefe(data, ".xisf")
     assert not result.ok
     assert result.category is validation.Category.DAMAGED
 
