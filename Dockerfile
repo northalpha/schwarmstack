@@ -14,6 +14,12 @@ FROM python:3.13-slim-trixie
 RUN groupadd --system --gid 10001 schwarmstack \
  && useradd --system --uid 10001 --gid schwarmstack --no-create-home schwarmstack \
  && mkdir /data && chown schwarmstack:schwarmstack /data
+# pip braucht die Laufzeit nicht; seine mitgelieferten Bibliotheken (msgpack, urllib3, setuptools)
+# meldet der Image-Scan sonst als Schwachstellen. Debian-Sicherheitskorrekturen werden nachgezogen.
+RUN pip uninstall --yes pip \
+ && apt-get update \
+ && apt-get upgrade --yes --no-install-recommends \
+ && rm -rf /var/lib/apt/lists/*
 WORKDIR /app/src
 COPY --from=build /app/.venv /app/.venv
 COPY --from=build /app/src /app/src
