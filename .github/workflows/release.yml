@@ -69,12 +69,12 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - name: Tags bestimmen
         id: tags
+        env:
+          TAGS: ${{ needs.erkennen.outputs.tags }}
         run: |
-          IFS=. read -r x y _ <<<"$VERSION"
           {
             echo "tags<<EOF"
-            echo "$IMAGE:v$VERSION"
-            echo "$IMAGE:v$x.$y"
+            for t in $TAGS; do echo "$IMAGE:$t"; done
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
       - name: Image bauen (amd64) für Smoke-Test und Prüfung

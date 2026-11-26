@@ -109,7 +109,7 @@ def main(argv: list[str]) -> int:
                     {
                         "release": str(ist).lower(),
                         "version": version,
-                        "tags": " ".join(image_tags(version)) if ist else "",
+                        "tags": " ".join(image_tags(version)),
                     }
                 )
             case ["text", version]:

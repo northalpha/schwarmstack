@@ -22,10 +22,12 @@ if [[ -n $fund ]]; then
 fi
 
 # Auch die Umgebung des Images darf nichts Geheimes vorbelegen.
-umgebung=$(docker image inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$image")
-if grep -qiE '^[A-Z_]*(SECRET|PASSWORD|TOKEN|ACCESS_KEY)[A-Z_]*=' <<<"$umgebung"; then
+geheim='^[A-Z_]*(SECRET|PASSWORD|TOKEN|ACCESS_KEY)[A-Z_]*='
+namen=$(docker image inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$image" \
+  | { grep -iE "$geheim" || true; } | cut -d= -f1)
+if [[ -n $namen ]]; then
   echo "Das Image setzt Geheimnisse in seiner Umgebung:" >&2
-  grep -iE '^[A-Z_]*(SECRET|PASSWORD|TOKEN|ACCESS_KEY)[A-Z_]*=' <<<"$umgebung" | cut -d= -f1 >&2
+  echo "$namen" >&2
   exit 1
 fi
 echo "Image enthält keine .env und keine Zugangsdaten."
