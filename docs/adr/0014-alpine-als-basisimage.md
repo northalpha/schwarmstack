@@ -5,7 +5,7 @@ Das Image (ADR 0001, 0011) war `python:3.13-slim-trixie`. In #121 meldete Trivy 
 ## Entscheidung
 
 - Das Image baut auf `python:3.13-alpine`. Das Entfernen von `pip` bleibt, `apt-get upgrade` wird zu `apk upgrade --no-cache`. Benutzer und Gruppe haben weiter die uid/gid 10001, `/data` gehört ihnen wie bisher.
-- **Test im Image:** `scripts/image-pruefen.sh` schickt je ein JPEG, PNG, WebP und HEIC (mit Metadaten) im gebauten Image durch `submissions.photos` (`scripts/image_foto_pruefen.py`). Der `image`-Job in `ci.yml` ruft das Skript auf, der Release-Workflow tat es schon. Grund: Die Tests laufen auf glibc, das Image auf musl, und der Smoke-Test prüft nur `/healthz`.
+- **Test im Image:** `scripts/image-pruefen.sh` schickt je ein JPEG, PNG, WebP und HEIC (mit Metadaten) im gebauten Image durch `submissions.photos` (`scripts/image_foto_pruefen.py`). Der `image`-Job in `ci.yml` ruft das Skript auf (und gibt die Imagegröße aus); der Release-Workflow ruft es schon auf, damit gilt der Fototest auch als Gate vor einem Release. Grund: Die Tests laufen auf glibc, das Image auf musl, und der Smoke-Test prüft nur `/healthz`.
 - **Installer-Test:** `ci.yml` startet den Job `selbstbetrieb` jetzt auch bei Änderungen am `Dockerfile`, denn der Test baut das Image selbst.
 - **Distroless:** nicht umgesetzt, siehe unten.
 

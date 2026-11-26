@@ -42,7 +42,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
   # Der Installer-Test läuft nur, wenn sich etwas am Selbstbetrieb ändert (deploy/, also auch
-  # setup.sh) oder am Dockerfile, denn der Test baut das Image selbst; der Release-Workflow ruft selbstbetrieb.yml selbst auf (ADR 0011).
+  # setup.sh) oder am Dockerfile, denn der Test baut das Image selbst (ADR 0014); der
+  # Release-Workflow ruft selbstbetrieb.yml selbst auf (ADR 0011).
   aenderungen:
     if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -105,6 +106,8 @@ jobs:
           done
           docker logs smoke
           exit 1
+      - name: Imagegröße
+        run: docker image inspect --format 'Image {{.Size}} Bytes' "$IMAGE:${{ steps.tag.outputs.tag }}"
       - name: Keine Zugangsdaten im Image, Fotos im Image bereinigen
         run: scripts/image-pruefen.sh "$IMAGE:${{ steps.tag.outputs.tag }}"
       # Rot nur bei High/Critical mit vorhandenem Fix; Ausnahmen aus sicherheit-ausnahmen.toml.
