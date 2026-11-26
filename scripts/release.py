@@ -105,6 +105,8 @@ def main(argv: list[str]) -> int:
             case ["erkennen"]:
                 version = projekt_version()
                 ist = ist_release(version, git_tags())
+                if ist:  # fehlt der Abschnitt, scheitert der Lauf hier, nicht erst nach dem Image
+                    release_text(CHANGELOG.read_text(), version)
                 ausgeben(
                     {
                         "release": str(ist).lower(),

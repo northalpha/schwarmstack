@@ -20,7 +20,8 @@ env:
   IMAGE: ghcr.io/northalpha/schwarmstack
 
 concurrency:
-  group: release
+  # Je Commit eine Gruppe: ein wartender Release-Lauf wird nie von einem späteren Push verdrängt.
+  group: release-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -62,7 +63,8 @@ jobs:
       attestations: write
     env:
       VERSION: ${{ needs.erkennen.outputs.version }}
-      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+      # Von Hand gestartet pusht nur, wenn kein Probelauf ist und die Version ein Release wäre.
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && (inputs.dry_run || needs.erkennen.outputs.release != 'true') }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
