@@ -38,6 +38,7 @@ tests/
 ├── photo_files.py         # erzeugt Equipment-Fotos mit allen Metadaten je Format
 └── e2e/                   # E2E-Test im echten Browser gegen Garage
 deploy/                    # Compose, Caddy, Skripte für Host und Deploy (docs/betrieb/deployment.md)
+└── selbst/                # Selbstbetrieb: compose.yaml (App, Caddy, Garage), setup.sh (docs/betrieb/selbstbetrieb.md)
 scripts/                   # pruefen.sh (alle Prüfungen wie CI), garage.sh, glossar.py, changelog.py;
                            # header_prototyp.py: Wegwerf-Prototyp, zeigt Header roh (Issue #49)
 ```

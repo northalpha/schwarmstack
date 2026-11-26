@@ -1,0 +1,25 @@
+# Beide Namen bekommen ihr Zertifikat von Caddy. Mit SCHEMA=http:// (Probemodus) gibt es
+# keines. Der Host-Header bleibt beim Weiterreichen an Garage erhalten, sonst passt die
+# Signatur der S3-Links nicht.
+
+{$SCHEMA}{$DOMAIN} {
+	encode zstd gzip
+
+	# IP-Adressen nur gekürzt im Log (ADR 0007).
+	log {
+		output stdout
+		format filter {
+			request>remote_ip ip_mask 24 48
+			request>client_ip ip_mask 24 48
+			request>headers>X-Forwarded-For delete
+			request>headers>Authorization delete
+			request>headers>Cookie delete
+		}
+	}
+
+	reverse_proxy app:8000
+}
+
+{$SCHEMA}s3.{$DOMAIN} {
+	reverse_proxy garage:3900
+}
