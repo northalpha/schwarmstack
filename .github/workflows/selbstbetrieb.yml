@@ -1,0 +1,19 @@
+# Installer-Test für den Selbstbetrieb (ADR 0011, Ticket #105): baut das Image, führt
+# deploy/selbst/setup.sh --lokal ohne Rückfragen aus und prüft /healthz, Bucket, CORS und den
+# zweiten Lauf (scripts/selbstbetrieb-test.sh). Aufgerufen von ci.yml und vom Release-Workflow,
+# der damit vor dem Veröffentlichen prüft: Schlägt der Test fehl, gibt es kein Release.
+name: Selbstbetrieb
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  installer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/selbstbetrieb-test.sh

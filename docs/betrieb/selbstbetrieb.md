@@ -109,3 +109,11 @@ Logs lesen:
 ```bash
 docker compose logs app
 ```
+
+## Test in der CI
+
+Der CI-Job `selbstbetrieb` führt `./setup.sh --lokal` ohne Rückfragen aus und prüft `/healthz`, den Bucket, CORS (Preflight wie im Browser) und dass ein zweiter Lauf nichts ändert. Er läuft bei Änderungen an `deploy/` und vor jedem Release. Lokal (braucht Docker und freie Ports 80 und 443):
+
+```bash
+scripts/selbstbetrieb-test.sh
+```
