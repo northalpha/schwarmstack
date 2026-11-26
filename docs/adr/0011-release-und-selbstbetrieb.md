@@ -1,5 +1,7 @@
 # Öffentliche Releases per „Merge ist Release“ und Selbstbetrieb per Git-Tag
 
+> Begriffe heute: „Selbstbetrieb“ heißt jetzt **Self-Hosting**, „Probemodus“ **Demo-Modus**, `deploy/selbst/` liegt unter `deploy/self-hosting/`, der Job „selbstbetrieb“ heißt `installer`. Der Text unten ist unverändert (siehe `GLOSSARY.md`, Abschnitt „Betrieb“).
+
 Das Repo soll öffentlich werden können. Schwarmstack ist für die Aktion der DZVF gebaut; wer eine eigene Aktion betreiben will, soll es mit einem Compose-Aufruf starten können, ohne GitHub-Deployment. Das ist kein Produktversprechen: Es gibt keine Support-Zusage, Issues sind willkommen, Pull Requests nur nach Absprache im Issue. Diese Entscheidung ergänzt ADR 0001 (Deployment der Betreiber) und ersetzt dort nur den Satz, das Image sei privat.
 
 ## Release

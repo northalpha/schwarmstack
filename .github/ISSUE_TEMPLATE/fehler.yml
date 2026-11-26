@@ -39,4 +39,4 @@ body:
     id: umgebung
     attributes:
       label: Umgebung
-      description: Betriebssystem, Browser (bei Fehlern im Browser), Selbstbetrieb oder Betreiber-Compose.
+      description: Betriebssystem, Browser (bei Fehlern im Browser), Self-Hosting oder Betreiber-Compose.

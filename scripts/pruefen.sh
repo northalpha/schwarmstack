@@ -33,7 +33,7 @@ uv run ruff check .
 schritt ruff format --check
 uv run ruff format --check .
 schritt shellcheck
-uv run shellcheck deploy/*.sh deploy/selbst/*.sh scripts/*.sh
+uv run shellcheck deploy/*.sh deploy/self-hosting/*.sh scripts/*.sh
 schritt actionlint
 uv run actionlint .github/workflows/*.yml
 schritt zizmor

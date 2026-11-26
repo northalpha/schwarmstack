@@ -1,4 +1,4 @@
-"""Fehlerwege von deploy/selbst/setup.sh (Ticket #100, ADR 0011).
+"""Fehlerwege von deploy/self-hosting/setup.sh (Ticket #100, ADR 0011).
 
 Der Lauf mit Docker, Garage und Caddy gehört zum Installer-Test der CI (#105). Hier stehen nur
 die Wege, die vor dem ersten Docker-Aufruf enden und nichts anfassen, und die Trennung von den
@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-SELBST = Path(__file__).resolve().parent.parent / "deploy" / "selbst"
-SETUP = SELBST / "setup.sh"
+SELF_HOSTING = Path(__file__).resolve().parent.parent / "deploy" / "self-hosting"
+SETUP = SELF_HOSTING / "setup.sh"
 KEINE_ANGABEN = {
     "PATH": "/usr/bin:/bin",
     "HOME": "/nonexistent",
@@ -48,14 +48,16 @@ def test_ohne_release_tag_bricht_es_mit_klarer_meldung_ab(tmp_path):
     # Eine Kopie des Repos ohne Tag: setup.sh liest Version und Tag vom Repo über sich.
     repo = tmp_path / "repo"
     (repo / "deploy").mkdir(parents=True)
-    shutil.copytree(SELBST, repo / "deploy" / "selbst", ignore=shutil.ignore_patterns("data"))
+    shutil.copytree(
+        SELF_HOSTING, repo / "deploy" / "self-hosting", ignore=shutil.ignore_patterns("data")
+    )
     (repo / "pyproject.toml").write_text('[project]\nname = "x"\nversion = "9.9.9"\n')
     git = ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.com"]
     subprocess.run([*git, "init", "-q"], check=True)  # noqa: S603
     subprocess.run([*git, "add", "."], check=True)  # noqa: S603
     subprocess.run([*git, "commit", "-q", "-m", "x"], check=True)  # noqa: S603
     ergebnis = subprocess.run(  # noqa: S603
-        [str(repo / "deploy" / "selbst" / "setup.sh"), "--lokal"],
+        [str(repo / "deploy" / "self-hosting" / "setup.sh"), "--lokal"],
         capture_output=True,
         text=True,
         stdin=subprocess.DEVNULL,
@@ -66,7 +68,7 @@ def test_ohne_release_tag_bricht_es_mit_klarer_meldung_ab(tmp_path):
     assert ergebnis.returncode == 1
     assert "kein Release" in ergebnis.stderr
     assert "v9.9.9" in ergebnis.stderr
-    assert not (repo / "deploy" / "selbst" / ".env").exists()
+    assert not (repo / "deploy" / "self-hosting" / ".env").exists()
 
 
 def test_ohne_angaben_nennt_es_alle_fehlenden_variablen():
@@ -102,5 +104,5 @@ def test_ungueltige_domain_wird_abgelehnt():
 
 
 def test_compose_der_betreiber_bleibt_getrennt():
-    assert "garage" not in (SELBST.parent / "compose.yaml").read_text()
-    assert "garage" not in (SELBST.parent / "Caddyfile").read_text()
+    assert "garage" not in (SELF_HOSTING.parent / "compose.yaml").read_text()
+    assert "garage" not in (SELF_HOSTING.parent / "Caddyfile").read_text()

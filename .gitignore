@@ -8,5 +8,5 @@ node_modules/
 .pytest_cache/
 *.whl
 
-deploy/selbst/.env
-deploy/selbst/data/
+deploy/self-hosting/.env
+deploy/self-hosting/data/

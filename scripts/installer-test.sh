@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Installer-Test für den Selbstbetrieb (ADR 0011, CI-Job „selbstbetrieb“, Ticket #105).
+# Installer-Test für das Self-Hosting (ADR 0011, CI-Job „installer“, Ticket #105).
 #
-#   scripts/selbstbetrieb-test.sh              # Image bauen, setup.sh --lokal zweimal laufen lassen
-#   IMAGE=name:tag scripts/selbstbetrieb-test.sh   # ein schon gebautes Image nehmen
+#   scripts/installer-test.sh              # Image bauen, setup.sh --lokal zweimal laufen lassen
+#   IMAGE=name:tag scripts/installer-test.sh   # ein schon gebautes Image nehmen
 #
-# Läuft mit einem Arbeitsverzeichnis aus deploy/selbst/ in einem Wegwerf-Ordner und fasst das Repo nicht an.
+# Läuft mit einem Arbeitsverzeichnis aus deploy/self-hosting/ in einem Wegwerf-Ordner und fasst das Repo nicht an.
 # Prüft: /healthz antwortet mit ok, der Bucket ist eingerichtet, CORS besteht den Preflight wie
 # im Browser, und ein zweiter Lauf von setup.sh ändert .env, garage.toml und die Datenbank nicht.
 # Braucht Docker und freie Ports 80 und 443. Ein vollständiger Upload-Test gehört nicht dazu.
@@ -18,7 +18,7 @@ schritt() { echo "==> $*"; }
 docker info >/dev/null 2>&1 || fehler "Docker antwortet nicht."
 
 if [[ -z ${IMAGE:-} ]]; then
-  IMAGE=schwarmstack-selbstbetrieb-test
+  IMAGE=schwarmstack-installer-test
   schritt "Image bauen"
   docker build --tag "$IMAGE:test" .
 fi
@@ -27,27 +27,27 @@ export IMAGE IMAGE_TAG=${IMAGE_TAG:-test}
 arbeit=$(mktemp -d)
 mkdir -p "$arbeit/deploy"
 cp "$wurzel/pyproject.toml" "$arbeit/"
-cp -r "$wurzel/deploy/selbst" "$arbeit/deploy/selbst"
-rm -rf "$arbeit/deploy/selbst/data" "$arbeit/deploy/selbst/.env"
-selbst=$arbeit/deploy/selbst
+cp -r "$wurzel/deploy/self-hosting" "$arbeit/deploy/self-hosting"
+rm -rf "$arbeit/deploy/self-hosting/data" "$arbeit/deploy/self-hosting/.env"
+ordner=$arbeit/deploy/self-hosting
 
 aufraeumen() {
   status=$?
-  if [[ $status -ne 0 && -f $selbst/.env ]]; then
-    (cd "$selbst" && docker compose ps -a && docker compose logs --tail 60) >&2 || true
+  if [[ $status -ne 0 && -f $ordner/.env ]]; then
+    (cd "$ordner" && docker compose ps -a && docker compose logs --tail 60) >&2 || true
   fi
-  (cd "$selbst" && docker compose down --volumes --remove-orphans) >/dev/null 2>&1 || true
+  (cd "$ordner" && docker compose down --volumes --remove-orphans) >/dev/null 2>&1 || true
   # data/ gehört nach dem Lauf dem Benutzer im Image.
   docker run --rm --user root --entrypoint rm --volume "$arbeit:/arbeit" \
-    "$IMAGE:$IMAGE_TAG" -rf /arbeit/deploy/selbst/data >/dev/null 2>&1 || true
+    "$IMAGE:$IMAGE_TAG" -rf /arbeit/deploy/self-hosting/data >/dev/null 2>&1 || true
   rm -rf "$arbeit"
   exit "$status"
 }
 trap aufraeumen EXIT
 
 lauf() {
-  # Ohne Rückfragen: kein Terminal, alle Angaben haben im Probemodus Standardwerte.
-  (cd "$selbst" && ./setup.sh --lokal </dev/null)
+  # Ohne Rückfragen: kein Terminal, alle Angaben haben im Demo-Modus Standardwerte.
+  (cd "$ordner" && ./setup.sh --lokal </dev/null)
 }
 
 schritt "Erster Lauf von setup.sh --lokal"
@@ -72,7 +72,7 @@ pruefen() {
   # Bucket und CORS: setup.sh hat den Preflight schon über den Befehl geprüft. Hier fragt der
   # Test den Speicher noch einmal von außen über Caddy, wie der Browser, mit dem Namen s3.localhost.
   local bucket
-  bucket=$(sed -n "s/^S3_BUCKET='\(.*\)'\$/\1/p" "$selbst/.env")
+  bucket=$(sed -n "s/^S3_BUCKET='\(.*\)'\$/\1/p" "$ordner/.env")
   [[ -n $bucket ]] || fehler "S3_BUCKET fehlt in der .env."
   local methode kopf
   for methode in POST PUT GET DELETE; do
@@ -87,7 +87,7 @@ pruefen() {
   [[ $status == 403 ]] || fehler "Preflight einer fremden Herkunft: HTTP $status statt 403."
 
   # Der Bucket existiert und der Schlüssel der App darf ihn lesen.
-  (cd "$selbst" && docker compose exec -T app python manage.py shell -c \
+  (cd "$ordner" && docker compose exec -T app python manage.py shell -c \
     "from storage import get_storage; get_storage().ensure_reachable(); print('bucket-ok')" \
     </dev/null | tail -n 1) | grep -qx bucket-ok || fehler "Bucket '$bucket' ist nicht erreichbar."
 }
@@ -98,11 +98,11 @@ pruefen
 zustand() {
   # Was ein zweiter Lauf nicht ändern darf: Geheimnisse und Einstellungen, Garage-Einrichtung,
   # und dass Aktion und Betreiber-Konto nicht ein zweites Mal entstehen.
-  (cd "$selbst" && sha256sum .env data/garage/garage.toml)
-  (cd "$selbst" && docker compose exec -T app python manage.py shell -c \
+  (cd "$ordner" && sha256sum .env data/garage/garage.toml)
+  (cd "$ordner" && docker compose exec -T app python manage.py shell -c \
     "from django.contrib.auth import get_user_model as g; from submissions.models import Campaign; print('konten', g().objects.count(), 'aktionen', Campaign.objects.count())" \
     </dev/null | tail -n 1)
-  (cd "$selbst" && docker compose exec -T -e RUST_LOG=warn garage /garage bucket list </dev/null | awk 'NR>1 {print $NF}' | sort)
+  (cd "$ordner" && docker compose exec -T -e RUST_LOG=warn garage /garage bucket list </dev/null | awk 'NR>1 {print $NF}' | sort)
 }
 
 schritt "Zustand nach dem ersten Lauf merken"

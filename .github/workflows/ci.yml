@@ -41,14 +41,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-  # Der Installer-Test läuft nur, wenn sich etwas am Selbstbetrieb ändert (deploy/, also auch
+  # Der Installer-Test läuft nur, wenn sich etwas am Self-Hosting ändert (deploy/, also auch
   # setup.sh) oder am Dockerfile, denn der Test baut das Image selbst (ADR 0014); der
-  # Release-Workflow ruft selbstbetrieb.yml selbst auf (ADR 0011).
+  # Release-Workflow ruft installer.yml selbst auf (ADR 0011).
   aenderungen:
     if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     outputs:
-      selbstbetrieb: ${{ steps.pfade.outputs.selbstbetrieb }}
+      installer: ${{ steps.pfade.outputs.installer }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -60,18 +60,18 @@ jobs:
           BASIS: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: |
           if ! git cat-file -e "$BASIS^{commit}" 2>/dev/null; then
-            echo "selbstbetrieb=true" >> "$GITHUB_OUTPUT"
+            echo "installer=true" >> "$GITHUB_OUTPUT"
           elif git diff --name-only "$BASIS" "$GITHUB_SHA" \
-            | grep -qE '^(deploy/|Dockerfile$|scripts/selbstbetrieb-test\.sh$|\.github/workflows/selbstbetrieb\.yml$)'; then
-            echo "selbstbetrieb=true" >> "$GITHUB_OUTPUT"
+            | grep -qE '^(deploy/|Dockerfile$|scripts/installer-test\.sh$|\.github/workflows/installer\.yml$)'; then
+            echo "installer=true" >> "$GITHUB_OUTPUT"
           else
-            echo "selbstbetrieb=false" >> "$GITHUB_OUTPUT"
+            echo "installer=false" >> "$GITHUB_OUTPUT"
           fi
 
-  selbstbetrieb:
+  installer:
     needs: aenderungen
-    if: needs.aenderungen.outputs.selbstbetrieb == 'true'
-    uses: ./.github/workflows/selbstbetrieb.yml
+    if: needs.aenderungen.outputs.installer == 'true'
+    uses: ./.github/workflows/installer.yml
 
   image:
     needs: test

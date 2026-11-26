@@ -1,4 +1,4 @@
-# Beide Namen bekommen ihr Zertifikat von Caddy. Mit SCHEMA=http:// (Probemodus) gibt es
+# Beide Namen bekommen ihr Zertifikat von Caddy. Mit SCHEMA=http:// (Demo-Modus) gibt es
 # keines. Der Host-Header bleibt beim Weiterreichen an Garage erhalten, sonst passt die
 # Signatur der S3-Links nicht.
 

@@ -156,3 +156,13 @@ _Avoid_: Software, Hersteller
 **Dublette** (`duplicate_of`):
 Ein Master, dessen Prüfsumme schon in einer anderen Submission vorkommt. Wird angenommen und markiert; in derselben Submission wird dieselbe Datei abgelehnt.
 _Avoid_: Kopie, doppelter Upload
+
+### Betrieb
+
+**Self-Hosting**:
+Schwarmstack auf eigener Hardware betreiben, egal wo: App, Caddy und Garage per `deploy/self-hosting/setup.sh` und Compose, mit Zertifikat, ohne GitHub-Deployment (ADR 0011). Gedacht für andere Betreiber; wie die DZVF-Instanz ausgerollt wird, steht in `docs/betrieb/deployment.md`.
+_Avoid_: Selbstbetrieb, Eigenbetrieb
+
+**Demo-Modus** (`--lokal`):
+Der Weg, Schwarmstack nur auszuprobieren: alles auf `localhost`, ohne Zertifikat, mit Demo-Angaben, nur zum Ausprobieren und nicht für Teilnehmerdaten. Eine Betriebsart des Self-Hostings, kein eigener Betrieb. Wer es ausprobiert, bekommt keinen Rollennamen: Es ist eine Person, die Schwarmstack ausprobiert, und kein Fachbegriff.
+_Avoid_: Probemodus, Probierer, Testmodus
