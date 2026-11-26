@@ -102,6 +102,7 @@ DZVF = {
 def test_wortlaut_fuer_die_dzvf_bleibt_zeichengenau_wie_vorher(client, settings, version):
     """Ändert sich dieser Text, wechselt die Fassung, und alle müssten neu einwilligen."""
     settings.PRIVACY_CONTACT = "datenschutz@example.org"
+    settings.CONSENT_TEXT_VERSION = "2026-11-25-2"  # der Stand der Referenz, nicht der von heute
     for name, value in DZVF.items():
         setattr(settings, name, value)
     page = client.get(f"/datenschutz/{version}/").content
@@ -143,7 +144,7 @@ def test_fehlt_eine_angabe_erscheint_kein_hinweis_mit_leeren_stellen(client, set
 def test_admin_warnt_wenn_angaben_fehlen(operator_client, settings):
     settings.HOSTER_ADDRESS = ""
     page = operator_client.get(ADMIN).content.decode()
-    assert "Dem Datenschutzhinweis fehlen Angaben (HOSTER_ADDRESS)" in page
+    assert "Dem Datenschutzhinweis fehlen Angaben: HOSTER_ADDRESS" in page
 
 
 def test_admin_warnt_nicht_wenn_alles_gesetzt_ist(operator_client, settings):

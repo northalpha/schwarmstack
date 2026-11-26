@@ -43,6 +43,10 @@ def missing_details() -> list[str]:
     return [name for name in _DETAILS if not getattr(settings, name, "").strip()]
 
 
+def missing_message(names: list[str]) -> str:
+    return f"Dem Datenschutzhinweis fehlen Angaben: {', '.join(names)}."
+
+
 def context() -> dict[str, str]:
     """Angaben für die Vorlagen; fehlt eine, ist `missing_details()` nicht leer."""
     return {key: getattr(settings, name, "").strip() for name, key in _DETAILS.items()}
@@ -72,8 +76,7 @@ def check_privacy_notice(app_configs, **kwargs):
     if missing and not settings.DEBUG:
         errors.append(
             checks.Warning(
-                f"Dem Datenschutzhinweis fehlen Angaben: {', '.join(missing)}. Er erscheint erst, "
-                "wenn sie gesetzt sind.",
+                f"{missing_message(missing)} Er erscheint erst, wenn sie gesetzt sind.",
                 hint="Siehe docs/betrieb/deployment.md.",
                 id="submissions.W001",
             )

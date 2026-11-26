@@ -85,8 +85,15 @@ Die Rücknahme der Einwilligung zur Namensnennung oder zum Equipment-Foto. Die N
 _Avoid_: Kündigung, Opt-out
 
 **Datenschutzhinweis**:
-Der Text in Schwarmstack, der erklärt, wer was wie lange verarbeitet; Verantwortlicher ist DZVF. Es gibt ihn in Fassungen, und jede Einwilligung hält fest, auf welche Fassung sie sich bezieht.
+Der Text in Schwarmstack, der erklärt, wer was wie lange verarbeitet; verantwortliche Stelle und Hoster stehen nicht im Code, sondern kommen aus den Einstellungen (`OPERATOR_*`, `HOSTER_*`), bei der DZVF-Instanz ist es die DZVF. Es gibt ihn in Fassungen, und jede Einwilligung hält fest, auf welche Fassung sie sich bezieht.
 _Avoid_: Datenschutzerklärung, Privacy Policy
+
+**Verantwortliche Stelle** (`OPERATOR_NAME`):
+Die Organisation, die im Datenschutzhinweis als Verantwortliche genannt wird (bei der DZVF-Instanz die DZVF). Nicht zu verwechseln mit den **Betreibern**, den Personen.
+_Avoid_: Betreiber (für die Organisation)
+
+**Hoster** (`HOSTER_NAME`):
+Der Anbieter von Server und Speicher, der im Datenschutzhinweis als Auftragsverarbeiter genannt wird.
 
 **Fassung des Hinweistextes** (`Consent.text_version`):
 Die Fassung des Datenschutzhinweises, auf die sich eine Einwilligung bezieht; sie wird mit der Einwilligung gespeichert, damit nachweisbar ist, was die Person gesehen hat. Die aktuelle Fassung steht in `CONSENT_TEXT_VERSION`, zu jeder Fassung gibt es einen eigenen Datenschutzhinweis. Wechselt sie, gilt für neue Einwilligungen die neue; schon erteilte behalten ihre.

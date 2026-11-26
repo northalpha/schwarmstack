@@ -28,8 +28,8 @@ class OperatorSite(admin.AdminSite):
         if missing:
             messages.warning(
                 request,
-                "Dem Datenschutzhinweis fehlen Angaben (" + ", ".join(missing) + "). Solange sie "
-                "fehlen, zeigt /datenschutz/ keinen Hinweis. "
+                privacy.missing_message(missing)
+                + " Solange sie fehlen, zeigt /datenschutz/ keinen Hinweis. "
                 "Siehe docs/betrieb/deployment.md.",
             )
         campaign = Campaign.current()

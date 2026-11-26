@@ -6,14 +6,14 @@ os.environ["DATA_DIR"] = tempfile.mkdtemp(prefix="schwarmstack-test-")
 # Tests laufen standardmäßig gegen die lokale Platte; S3-Tests stellen gezielt um.
 os.environ["STORAGE_BACKEND"] = "local"
 os.environ["ADMIN_PATH"] = "betrieb-test"
-# Die heutigen Werte der DZVF; der Datenschutzhinweis erscheint nur mit allen Angaben.
+# Die heutigen Namen der DZVF, Anschriften erfunden; ohne alle Angaben erscheint kein Hinweis.
 os.environ.setdefault("PRIVACY_CONTACT", "datenschutz@example.org")
 os.environ.setdefault("OPERATOR_NAME", "der DZVF")
 os.environ.setdefault("OPERATOR_BEI", "beim DZVF")
 os.environ.setdefault("OPERATOR_ADDRESS", "Beispielstraße 1, 12345 Beispielstadt")
 os.environ.setdefault("HOSTER_NAME", "die Hetzner Online GmbH")
 os.environ.setdefault("HOSTER_BEI", "bei der Hetzner Online GmbH")
-os.environ.setdefault("HOSTER_ADDRESS", "Industriestr. 25, 91710 Gunzenhausen")
+os.environ.setdefault("HOSTER_ADDRESS", "Hosterweg 2, 54321 Hosterstadt")
 
 from schwarmstack.settings import *  # noqa: E402,F403
 
