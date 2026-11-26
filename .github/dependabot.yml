@@ -7,8 +7,16 @@ updates:
     schedule:
       interval: weekly
     groups:
+      # Django bekommt immer einen eigenen PR: Feature-Releases (5.2, 6.0, 6.1) entfernen
+      # Deprecations und brauchen Prüfung (#132). Major-Sprünge kommen nie von selbst.
+      django:
+        patterns: ["django"]
       python:
         patterns: ["*"]
+        exclude-patterns: ["django"]
+    ignore:
+      - dependency-name: django
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
