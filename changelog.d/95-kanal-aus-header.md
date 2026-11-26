@@ -3,3 +3,4 @@
   Kanal vor, wenn er vom beim Upload gewählten abweicht. Teilnehmende übernehmen den Vorschlag mit
   einem Klick (Herkunft `header`, sonst `manuell`); der Header wird nie als Ganzes gespeichert.
   Dualband- und Lichtverschmutzungsfilter sowie `IR-cut` ergeben keinen Vorschlag.
+  Warum: Ein beim Upload falsch gewählter Kanal fiel bisher nicht auf, obwohl der Header ihn oft nennt.
