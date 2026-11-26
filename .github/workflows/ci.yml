@@ -109,7 +109,7 @@ jobs:
       - name: Ausnahmen für Trivy
         run: python3 scripts/ausnahmen.py ids > "$RUNNER_TEMP/trivyignore"
       - name: Trivy, Image prüfen
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}:${{ steps.tag.outputs.tag }}
           severity: HIGH,CRITICAL
@@ -119,7 +119,7 @@ jobs:
       # Alles andere (auch ohne Fix) erscheint als Hinweis im Security-Tab.
       - name: Trivy, Bericht für den Security-Tab
         if: github.event_name == 'push'
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}:${{ steps.tag.outputs.tag }}
           format: sarif
