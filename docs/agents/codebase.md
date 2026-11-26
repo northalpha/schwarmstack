@@ -39,7 +39,7 @@ tests/
 └── e2e/                   # E2E-Test im echten Browser gegen Garage
 deploy/                    # Compose, Caddy, Skripte für Host und Deploy (docs/betrieb/deployment.md)
 └── selbst/                # Selbstbetrieb: compose.yaml (App, Caddy, Garage), setup.sh (docs/betrieb/selbstbetrieb.md)
-scripts/                   # pruefen.sh (alle Prüfungen wie CI), selbstbetrieb-test.sh (Installer-Test), garage.sh, glossar.py, changelog.py;
+scripts/                   # pruefen.sh (alle Prüfungen wie CI), ausnahmen.py (Ausnahmen für Sicherheitsfunde, ADR 0012), selbstbetrieb-test.sh (Installer-Test), garage.sh, glossar.py, changelog.py;
                            # release.py + image-pruefen.sh: Release-Hilfen (Skill /release, release.yml);
                            # header_prototyp.py: Wegwerf-Prototyp, zeigt Header roh (Issue #49)
 ```

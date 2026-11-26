@@ -28,13 +28,17 @@ jobs:
     if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
       - run: uv sync --frozen
       - name: Browser für den E2E-Test mit Uppy
         run: uv run playwright install --with-deps chromium
       # Lint, Glossar, Changelog, Migrationen und Tests mit Garage und Browser; lokal genauso.
       - run: scripts/pruefen.sh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
   # Der Installer-Test läuft nur, wenn sich etwas am Selbstbetrieb ändert (deploy/, also auch
   # setup.sh); der Release-Workflow ruft selbstbetrieb.yml selbst auf (ADR 0011).
@@ -44,8 +48,9 @@ jobs:
     outputs:
       selbstbetrieb: ${{ steps.pfade.outputs.selbstbetrieb }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: Pfade vergleichen
         id: pfade
@@ -72,10 +77,13 @@ jobs:
     permissions:
       contents: read
       packages: write
+      security-events: write
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - name: Tag bestimmen
         id: tag
         run: echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
@@ -92,11 +100,39 @@ jobs:
           done
           docker logs smoke
           exit 1
+      # Rot nur bei High/Critical mit vorhandenem Fix; Ausnahmen aus sicherheit-ausnahmen.toml.
+      - name: Ausnahmen für Trivy
+        run: python3 scripts/ausnahmen.py ids > "$RUNNER_TEMP/trivyignore"
+      - name: Trivy, Image prüfen
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ steps.tag.outputs.tag }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          trivyignores: ${{ runner.temp }}/trivyignore
+      # Alles andere (auch ohne Fix) erscheint als Hinweis im Security-Tab.
+      - name: Trivy, Bericht für den Security-Tab
+        if: github.event_name == 'push'
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ steps.tag.outputs.tag }}
+          format: sarif
+          output: trivy.sarif
+          trivyignores: ${{ runner.temp }}/trivyignore
+      - name: Bericht hochladen
+        if: github.event_name == 'push'
+        uses: github/codeql-action/upload-sarif@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
+        with:
+          sarif_file: trivy.sarif
+          category: trivy
       - name: Nach GHCR pushen
         if: github.event_name == 'push'
+        env:
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" \
-            | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+          echo "$REGISTRY_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin
           docker push "$IMAGE:${{ steps.tag.outputs.tag }}"
           docker logout ghcr.io
 

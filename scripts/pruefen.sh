@@ -36,6 +36,23 @@ schritt shellcheck
 uv run shellcheck deploy/*.sh deploy/selbst/*.sh scripts/*.sh
 schritt actionlint
 uv run actionlint .github/workflows/*.yml
+schritt zizmor
+# In GitHub Actions prüft zizmor auch gepinnte Commits gegen GitHub (mit GITHUB_TOKEN), lokal offline.
+if [[ -n ${GITHUB_ACTIONS:-} && -n ${GITHUB_TOKEN:-} ]]; then
+  uv run zizmor --min-severity medium .github/workflows
+else
+  uv run zizmor --offline --min-severity medium .github/workflows
+fi
+schritt Sicherheitsausnahmen
+uv run python scripts/ausnahmen.py pruefen
+schritt pip-audit
+# Bekannte Schwachstellen in den gesperrten Paketen (uv.lock); Ausnahmen aus sicherheit-ausnahmen.toml.
+audit_args=()
+while IFS= read -r id; do
+  [[ -n $id ]] && audit_args+=(--ignore-vuln "$id")
+done < <(uv run python scripts/ausnahmen.py ids)
+uv export --frozen --no-emit-project --format requirements-txt --quiet \
+  | uv run pip-audit --disable-pip --no-deps --progress-spinner off "${audit_args[@]}" -r /dev/stdin
 schritt Glossar und Changelog
 uv run python scripts/glossar.py pruefen
 uv run python scripts/changelog.py pruefen
