@@ -16,10 +16,8 @@ from django.template.loader import get_template
 _DETAILS = {
     "PRIVACY_CONTACT": "contact",
     "OPERATOR_NAME": "operator_name",
-    "OPERATOR_BEI": "operator_bei",
     "OPERATOR_ADDRESS": "operator_address",
     "HOSTER_NAME": "hoster_name",
-    "HOSTER_BEI": "hoster_bei",
     "HOSTER_ADDRESS": "hoster_address",
 }
 

@@ -90,12 +90,7 @@ def test_upload_seite_erklaert_vor_dem_upload_wie_standortdaten_entfernt_werden(
 # --- Verantwortliche Stelle und Hoster aus der Umgebung (#101, ADR 0011) ---
 
 GOLDEN = Path(__file__).parent / "golden"
-DZVF = {
-    "OPERATOR_NAME": "der DZVF",
-    "OPERATOR_BEI": "beim DZVF",
-    "HOSTER_NAME": "die Hetzner Online GmbH",
-    "HOSTER_BEI": "bei der Hetzner Online GmbH",
-}
+DZVF = {"OPERATOR_NAME": "DZVF", "HOSTER_NAME": "Hetzner Online GmbH"}
 
 
 @pytest.mark.parametrize("version", ["2026-11-25", "2026-11-25-2"])
@@ -110,12 +105,11 @@ def test_wortlaut_fuer_die_dzvf_bleibt_zeichengenau_wie_vorher(client, settings,
 
 
 def test_andere_betreiber_erscheinen_im_hinweis_und_werden_maskiert(client, settings):
-    settings.OPERATOR_NAME = "der Verein <b>Sternfreunde</b>"
-    settings.OPERATOR_BEI = "beim Verein Sternfreunde"
-    settings.HOSTER_BEI = "bei der Beispiel AG"
+    settings.OPERATOR_NAME = "Verein <b>Sternfreunde</b>"
+    settings.HOSTER_NAME = "Beispiel AG"
     page = client.get("/datenschutz/").content.decode()
     assert "Verantwortlich ist der Verein &lt;b&gt;Sternfreunde&lt;/b&gt;, der" in page
-    assert "Projekts beim Verein Sternfreunde." in page
+    assert "Projekts beim Verein &lt;b&gt;Sternfreunde&lt;/b&gt;." in page
     assert "läuft bei der Beispiel AG (" in page
     assert "DZVF" not in page
     assert "Hetzner" not in page
@@ -125,10 +119,8 @@ def test_andere_betreiber_erscheinen_im_hinweis_und_werden_maskiert(client, sett
     "name",
     [
         "OPERATOR_NAME",
-        "OPERATOR_BEI",
         "OPERATOR_ADDRESS",
         "HOSTER_NAME",
-        "HOSTER_BEI",
         "HOSTER_ADDRESS",
     ],
 )
