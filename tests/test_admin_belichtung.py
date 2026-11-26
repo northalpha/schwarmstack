@@ -49,3 +49,18 @@ def test_betreiber_kann_dezimalkomma_eingeben(operator_client, participant):
     master.refresh_from_db()
     assert str(master.exposure_per_light.normalize()) == "0.5"
     assert master.exposure_per_light_source == "manuell"
+
+
+def test_betreiber_leert_teleskop_und_instrument(operator_client, participant):
+    master = participant.upload(fits(keywords=DWARF))
+    assert master.telescope and master.instrument
+    form = operator_client.get(master_change_url(master))
+
+    response = operator_client.post(
+        master_change_url(master), change_form_data(form, telescope="", instrument="")
+    )
+
+    assert response.status_code == 302, response.content
+    master.refresh_from_db()
+    assert (master.telescope, master.instrument) == ("", "")
+    assert (master.telescope_source, master.instrument_source) == ("", "")
