@@ -28,6 +28,15 @@
     </form>
     {% endif %}
     <form method="post" action="{{ exposure_url }}" class="exposure-values">{% csrf_token %}
+      {% if m.channel != "RGB" %}
+      <div class="field">
+        <label for="channel-{{ m.public_id }}">Kanal</label>
+        <select id="channel-{{ m.public_id }}" name="channel">
+          {% for value, label in m.single_channel_choices %}<option value="{{ value }}"{% if value == m.channel %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        {% if m.channel_source %}<span class="source">{{ m.get_channel_source_display }}</span>{% endif %}
+      </div>
+      {% endif %}
       {% for row in p.rows %}
       <div class="field">
         <label for="{{ row.name }}-{{ m.public_id }}">{{ row.label }}{% if row.name == "exposure_per_light" or row.name == "total_exposure" %} (s){% endif %}</label>

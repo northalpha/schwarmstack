@@ -315,6 +315,11 @@ class Master(models.Model):
     def __str__(self):
         return f"{self.submission} {self.channel} {self.original_name}"
 
+    @property
+    def single_channel_choices(self):
+        """Kanäle, zwischen denen ein Master mit einer Ebene wechseln darf (alle außer RGB)."""
+        return [(value, label) for value, label in self.Channel.choices if value != "RGB"]
+
     @cached_property
     def exposure_proposal(self) -> exposure.Proposal:
         """Belichtungsangaben für die Anzeige: Werte, Vorschlag, Hinweise."""

@@ -341,9 +341,6 @@ def apply_header(master, header: HeaderValues, *, keep_manual: bool = False) -> 
     master.header_conflicts = found.conflicts
     # Drei Ebenen (RGB) legen den Kanal fest; nur bei einer Ebene schlägt der Filter einen vor.
     master.header_channel = "" if master.channel == "RGB" else found.channel
-    if master.header_channel and master.header_channel == master.channel:
-        master.channel_source = Source.HEADER
-        changed.append("channel_source")
     return [*changed, "creator", "header_exptime", "header_conflicts", "header_channel"]
 
 
@@ -527,7 +524,20 @@ def set_by_hand(master, changes: dict) -> list[str]:
         setattr(master, name, value)
         setattr(master, f"{name}_source", Source.MANUAL if value not in (None, "") else "")
         changed += [name, f"{name}_source"]
-    return changed
+    return changed + _set_channel(master, changes.get("channel"))
+
+
+def _set_channel(master, raw) -> list[str]:
+    """Kanal von Hand ändern (Herkunft `manuell`). Drei Ebenen (RGB) legen den Kanal fest:
+    Zwischen RGB und den Einzelkanälen wechselt niemand, die Prüfung hat sie so zugelassen."""
+    if raw is None or raw == master.channel:
+        return []
+    allowed = {c for c in type(master).Channel.values if c != "RGB"}
+    if master.channel == "RGB" or raw not in allowed:
+        raise InvalidInput("Kanal: bitte einen der Einzelkanäle wählen.")
+    master.channel = raw
+    master.channel_source = Source.MANUAL
+    return ["channel", "channel_source"]
 
 
 def accept(master, name: str) -> list[str]:

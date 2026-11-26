@@ -78,11 +78,40 @@ def test_uebernommener_kanal_steht_auch_in_der_begleitdatei(participant, storage
     assert json.loads(sidecar.read_text())["channel"] == "OIII"
 
 
-def test_stimmt_der_gewaehlte_kanal_mit_dem_header_ueberein_ist_die_herkunft_header(participant):
+def test_stimmt_der_gewaehlte_kanal_mit_dem_header_ueberein_bleibt_er_manuell(participant):
     master = participant.upload(_mono("H-alpha 7nm"), channel="Ha")
 
-    assert master.channel_source == "header"
+    assert master.channel_source == "manuell"
     assert "Der Header nennt den Kanal" not in participant.page()
+
+
+def test_kanal_von_hand_aendern_wird_manuell_und_schreibt_die_begleitdatei(
+    participant, storage_dir
+):
+    master = participant.upload(_mono("Ha"), channel="L")
+
+    response = participant.save_exposure(master, channel="SII")
+
+    assert response.status_code == 200
+    master.refresh_from_db()
+    assert (master.channel, master.channel_source) == ("SII", "manuell")
+    sidecar = next(storage_dir.rglob(f"{master.public_id.hex}.json"))
+    assert json.loads(sidecar.read_text())["channel"] == "SII"
+
+
+@pytest.mark.parametrize("value", ["RGB", "Quatsch"])
+def test_kanal_von_hand_nur_zwischen_einzelkanaelen(participant, value):
+    master = participant.upload(_mono("Ha"), channel="L")
+
+    assert participant.save_exposure(master, channel=value).status_code == 400
+    master.refresh_from_db()
+    assert master.channel == "L"
+
+
+def test_rgb_master_wechselt_den_kanal_nicht(participant):
+    master = participant.upload(fits(planes=3), channel="RGB", filename="rgb.fits")
+
+    assert participant.save_exposure(master, channel="L").status_code == 400
 
 
 @pytest.mark.parametrize("value", ["HO", "VIS", "IR-cut", "Sonderfilter"])
