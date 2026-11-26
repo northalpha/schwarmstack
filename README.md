@@ -74,11 +74,11 @@ uv run python manage.py runserver
 
 Danach ist die Teilnahmeseite unter <http://localhost:8000/> erreichbar, der Admin unter <http://localhost:8000/betrieb/>. `DEBUG=1` ist nur zum Ausprobieren gedacht.
 
-## Selbst betreiben
+## Self-Hosting
 
-Ein Skript richtet App, Caddy (TLS) und S3-kompatiblen Speicher (Garage) mit Docker Compose ein: `deploy/selbst/setup.sh`, beschrieben in [`docs/betrieb/selbstbetrieb.md`](docs/betrieb/selbstbetrieb.md) ([ADR 0011](docs/adr/0011-release-und-selbstbetrieb.md)). Zum Ausprobieren mit Docker, auch auf dem Mac mit Apple Silicon, startet `./setup.sh --lokal` alles auf `localhost` ohne Zertifikat. Wie die Betreiber der DZVF-Aktion ausrollen (GitHub Actions, eigener S3-Speicher), steht in [`docs/betrieb/deployment.md`](docs/betrieb/deployment.md).
+Ein Skript richtet App, Caddy (TLS) und S3-kompatiblen Speicher (Garage) mit Docker Compose ein: `deploy/self-hosting/setup.sh`, beschrieben in [`docs/betrieb/self-hosting.md`](docs/betrieb/self-hosting.md) ([ADR 0011](docs/adr/0011-release-und-selbstbetrieb.md)). Zum Ausprobieren mit Docker, auch auf dem Mac mit Apple Silicon, startet `./setup.sh --lokal` alles auf `localhost` ohne Zertifikat. Wie die Betreiber der DZVF-Aktion ausrollen (GitHub Actions, eigener S3-Speicher), steht in [`docs/betrieb/deployment.md`](docs/betrieb/deployment.md).
 
-Wichtig für jeden Betreiber: Der mitgelieferte Datenschutzhinweis ist auf die DZVF-Aktion zugeschnitten. Wer Schwarmstack selbst betreibt, braucht einen eigenen Hinweis und ist selbst dafür verantwortlich. Das hier ist keine Rechtsberatung.
+Wichtig für jeden Betreiber: Der mitgelieferte Datenschutzhinweis ist auf die DZVF-Aktion zugeschnitten. Wer Schwarmstack selbst hostet, braucht einen eigenen Hinweis und ist selbst dafür verantwortlich. Das hier ist keine Rechtsberatung.
 
 ## Wie es gebaut ist
 

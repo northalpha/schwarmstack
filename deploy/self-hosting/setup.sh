@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Richtet Schwarmstack für den Selbstbetrieb ein und startet es (ADR 0011).
+# Richtet Schwarmstack für das Self-Hosting ein und startet es (ADR 0011).
 #
-#   git clone --branch vX.Y.Z <repo> && cd schwarmstack/deploy/selbst && ./setup.sh
-#   ./setup.sh --lokal    # Probemodus auf localhost, ohne Zertifikat, nur zum Ausprobieren
+#   git clone --branch vX.Y.Z <repo> && cd schwarmstack/deploy/self-hosting && ./setup.sh
+#   ./setup.sh --lokal    # Demo-Modus auf localhost, ohne Zertifikat, nur zum Ausprobieren
 #
 # Das Skript fragt, was es nicht schon weiß, erzeugt alle Geheimnisse selbst und schreibt die
 # .env. Es läuft auch ohne Rückfragen, wenn alle Werte als Umgebungsvariablen gesetzt sind
@@ -68,7 +68,7 @@ modus_alt=$(alt MODUS)
 modus=betrieb
 [[ -z $lokal ]] || modus=lokal
 if [[ -n $modus_alt && $modus_alt != "$modus" ]]; then
-  fehler "Die vorhandene .env ist für den Modus '$modus_alt' angelegt. Probemodus und echter" \
+  fehler "Die vorhandene .env ist für den Modus '$modus_alt' angelegt. Demo-Modus und echter" \
     "Betrieb lassen sich nicht mischen. Zum Neuanfang .env und data/ entfernen."
 fi
 
@@ -106,7 +106,7 @@ else
   SCHEMA=
   [[ -z ${DOMAIN:-} ]] || S3_ENDPOINT_URL=https://s3.$DOMAIN
 fi
-# Standardwerte gibt es nur im Probemodus; im echten Betrieb müssen die Angaben stimmen.
+# Standardwerte gibt es nur im Demo-Modus; im echten Betrieb müssen die Angaben stimmen.
 probe=${lokal:+Probe (nur zum Ausprobieren)}
 probe_adresse=${lokal:+Musterstraße 1, 12345 Musterstadt}
 probe_mail=${lokal:+probe@example.com}
@@ -167,7 +167,7 @@ elif [[ -z $lokal && ${DNS_PRUEFEN:-ja} != nein ]]; then
 fi
 
 for programm in docker curl; do
-  command -v "$programm" >/dev/null || fehler "$programm fehlt. Siehe docs/betrieb/selbstbetrieb.md."
+  command -v "$programm" >/dev/null || fehler "$programm fehlt. Siehe docs/betrieb/self-hosting.md."
 done
 docker compose version >/dev/null 2>&1 || fehler "Docker Compose (Plugin) fehlt."
 docker info >/dev/null 2>&1 || fehler "Docker antwortet nicht. Läuft der Dienst (auf dem Mac: Docker Desktop oder OrbStack gestartet?), und darf dieser Benutzer ihn nutzen?"
@@ -359,5 +359,5 @@ if [[ -n $neues_passwort ]]; then
 fi
 if [[ -n $lokal ]]; then
   echo
-  echo "PROBEMODUS: nur zum Ausprobieren, nicht für Teilnehmerdaten (kein Zertifikat, Probe-Angaben)."
+  echo "DEMO-MODUS: nur zum Ausprobieren, nicht für Teilnehmerdaten (kein Zertifikat, Demo-Angaben)."
 fi

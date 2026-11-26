@@ -1,4 +1,4 @@
-# Selbst betreiben
+# Self-Hosting
 
 Wer eine eigene Aktion betreiben will, startet Schwarmstack mit einem Skript und Docker Compose, ohne GitHub-Deployment (ADR 0011). Das ist kein Produktversprechen: keine Support-Zusage, Issues sind willkommen. Die Betreiber-Einrichtung der DZVF (Hetzner, GitHub Actions) steht in [`deployment.md`](deployment.md) und ist davon unabhängig.
 
@@ -9,7 +9,7 @@ Kein Rechtsrat: Wer Schwarmstack betreibt, ist selbst für Datenschutzhinweis, E
 - Ein Server mit Linux, öffentlicher IP und den offenen Ports 80 und 443 (TCP, für HTTP/3 auch UDP 443).
 - Docker mit dem Compose-Plugin, `git` und `curl`.
 - **Zwei DNS-Einträge** (A, ggf. AAAA) auf den Server: die Domain der Teilnahmeseite, etwa `upload.example.org`, und `s3.upload.example.org` für den Speicher. Der Browser lädt direkt zu Garage hoch, darum braucht der Speicher eine eigene Adresse. Caddy holt für beide Namen ein Zertifikat.
-- Platz auf der Platte für die Master der Aktion; Garage legt sie unter `deploy/selbst/data/garage/` ab.
+- Platz auf der Platte für die Master der Aktion; Garage legt sie unter `deploy/self-hosting/data/garage/` ab.
 
 ## Einrichten
 
@@ -20,7 +20,7 @@ git clone --branch vX.Y.Z https://github.com/northalpha/schwarmstack.git
 ```
 
 ```bash
-cd schwarmstack/deploy/selbst && ./setup.sh
+cd schwarmstack/deploy/self-hosting && ./setup.sh
 ```
 
 `setup.sh` fragt Domain, Betreiber-Adressen, die Angaben zur verantwortlichen Stelle und zum Hoster, dann Objekt, Zeitraum und Grenzen der Aktion und prüft, ob beide DNS-Einträge auf diesen Server zeigen (und nennt den fehlenden). Es erzeugt alle Geheimnisse selbst, schreibt `.env`, startet App, Caddy, Garage und eine Aufgaben-Schleife, richtet Garage samt Bucket und CORS ein (und prüft CORS wie ein Browser), legt die Aktion und das erste Betreiber-Konto an und nennt am Ende die Adressen. Das Passwort des Kontos steht nur dort; ändern:
@@ -33,7 +33,7 @@ Weitere Konten: [`admin.md`](admin.md).
 
 ### Ohne Rückfragen
 
-Alle Fragen lassen sich über Umgebungsvariablen beantworten, siehe [`.env.example`](../../deploy/selbst/.env.example):
+Alle Fragen lassen sich über Umgebungsvariablen beantworten, siehe [`.env.example`](../../deploy/self-hosting/.env.example):
 
 ```bash
 DOMAIN=upload.example.org OPERATOR_EMAILS=betrieb@example.org \
@@ -47,17 +47,17 @@ AKTION_QUOTE_GIB=5 AKTION_GESAMTGRENZE_GIB=100 \
 
 Fehlt eine Angabe und gibt es kein Terminal, bricht das Skript ab und nennt die fehlenden Variablen.
 
-### Probemodus
+### Demo-Modus
 
 ```bash
 ./setup.sh --lokal
 ```
 
-startet alles auf `localhost` ohne Zertifikat und mit Probe-Angaben (Ports 80 und 443 müssen frei sein). **Nur zum Ausprobieren, nicht für Teilnehmerdaten.** Probemodus und echter Betrieb lassen sich nicht in derselben `.env` mischen.
+startet alles auf `localhost` ohne Zertifikat und mit Demo-Angaben (Ports 80 und 443 müssen frei sein). **Nur zum Ausprobieren, nicht für Teilnehmerdaten.** Demo-Modus und echter Betrieb lassen sich nicht in derselben `.env` mischen.
 
 ### Ausprobieren auf dem Mac (Apple Silicon)
 
-Der Probemodus läuft auch auf einem Mac mit Apple Silicon (macOS 26 und neuer), ohne Rosetta: Das Image gibt es für `linux/arm64`, Docker holt die passende Variante von selbst. Nötig sind:
+Der Demo-Modus läuft auch auf einem Mac mit Apple Silicon (macOS 26 und neuer), ohne Rosetta: Das Image gibt es für `linux/arm64`, Docker holt die passende Variante von selbst. Nötig sind:
 
 - Docker Desktop oder OrbStack, gestartet (`docker info` antwortet), mit dem Compose-Plugin.
 - `git` und `curl` (beides bringen die Xcode Command Line Tools mit: `xcode-select --install`).
@@ -70,7 +70,7 @@ git clone --branch vX.Y.Z https://github.com/northalpha/schwarmstack.git
 ```
 
 ```bash
-cd schwarmstack/deploy/selbst && ./setup.sh --lokal
+cd schwarmstack/deploy/self-hosting && ./setup.sh --lokal
 ```
 
 Das Skript läuft mit der bash 3.2 des Macs. Am Ende nennt es die Adressen: die Teilnahmeseite unter <http://localhost/> und den Speicher unter `http://s3.localhost`. Der Browser lädt direkt zu diesem Namen hoch. Chrome, Firefox und Safari lösen `*.localhost` selbst auf, bei anderen Programmen kann der Name unbekannt sein. Das Passwort des Betreiber-Kontos steht nur in der Ausgabe von `setup.sh`.
@@ -94,14 +94,25 @@ Der echte Betrieb mit Zertifikat ist für einen Linux-Server gedacht. Die DNS-Pr
 `./setup.sh` darf beliebig oft laufen. Geheimnisse, Daten, Aktion und Betreiber-Konto bleiben; geändert wird nur, was sich geändert hat. Ein Versionswechsel ist:
 
 ```bash
-git fetch --tags && git checkout vX.Y.Z && cd deploy/selbst && ./setup.sh
+git fetch --tags && git checkout vX.Y.Z && cd deploy/self-hosting && ./setup.sh
 ```
 
 Das Skript liest die Version aus `pyproject.toml` der ausgecheckten Version und setzt sie als Image-Tag. Steht der Checkout nicht auf dem passenden Tag, bricht es ab. Der Changelog sagt, was eine neue Version ändert; solange die Hauptversion 0 ist, können Minor-Versionen noch etwas brechen. Automatische Updates gibt es nicht.
 
+## Umzug von v0.3.0 oder früher
+
+Bis v0.3.0 hieß der Ordner `deploy/selbst/`. Ein Versionswechsel auf eine neuere Version lässt `.env` und `data/` dort zurück (beides steht in `.gitignore`). Ohne sie würde `./setup.sh` neue Geheimnisse und eine leere Datenbank anlegen. So kommen sie mit, Container und Volumes bleiben (der Compose-Projektname ist fest `schwarmstack`):
+
+```bash
+cd deploy/selbst && docker compose down        # vor dem Versionswechsel, im alten Ordner
+cd ../.. && git fetch --tags && git checkout vX.Y.Z
+mv deploy/selbst/.env deploy/selbst/data deploy/self-hosting/ && rmdir deploy/selbst
+cd deploy/self-hosting && ./setup.sh
+```
+
 ## Eigene Daten
 
-Alles Eigene liegt unter `deploy/selbst/` und steht in `.gitignore`; ein Versionswechsel fasst es nicht an:
+Alles Eigene liegt unter `deploy/self-hosting/` und steht in `.gitignore`; ein Versionswechsel fasst es nicht an:
 
 | Pfad | Inhalt |
 |---|---|
@@ -113,7 +124,7 @@ Die Zertifikate von Caddy liegen in einem Docker-Volume (`schwarmstack_caddy_dat
 
 ## Sichern
 
-Es gibt keine Backup-Skripte, nur diese Befehle (im Ordner `deploy/selbst/`). SQLite sichern, ohne die App anzuhalten (ADR 0006):
+Es gibt keine Backup-Skripte, nur diese Befehle (im Ordner `deploy/self-hosting/`). SQLite sichern, ohne die App anzuhalten (ADR 0006):
 
 ```bash
 docker compose exec app python -c "import sqlite3; s = sqlite3.connect('/data/db.sqlite3'); d = sqlite3.connect('/data/db-sicherung.sqlite3'); s.backup(d)"
@@ -146,8 +157,8 @@ docker compose logs app
 
 ## Test in der CI
 
-Der CI-Job `selbstbetrieb` führt `./setup.sh --lokal` ohne Rückfragen aus und prüft `/healthz`, den Bucket, CORS (Preflight wie im Browser) und dass ein zweiter Lauf nichts ändert. Er läuft bei Änderungen an `deploy/`; der Release-Workflow (`release.yml`) ruft ihn vor dem Veröffentlichen auf (`selbstbetrieb.yml`), schlägt er fehl, gibt es kein Release. Lokal (braucht Docker und freie Ports 80 und 443):
+Der CI-Job `installer` führt `./setup.sh --lokal` ohne Rückfragen aus und prüft `/healthz`, den Bucket, CORS (Preflight wie im Browser) und dass ein zweiter Lauf nichts ändert. Er läuft bei Änderungen an `deploy/`; der Release-Workflow (`release.yml`) ruft ihn vor dem Veröffentlichen auf (`installer.yml`), schlägt er fehl, gibt es kein Release. Lokal (braucht Docker und freie Ports 80 und 443):
 
 ```bash
-scripts/selbstbetrieb-test.sh
+scripts/installer-test.sh
 ```

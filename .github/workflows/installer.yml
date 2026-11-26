@@ -1,8 +1,8 @@
-# Installer-Test für den Selbstbetrieb (ADR 0011, Ticket #105): baut das Image, führt
-# deploy/selbst/setup.sh --lokal ohne Rückfragen aus und prüft /healthz, Bucket, CORS und den
-# zweiten Lauf (scripts/selbstbetrieb-test.sh). Aufgerufen von ci.yml und von release.yml (#99),
+# Installer-Test für das Self-Hosting (ADR 0011, Ticket #105): baut das Image, führt
+# deploy/self-hosting/setup.sh --lokal ohne Rückfragen aus und prüft /healthz, Bucket, CORS und den
+# zweiten Lauf (scripts/installer-test.sh). Aufgerufen von ci.yml und von release.yml (#99),
 # der damit vor dem Veröffentlichen prüft: Schlägt der Test fehl, gibt es kein Release.
-name: Selbstbetrieb
+name: Installer
 
 on:
   workflow_call:
@@ -18,4 +18,4 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: scripts/selbstbetrieb-test.sh
+      - run: scripts/installer-test.sh

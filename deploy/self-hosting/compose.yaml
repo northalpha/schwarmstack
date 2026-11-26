@@ -1,4 +1,4 @@
-# Selbstbetrieb (ADR 0011): App, Caddy und Garage in einer Datei. Gestartet wird sie von
+# Self-Hosting (ADR 0011): App, Caddy und Garage in einer Datei. Gestartet wird sie von
 # setup.sh; die Werte kommen aus der .env daneben. Die Datei der Betreiber (../compose.yaml,
 # externer S3-Speicher) ist davon unabhängig.
 name: schwarmstack
@@ -60,7 +60,7 @@ services:
       - "443:443/udp"
     environment:
       DOMAIN: ${DOMAIN}
-      # Leer: Caddy holt Zertifikate. `http://`: Probemodus ohne Zertifikat (setup.sh --lokal).
+      # Leer: Caddy holt Zertifikate. `http://`: Demo-Modus ohne Zertifikat (setup.sh --lokal).
       SCHEMA: ${SCHEMA:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro

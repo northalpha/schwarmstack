@@ -32,6 +32,8 @@ grün ist, wird im Review nicht wiederholt.
   | Range Request   | Teilabruf                     |
   | Deploy          | Ausrollen                     |
   | Rollback        | Zurückrollen                  |
+  | Self-Hosting    | Selbstbetrieb                 |
+  | Demo-Modus      | Probemodus                    |
 
 ## Wo Fachverhalten liegt
 
