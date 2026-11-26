@@ -1,7 +1,8 @@
 """Fehlerwege von deploy/selbst/setup.sh (Ticket #100, ADR 0011).
 
 Der Lauf mit Docker, Garage und Caddy gehört zum Installer-Test der CI (#105). Hier stehen nur
-die Wege, die vor dem ersten Docker-Aufruf enden und nichts anfassen.
+die Wege, die vor dem ersten Docker-Aufruf enden und nichts anfassen, und die Trennung von den
+Dateien der Betreiber.
 """
 
 import shutil
@@ -102,4 +103,4 @@ def test_ungueltige_domain_wird_abgelehnt():
 
 def test_compose_der_betreiber_bleibt_getrennt():
     assert "garage" not in (SELBST.parent / "compose.yaml").read_text()
-    assert "s3." not in (SELBST.parent / "Caddyfile").read_text()
+    assert "garage" not in (SELBST.parent / "Caddyfile").read_text()

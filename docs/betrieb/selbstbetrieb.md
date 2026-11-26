@@ -2,7 +2,7 @@
 
 Wer eine eigene Aktion betreiben will, startet Schwarmstack mit einem Skript und Docker Compose, ohne GitHub-Deployment (ADR 0011). Das ist kein Produktversprechen: keine Support-Zusage, Issues sind willkommen. Die Betreiber-Einrichtung der DZVF (Hetzner, GitHub Actions) steht in [`deployment.md`](deployment.md) und ist davon unabhängig.
 
-Kein Rechtsrat: Wer Schwarmstack betreibt, ist selbst für Datenschutzhinweis, Einwilligungen und Löschfristen verantwortlich. Die Angaben zur verantwortlichen Stelle gehören dir.
+Kein Rechtsrat: Wer Schwarmstack betreibt, ist selbst für Datenschutzhinweis, Einwilligungen und Löschfristen verantwortlich. Die Angaben zur verantwortlichen Stelle liegen bei den Betreibern der Instanz.
 
 ## Voraussetzungen
 
@@ -26,7 +26,7 @@ cd schwarmstack/deploy/selbst && ./setup.sh
 `setup.sh` fragt Domain, Betreiber-Adressen, die Angaben zur verantwortlichen Stelle und zum Hoster, dann Objekt, Zeitraum und Grenzen der Aktion und prüft, ob beide DNS-Einträge auf diesen Server zeigen (und nennt den fehlenden). Es erzeugt alle Geheimnisse selbst, schreibt `.env`, startet App, Caddy, Garage und eine Aufgaben-Schleife, richtet Garage samt Bucket und CORS ein (und prüft CORS wie ein Browser), legt die Aktion und das erste Betreiber-Konto an und nennt am Ende die Adressen. Das Passwort des Kontos steht nur dort; ändern:
 
 ```bash
-docker compose exec app python manage.py changepassword betreiber
+docker compose exec app python manage.py changepassword <benutzername>
 ```
 
 Weitere Konten: [`admin.md`](admin.md).
@@ -102,4 +102,10 @@ Die `.env` gehört ebenfalls in die Sicherung, ohne sie sind die Zugangsdaten zu
 | `garage` | S3-kompatibler Speicher (ADR 0005), nur über Caddy unter `s3.<domain>` erreichbar |
 | `caddy` | TLS und Weiterleitung für beide Namen |
 
-Logs: `docker compose logs app`. Die Compose-Datei der Betreiber (`deploy/compose.yaml`) und ihr Caddyfile bleiben unverändert; Einstellungen, die beide betreffen, müssen in beiden Dateien nachgezogen werden.
+Die Compose-Datei der Betreiber (`deploy/compose.yaml`) und ihr Caddyfile bleiben unverändert; Einstellungen, die beide betreffen, müssen in beiden Dateien nachgezogen werden.
+
+Logs lesen:
+
+```bash
+docker compose logs app
+```

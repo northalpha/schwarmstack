@@ -204,7 +204,14 @@ TOML
 chmod 644 "$temp"
 ersetzen data/garage/garage.toml "$temp"
 
-zeile() { printf "%s='%s'\n" "$1" "$2"; }
+zeile() {
+  # Compose liest Werte in einfachen Anführungszeichen wörtlich; ein ' würde die .env zerstören.
+  if [[ $2 == *"'"* || $2 == *$'\n'* ]]; then
+    rm -f "$temp"
+    fehler "$1 darf weder ' noch einen Zeilenumbruch enthalten."
+  fi
+  printf "%s='%s'\n" "$1" "$2"
+}
 temp=$(mktemp -p data)
 {
   zeile MODUS "$modus"
