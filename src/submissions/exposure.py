@@ -316,7 +316,7 @@ def interpret(header: HeaderValues) -> FromHeader:
 
 def _channel_from(keywords: dict[str, str]) -> str | None:
     """Der Kanal zum ersten Filterschlüssel, der gesetzt ist; None ohne eindeutigen Treffer."""
-    name = next((keywords[k] for k in _FILTER_KEYS if keywords.get(k, "").strip()), "")
+    name = next((keywords[k] for k in _FILTER_KEYS if keywords.get(k, "").strip()), None)
     return channel_for_filter(name)
 
 
@@ -362,7 +362,8 @@ LABELS = {
 
 def _read(master, name: str):
     """Wert eines Felds; „kein Wert“ ist immer `None` (die Textspalten speichern dafür `""`)."""
-    return getattr(master, name) or None if name in TEXTS else getattr(master, name)
+    value = getattr(master, name)
+    return (value or None) if name in TEXTS else value
 
 
 def _write(master, name: str, value) -> None:
