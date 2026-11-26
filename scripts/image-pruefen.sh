@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Prüft ein gebautes Image: keine .env, keine Schlüssel und keine Zugangsdaten darin (ADR 0011).
+# Prüft ein gebautes Image: keine .env, keine Schlüssel und keine Zugangsdaten darin (ADR 0011),
+# und Equipment-Fotos (JPEG, PNG, WebP, HEIC) lassen sich darin bereinigen (ADR 0014).
 #
 #   scripts/image-pruefen.sh ghcr.io/northalpha/schwarmstack:v0.2.0
 set -euo pipefail
@@ -32,3 +33,7 @@ if [[ -n $namen ]]; then
   exit 1
 fi
 echo "Image enthält keine .env und keine Zugangsdaten."
+
+# Pillow und pillow-heif laufen im Image auf einer anderen libc als die Tests (Alpine/musl);
+# darum geht je ein Foto jedes Formats durch `submissions.photos` im Image selbst.
+docker run --rm --interactive --entrypoint python "$image" - < "$(dirname "$0")/image_foto_pruefen.py"
