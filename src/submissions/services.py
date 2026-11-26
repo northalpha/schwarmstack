@@ -494,6 +494,8 @@ def change_exposure(master: Master, data: dict) -> None:
         changed = exposure.set_by_hand(master, data)
     if changed:
         master.save(update_fields=changed)
+    if "channel" in changed:  # die Begleitdatei nennt den Kanal
+        get_storage().put_json(master.sidecar_key, sidecar(master))
 
 
 def backfill_exposure(master: Master) -> None:

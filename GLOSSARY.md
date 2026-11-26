@@ -69,7 +69,7 @@ Die automatische Kontrolle eines Masters nach dem Hochladen auf Format, 32-Bit-G
 _Avoid_: Validierung, Check
 
 **Kanal** (`channel`):
-Der Filter- bzw. Farbkanal, den ein Master abbildet, z. B. L, R, G, B, Hα, OIII, SII, IR oder RGB. Teilnehmende wählen ihn beim Hochladen.
+Der Filter- bzw. Farbkanal, den ein Master abbildet, z. B. L, R, G, B, Hα, OIII, SII, IR oder RGB. Teilnehmende wählen ihn beim Hochladen; nennt der Filtername im Header (`FILTER`) bei einem Master mit einer Ebene eindeutig einen anderen Kanal, schlägt Schwarmstack ihn vor, und Teilnehmende übernehmen ihn oder lassen es. Die Herkunft (`manuell`, `header`) wird festgehalten.
 _Avoid_: Filter (für den Kanal des Masters), Band
 
 **Namensnennung** (`credit_name`):

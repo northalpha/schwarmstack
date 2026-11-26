@@ -817,6 +817,7 @@ class MasterAdmin(admin.ModelAdmin):
         *exposure.FIELDS,
         "sources",
         "creator",
+        "header_channel",
         "header_exptime",
         "header_conflicts",
     ]
@@ -826,6 +827,7 @@ class MasterAdmin(admin.ModelAdmin):
         "original_name",
         "sources",
         "creator",
+        "header_channel",
         "header_exptime",
         "header_conflicts",
     ]
@@ -854,8 +856,8 @@ class MasterAdmin(admin.ModelAdmin):
             ", ",
             "{}: {}",
             (
-                (exposure.LABELS[name], getattr(master, f"get_{name}_source_display")() or "–")
-                for name in exposure.FIELDS
+                (label, getattr(master, f"get_{name}_source_display")() or "–")
+                for name, label in {"channel": "Kanal", **exposure.LABELS}.items()
             ),
         )
 

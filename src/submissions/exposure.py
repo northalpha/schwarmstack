@@ -9,6 +9,7 @@ Ganzes gespeichert.
 """
 
 import enum
+import re
 import struct
 from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
@@ -59,16 +60,22 @@ _FITS_TO_XISF = {
     "TELESCOP": "Instrument:Telescope:Name",
     "ORIGIN": None,
     "SWCREATE": None,
+    # Filtername (#95): `FILT-1` und `INSFLNAM` sind Aliase von `FILTER`.
+    "FILTER": "Instrument:Filter:Name",
+    "FILT-1": None,
+    "INSFLNAM": None,
 }
+_FILTER_KEYS = ("FILTER", "FILT-1", "INSFLNAM")
 _CREATOR_PROPERTY = "XISF:CreatorApplication"
 _XISF_PROPERTIES = {p for p in _FITS_TO_XISF.values() if p} | {_CREATOR_PROPERTY}
 # Diese Schlüssel werden auf Widersprüche zwischen XISF-Property und FITS-Keyword geprüft.
-_CONFLICT_KEYS = ("EXPTIME", "INSTRUME", "TELESCOP")
+_CONFLICT_KEYS = ("EXPTIME", "INSTRUME", "TELESCOP", "FILTER")
 # Zu welchen Feldern ein Widerspruch gehört; ist eines davon von Hand gesetzt, ist er erledigt.
 _CONFLICT_FIELDS = {
     "EXPTIME": (PER_LIGHT, TOTAL),
     "INSTRUME": (INSTRUMENT,),
     "TELESCOP": (TELESCOPE,),
+    "FILTER": (),  # der Kanal wird beim Upload von Hand gewählt; der Widerspruch bleibt sichtbar
 }
 
 _CARD = 80
@@ -224,6 +231,35 @@ def light_count(text: str | None) -> int | None:
     return int(value)
 
 
+# Kanal -> Schreibweisen des Filternamens (normalisiert). Dualband- und Lichtverschmutzungsfilter
+# (`HO`, `VIS`, `L-eNhance`, ...) und `IR-cut` stehen bewusst nicht darin: Sie ergeben keinen
+# Vorschlag, und `IR-cut` ist das Gegenteil von `IR`.
+FILTER_SPELLINGS = {
+    "Ha": ("ha", "halpha", "hα", "h"),
+    "OIII": ("oiii", "o3", "o"),
+    "SII": ("sii", "s2", "s"),
+    "L": ("l", "lum", "luminance"),
+    "R": ("r", "red"),
+    "G": ("g", "green"),
+    "B": ("b", "blue"),
+    "IR": ("ir", "irpass"),
+}
+_CHANNEL_BY_SPELLING = {
+    spelling: channel for channel, spellings in FILTER_SPELLINGS.items() for spelling in spellings
+}
+_BANDWIDTH = re.compile(r"\d+(?:[.,]\d+)?\s*nm")
+_IGNORED = re.compile(r"[\s\-_.\[\]()]")
+
+
+def channel_for_filter(text: str | None) -> str | None:
+    """Der Kanal zu einem Filternamen aus dem Header, nur bei eindeutigem Treffer.
+
+    Verglichen wird ohne Groß-/Kleinschreibung, ohne Leerzeichen, `-`, `_`, `.`, Klammern und
+    ohne Bandbreite (`7nm`). Unbekanntes und Mehrbandfilter ergeben `None`."""
+    normalized = _IGNORED.sub("", _BANDWIDTH.sub("", (text or "").casefold()))
+    return _CHANNEL_BY_SPELLING.get(normalized)
+
+
 def meaning_of_exptime(creators) -> tuple[str, Meaning | None]:
     """Erzeuger und die Bedeutung von EXPTIME bei ihm. Gespeichert wird der erste Erzeuger,
     der in der Tabelle steht, sonst der erste überhaupt."""
@@ -243,6 +279,8 @@ class FromHeader:
     creator: str
     unknown_exptime: Decimal | None
     conflicts: dict[str, str]
+    # Kanal laut Filtername (`channel_for_filter`), sonst leer.
+    channel: str = ""
 
 
 def interpret(header: HeaderValues) -> FromHeader:
@@ -271,7 +309,14 @@ def interpret(header: HeaderValues) -> FromHeader:
         creator=creator[:TEXT_LENGTH],
         unknown_exptime=unknown_exptime,
         conflicts={k: v[:TEXT_LENGTH] for k, v in header.conflicts.items()},
+        channel=_channel_from(keywords),
     )
+
+
+def _channel_from(keywords: dict[str, str]) -> str:
+    """Der Kanal zum ersten Filterschlüssel, der gesetzt ist; leer ohne eindeutigen Treffer."""
+    name = next((keywords[k] for k in _FILTER_KEYS if keywords.get(k, "").strip()), "")
+    return channel_for_filter(name) or ""
 
 
 def _any_manual(master, names) -> bool:
@@ -294,7 +339,9 @@ def apply_header(master, header: HeaderValues, *, keep_manual: bool = False) -> 
     if not (keep_manual and _any_manual(master, (PER_LIGHT, TOTAL))):
         master.header_exptime = found.unknown_exptime
     master.header_conflicts = found.conflicts
-    return [*changed, "creator", "header_exptime", "header_conflicts"]
+    # Drei Ebenen (RGB) legen den Kanal fest; nur bei einer Ebene schlägt der Filter einen vor.
+    master.header_channel = "" if master.channel == "RGB" else found.channel
+    return [*changed, "creator", "header_exptime", "header_conflicts", "header_channel"]
 
 
 # -- Vorschläge und Hinweise ---------------------------------------------------
@@ -360,6 +407,8 @@ class Proposal:
     # Wert von EXPTIME, wenn die Teilnehmenden seine Bedeutung wählen sollen.
     exptime_question: Decimal | None = None
     conflicts: tuple[tuple[str, str], ...] = ()
+    # Kanal laut Header, wenn er vom gewählten abweicht (`Master.Channel`-Wert).
+    channel_suggestion: str = ""
 
     @property
     def exptime_question_display(self) -> str:
@@ -405,6 +454,11 @@ def _compute(per_light, count, total) -> tuple[Suggestion | None, str | None]:
     return None, None
 
 
+def _channel_suggestion(master) -> str:
+    header = master.header_channel
+    return header if header and header != master.channel else ""
+
+
 def proposal(master) -> Proposal:
     """Was die Submission-Seite zu den Belichtungsangaben zeigt: Werte mit Herkunft, ein Vorschlag
     für einen fehlenden Wert, Hinweise und gegebenenfalls die Frage nach EXPTIME."""
@@ -423,6 +477,7 @@ def proposal(master) -> Proposal:
         suggestion=suggestion,
         hints=(hint,) if hint else (),
         exptime_question=question,
+        channel_suggestion=_channel_suggestion(master),
         conflicts=tuple(
             (keyword, value)
             for keyword, value in sorted((master.header_conflicts or {}).items())
@@ -469,11 +524,31 @@ def set_by_hand(master, changes: dict) -> list[str]:
         setattr(master, name, value)
         setattr(master, f"{name}_source", Source.MANUAL if value not in (None, "") else "")
         changed += [name, f"{name}_source"]
-    return changed
+    return changed + _set_channel(master, changes.get("channel"))
+
+
+def _set_channel(master, raw) -> list[str]:
+    """Kanal von Hand ändern (Herkunft `manuell`). Drei Ebenen (RGB) legen den Kanal fest:
+    Zwischen RGB und den Einzelkanälen wechselt niemand, die Prüfung hat sie so zugelassen."""
+    if raw is None or raw == master.channel:
+        return []
+    allowed = {c for c in type(master).Channel.values if c != "RGB"}
+    if master.channel == "RGB" or raw not in allowed:
+        raise InvalidInput("Kanal: bitte einen der Einzelkanäle wählen.")
+    master.channel = raw
+    master.channel_source = Source.MANUAL
+    return ["channel", "channel_source"]
 
 
 def accept(master, name: str) -> list[str]:
-    """Speichert den aktuellen Vorschlag mit der Herkunft `berechnet` (ohne zu speichern)."""
+    """Speichert den aktuellen Vorschlag mit der Herkunft `berechnet` (ohne zu speichern).
+    `channel` übernimmt stattdessen den Kanal aus dem Header (Herkunft `header`)."""
+    if name == "channel":
+        if not (channel := _channel_suggestion(master)):
+            raise InvalidInput("Dazu gibt es keinen Vorschlag mehr. Bitte lade die Seite neu.")
+        master.channel = channel
+        master.channel_source = Source.HEADER
+        return ["channel", "channel_source"]
     suggestion = proposal(master).suggestion
     if suggestion is None or suggestion.field != name:
         raise InvalidInput("Dazu gibt es keinen Vorschlag mehr. Bitte lade die Seite neu.")
@@ -511,4 +586,5 @@ def manifest_values(master) -> dict:
             "source": getattr(master, f"{name}_source"),
         }
     entry["creator"] = master.creator
+    entry["channel_source"] = master.channel_source
     return entry

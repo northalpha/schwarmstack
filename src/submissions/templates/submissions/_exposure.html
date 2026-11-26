@@ -15,6 +15,12 @@
       </fieldset>
     </form>
     {% endif %}
+    {% if p.channel_suggestion %}
+    <form method="post" action="{{ exposure_url }}" class="exposure-suggestion">{% csrf_token %}
+      <input type="hidden" name="accept" value="channel">
+      <span>Der Header nennt den Kanal {{ m.get_header_channel_display }}, gewählt ist {{ m.get_channel_display }}.</span> <button type="submit">Übernehmen</button>
+    </form>
+    {% endif %}
     {% if p.suggestion %}
     <form method="post" action="{{ exposure_url }}" class="exposure-suggestion">{% csrf_token %}
       <input type="hidden" name="accept" value="{{ p.suggestion.field }}">
@@ -22,6 +28,15 @@
     </form>
     {% endif %}
     <form method="post" action="{{ exposure_url }}" class="exposure-values">{% csrf_token %}
+      {% if m.channel != "RGB" %}
+      <div class="field">
+        <label for="channel-{{ m.public_id }}">Kanal</label>
+        <select id="channel-{{ m.public_id }}" name="channel">
+          {% for value, label in m.single_channel_choices %}<option value="{{ value }}"{% if value == m.channel %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        {% if m.channel_source %}<span class="source">{{ m.get_channel_source_display }}</span>{% endif %}
+      </div>
+      {% endif %}
       {% for row in p.rows %}
       <div class="field">
         <label for="{{ row.name }}-{{ m.public_id }}">{{ row.label }}{% if row.name == "exposure_per_light" or row.name == "total_exposure" %} (s){% endif %}</label>
