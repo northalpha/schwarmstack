@@ -1,0 +1,80 @@
+# Selbstbetrieb (ADR 0011): App, Caddy und Garage in einer Datei. Gestartet wird sie von
+# setup.sh; die Werte kommen aus der .env daneben. Die Datei der Betreiber (../compose.yaml,
+# externer S3-Speicher) ist davon unabhängig.
+name: schwarmstack
+
+services:
+  app:
+    image: ${IMAGE:-ghcr.io/northalpha/schwarmstack}:${IMAGE_TAG:?IMAGE_TAG fehlt, setup.sh setzt ihn}
+    env_file: .env
+    environment:
+      DEBUG: "0"
+      DATA_DIR: /data
+      ALLOWED_HOSTS: ${DOMAIN:?DOMAIN fehlt}
+      CSRF_TRUSTED_ORIGINS: ${PUBLIC_ORIGIN:?PUBLIC_ORIGIN fehlt}
+    volumes:
+      # SQLite auf der lokalen Platte (ADR 0006).
+      - ./data/app:/data
+    depends_on: [garage]
+    restart: unless-stopped
+
+  # Wiederkehrende Aufgaben (ADR 0008): Löschung nach Ablauf der Löschfrist täglich,
+  # IP-Hashes der Anmeldung stündlich vergessen. Dasselbe Image, derselbe Datenordner.
+  aufgaben:
+    image: ${IMAGE:-ghcr.io/northalpha/schwarmstack}:${IMAGE_TAG}
+    env_file: .env
+    environment:
+      DEBUG: "0"
+      DATA_DIR: /data
+      ALLOWED_HOSTS: ${DOMAIN}
+    volumes:
+      - ./data/app:/data
+    depends_on: [app]
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - |
+        stunde=0
+        while true; do
+          python manage.py forget_login_attempts
+          if [ $$((stunde % 24)) -eq 0 ]; then python manage.py delete_after_export; fi
+          stunde=$$((stunde + 1))
+          sleep 3600
+        done
+
+  garage:
+    image: dxflrs/garage:v2.5.0
+    volumes:
+      - ./data/garage/garage.toml:/etc/garage.toml:ro
+      - ./data/garage/meta:/var/lib/garage/meta
+      - ./data/garage/data:/var/lib/garage/data
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2.10.2
+    depends_on: [app, garage]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+      # Leer: Caddy holt Zertifikate. `http://`: Probemodus ohne Zertifikat (setup.sh --lokal).
+      SCHEMA: ${SCHEMA:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      default:
+        # App und Aufgaben erreichen Garage über dieselbe Adresse wie der Browser. So passt
+        # die Signatur der Links, und es braucht keine Ausnahmen für das Zertifikat.
+        aliases:
+          - ${DOMAIN}
+          - s3.${DOMAIN}
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
